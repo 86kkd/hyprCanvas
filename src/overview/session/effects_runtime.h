@@ -17,7 +17,7 @@ struct Runtime {
     virtual PHLWORKSPACE            getWorkspaceByID(WORKSPACEID workspaceId) const = 0;
     virtual std::vector<PHLWORKSPACE> getWorkspaces() const = 0;
     virtual PHLMONITOR              getMonitorFromID(MONITORID monitorId) const = 0;
-    virtual PHLMONITOR              getMonitorFromCursor() const = 0;
+    virtual PHLMONITOR              getFocusedMonitor() const = 0;
 
     virtual MONITORID               monitorId(PHLMONITOR monitor) const = 0;
     virtual WORKSPACEID             workspaceId(PHLWORKSPACE workspace) const = 0;

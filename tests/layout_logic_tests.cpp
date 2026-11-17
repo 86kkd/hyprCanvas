@@ -29,7 +29,7 @@ struct FakeDispatcherRuntime final : CanvasLayoutInternal::DispatcherRuntime {
     bool invocationSucceeds = true;
     std::vector<std::string> knownDispatchers;
     mutable std::vector<std::pair<std::string, std::string>> invocations;
-    mutable PHLMONITOR cursorMonitor = nullptr;
+    mutable PHLMONITOR focusedMonitor = nullptr;
     bool directWorkspaceActivationSucceeds = true;
     bool workspaceDispatchActivatesWorkspace = true;
     bool focusWindowDispatchActivatesWindow = true;
@@ -91,21 +91,21 @@ struct FakeDispatcherRuntime final : CanvasLayoutInternal::DispatcherRuntime {
             if (it != monitorsByName.end() &&
                 focusMonitorSuccessOnAttempt > 0 &&
                 focusMonitorAttempts >= focusMonitorSuccessOnAttempt)
-                cursorMonitor = it->second;
+                focusedMonitor = it->second;
         } else if (std::string_view(dispatcher) == "workspace") {
-            if (cursorMonitor && workspaceDispatchActivatesWorkspace) {
+            if (focusedMonitor && workspaceDispatchActivatesWorkspace) {
                 const auto workspaceIt = workspacesBySelector.find(std::string(arg));
                 if (workspaceIt != workspacesBySelector.end()) {
                     const auto stateIt = workspaces.find(workspaceIt->second.get());
                     if (stateIt != workspaces.end()) {
-                        auto &monitorState = monitors[cursorMonitor.get()];
+                        auto &monitorState = monitors[focusedMonitor.get()];
                         if (stateIt->second.special)
                             monitorState.activeSpecialWorkspaceId = stateIt->second.id;
                         else
                             monitorState.activeWorkspaceId = stateIt->second.id;
                     }
                 } else {
-                    auto &monitorState = monitors[cursorMonitor.get()];
+                    auto &monitorState = monitors[focusedMonitor.get()];
                     monitorState.activeWorkspaceId = std::stoll(std::string(arg));
                 }
             }
@@ -117,7 +117,7 @@ struct FakeDispatcherRuntime final : CanvasLayoutInternal::DispatcherRuntime {
 
                 const auto monitorIt = monitorsById.find(windowState.monitorId);
                 if (monitorIt != monitorsById.end())
-                    cursorMonitor = monitorIt->second;
+                    focusedMonitor = monitorIt->second;
             }
         }
 
@@ -129,8 +129,8 @@ struct FakeDispatcherRuntime final : CanvasLayoutInternal::DispatcherRuntime {
         return it == monitorsById.end() ? nullptr : it->second;
     }
 
-    PHLMONITOR getMonitorFromCursor() const override {
-        return cursorMonitor;
+    PHLMONITOR getFocusedMonitor() const override {
+        return focusedMonitor;
     }
 
     bool isWindowActive(PHLWINDOW window) const override {
@@ -379,12 +379,12 @@ void test_focus_monitor_workspace_logic() {
     const auto primaryMonitor = runtime.addMonitor(1, "HDMI-A-1", 1);
     const auto targetMonitor = runtime.addMonitor(2, "DP-1", 3);
     const auto targetWorkspace = runtime.addWorkspace(5, "5");
-    runtime.cursorMonitor = primaryMonitor;
+    runtime.focusedMonitor = primaryMonitor;
 
     expect_true(focus_monitor_workspace(runtime, targetMonitor, targetWorkspace, INVALID_WORKSPACE_ID, true, "layout_test"),
                 "focus_monitor_workspace focuses target monitor and workspace");
-    expect_eq(runtime.getMonitorFromCursor(), targetMonitor,
-              "focus_monitor_workspace updates cursor monitor");
+    expect_eq(runtime.getFocusedMonitor(), targetMonitor,
+              "focus_monitor_workspace updates focused monitor");
     expect_true(runtime.isWorkspaceActiveOnMonitor(targetMonitor, targetWorkspace, INVALID_WORKSPACE_ID),
                 "focus_monitor_workspace leaves the requested workspace active");
 
@@ -395,7 +395,7 @@ void test_focus_monitor_workspace_logic() {
     const auto sourceMonitor = missingFocusRuntime.addMonitor(1, "HDMI-A-1", 1);
     const auto otherMonitor = missingFocusRuntime.addMonitor(2, "DP-1", 2);
     const auto otherWorkspace = missingFocusRuntime.addWorkspace(7, "7");
-    missingFocusRuntime.cursorMonitor = sourceMonitor;
+    missingFocusRuntime.focusedMonitor = sourceMonitor;
 
     expect_true(!focus_monitor_workspace(missingFocusRuntime, otherMonitor, otherWorkspace, INVALID_WORKSPACE_ID, true, "layout_test"),
                 "focus_monitor_workspace fails when monitor focus never lands on the target");
@@ -406,13 +406,13 @@ void test_focus_monitor_workspace_logic() {
     const auto sourceMonitorForWindow = workspaceOnlyRuntime.addMonitor(1, "HDMI-A-1", 1);
     const auto targetMonitorForWindow = workspaceOnlyRuntime.addMonitor(2, "DP-1", 3);
     const auto targetWorkspaceForWindow = workspaceOnlyRuntime.addWorkspace(11, "11");
-    workspaceOnlyRuntime.cursorMonitor = sourceMonitorForWindow;
+    workspaceOnlyRuntime.focusedMonitor = sourceMonitorForWindow;
 
     expect_true(focus_monitor_workspace(workspaceOnlyRuntime, targetMonitorForWindow, targetWorkspaceForWindow,
                                         INVALID_WORKSPACE_ID, false, "layout_test"),
                 "window handoff only requires the destination workspace to become active");
-    expect_eq(workspaceOnlyRuntime.getMonitorFromCursor(), sourceMonitorForWindow,
-              "relaxed window handoff does not require cursor monitor movement");
+    expect_eq(workspaceOnlyRuntime.getFocusedMonitor(), sourceMonitorForWindow,
+              "relaxed window handoff does not require focused monitor movement");
     expect_true(workspaceOnlyRuntime.isWorkspaceActiveOnMonitor(targetMonitorForWindow, targetWorkspaceForWindow, INVALID_WORKSPACE_ID),
                 "relaxed window handoff still activates the destination workspace");
 
@@ -423,7 +423,7 @@ void test_focus_monitor_workspace_logic() {
     const auto priorMonitor = missingWorkspaceRuntime.addMonitor(1, "HDMI-A-1", 1);
     const auto workspaceMonitor = missingWorkspaceRuntime.addMonitor(2, "DP-1", 3);
     const auto workspace = missingWorkspaceRuntime.addWorkspace(9, "9");
-    missingWorkspaceRuntime.cursorMonitor = priorMonitor;
+    missingWorkspaceRuntime.focusedMonitor = priorMonitor;
 
     expect_true(!focus_monitor_workspace(missingWorkspaceRuntime, workspaceMonitor, workspace, INVALID_WORKSPACE_ID, true, "layout_test"),
                 "focus_monitor_workspace fails when workspace activation never settles");
@@ -438,11 +438,11 @@ void test_switch_to_window_logic() {
     const auto currentMonitor = runtime.addMonitor(1, "HDMI-A-1", 1);
     const auto targetMonitor = runtime.addMonitor(2, "DP-1", 2);
     const auto targetWindow = runtime.addWindow(2, 2, false);
-    runtime.cursorMonitor = currentMonitor;
+    runtime.focusedMonitor = currentMonitor;
 
     expect_true(switch_to_window(runtime, targetWindow, true),
                 "switch_to_window focuses the target window when dispatcher succeeds");
-    expect_eq(runtime.getMonitorFromCursor(), targetMonitor,
+    expect_eq(runtime.getFocusedMonitor(), targetMonitor,
               "switch_to_window focuses the window's monitor first");
     expect_true(runtime.isWindowActive(targetWindow),
                 "switch_to_window leaves the requested window active");
@@ -455,7 +455,7 @@ void test_switch_to_window_logic() {
     const auto source = failureRuntime.addMonitor(1, "HDMI-A-1", 1);
     failureRuntime.addMonitor(2, "DP-1", 2);
     const auto stuckWindow = failureRuntime.addWindow(2, 2, false);
-    failureRuntime.cursorMonitor = source;
+    failureRuntime.focusedMonitor = source;
 
     expect_true(!switch_to_window(failureRuntime, stuckWindow, true),
                 "switch_to_window reports failure when the target window never becomes active");

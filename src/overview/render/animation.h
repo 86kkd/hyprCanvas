@@ -6,8 +6,17 @@
 
 #include <algorithm>
 #include <chrono>
+#include <cstdint>
+#include <tuple>
 
 namespace Overview {
+
+// One window can occur in multiple legacy canvas combinations. Its previews
+// must never share animation coordinates across canvas tiles or monitors.
+using PreviewKey = std::tuple<int, int, std::uintptr_t>;
+inline PreviewKey previewKey(int canvasId, int monitorId, std::uintptr_t window) {
+    return {canvasId, monitorId, window};
+}
 
 using steady_tp = std::chrono::steady_clock::time_point;
 

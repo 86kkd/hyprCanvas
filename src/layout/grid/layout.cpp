@@ -151,7 +151,7 @@ PHLMONITOR GridLayout::resolve_monitor() const {
     if (const auto window = reference_window())
         return ScrollerCore::HyprlandRuntime::monitorById(window->monitorID());
 
-    return ScrollerCore::monitorFromPointingOrCursor();
+    return ScrollerCore::monitorForKeyboardAction();
 }
 
 PHLMONITOR GridLayout::visible_monitor(PHLMONITOR fallback) const {

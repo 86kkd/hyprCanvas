@@ -38,7 +38,7 @@ struct FakeSessionEffectsRuntime final : Overview::SessionEffects::Runtime {
     };
 
     WORKSPACEID currentWorkspace = INVALID_WORKSPACE_ID;
-    PHLMONITOR cursorMonitor = nullptr;
+    PHLMONITOR focusedMonitor = nullptr;
     bool focusMonitorWorkspaceResult = true;
     bool switchToWindowResult = true;
 
@@ -78,8 +78,8 @@ struct FakeSessionEffectsRuntime final : Overview::SessionEffects::Runtime {
         return it == monitorsById.end() ? nullptr : it->second;
     }
 
-    PHLMONITOR getMonitorFromCursor() const override {
-        return cursorMonitor;
+    PHLMONITOR getFocusedMonitor() const override {
+        return focusedMonitor;
     }
 
     MONITORID monitorId(PHLMONITOR monitor) const override {
@@ -349,7 +349,7 @@ void test_capture_origin_prefers_last_focused_window_and_visible_monitor() {
     const auto window = runtime.addWindow(99, true);
     runtime.workspaces[workspace.get()].lastFocusedWindow = window;
     runtime.workspaces[workspace.get()].visibleMonitor = visibleMonitor;
-    runtime.cursorMonitor = storedMonitor;
+    runtime.focusedMonitor = storedMonitor;
 
     const auto origin = Overview::SessionEffects::captureOrigin(runtime);
     expect_eq(origin.workspaceId, static_cast<WORKSPACEID>(9),

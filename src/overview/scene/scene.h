@@ -16,6 +16,7 @@
 namespace Overview {
 
 struct SceneTarget {
+    int               canvasId = INVALID_CANVAS_ID;
     TargetType        type = TargetType::Window;
     ScrollerCore::Box box;
     PHLWINDOW         window = nullptr;

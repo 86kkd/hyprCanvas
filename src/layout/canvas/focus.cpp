@@ -474,7 +474,7 @@ void CanvasLayout::move_focus(int workspace, Direction direction)
     const auto before = lane ? lane->get_active_window() : nullptr;
     const auto activeCanvasMonitor = getVisibleCanvasMonitor();
     const auto sourceMonitor = before ? ScrollerCore::HyprlandRuntime::monitorById(before->monitorID())
-                                     : (activeCanvasMonitor ? activeCanvasMonitor : ScrollerCore::monitorFromPointingOrCursor());
+                                     : (activeCanvasMonitor ? activeCanvasMonitor : ScrollerCore::monitorForKeyboardAction());
     const auto beforeActiveWorkspaceId = sourceMonitor ? ScrollerCore::HyprlandRuntime::activeWorkspaceId(sourceMonitor) : WORKSPACE_INVALID;
     const auto beforeSpecialWorkspaceId = sourceMonitor ? ScrollerCore::HyprlandRuntime::activeSpecialWorkspaceId(sourceMonitor) : WORKSPACE_INVALID;
     auto sourceLaneNode = activeLane;

@@ -22,8 +22,8 @@ namespace ScrollerCore {
 // Convert the generic tiled target used by Hyprland into a concrete window pointer.
 PHLWINDOW windowFromTarget(SP<Layout::ITarget> target);
 
-// Resolve workspace/monitor context from pointer position used by keyboard actions.
-PHLMONITOR monitorFromPointingOrCursor();
+// Resolve keyboard action context from focus, falling back to the pointer.
+PHLMONITOR monitorForKeyboardAction();
 
 // Cross-workspace bookmark table used by marks:* dispatchers.
 class Marks {

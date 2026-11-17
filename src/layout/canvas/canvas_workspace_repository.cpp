@@ -280,6 +280,11 @@ int CanvasWorkspaceRepository::ensureCurrentVisibleCanvas() {
     for (const auto& canvas : snapshot_.canvases) {
         if (members_match(from_snapshot(canvas).members, visible)) {
             snapshot_.activeCanvasId = canvas.canvasId;
+            // Imported native workspace combinations may share an entire
+            // monitor. Preserve what is visible and give older groups their
+            // own empty backing workspaces before exposing the canvas graph.
+            ScrollerCanvasSnapshot::make_members_exclusive(snapshot_, canvas.canvasId,
+                                                           static_cast<int>(next_workspace_id(snapshot_)));
             flushToDisk();
             return canvas.canvasId;
         }
@@ -301,6 +306,8 @@ int CanvasWorkspaceRepository::ensureCurrentVisibleCanvas() {
         .members = visible,
     }));
     snapshot_.activeCanvasId = nextId;
+    ScrollerCanvasSnapshot::make_members_exclusive(snapshot_, nextId,
+                                                   static_cast<int>(next_workspace_id(snapshot_)));
     flushToDisk();
     return nextId;
 }

@@ -578,3 +578,56 @@ hyprctl -i <instance-signature> dispatch exit
 2. `hyprctl workspaces -j`，确认是否有残留的 `special:*` workspace 记录
 3. `hyprctl clients -j`，确认该 workspace 里是否只有 floating window
 4. 如果是测试遗留状态，先清理 special workspace，再判断是否真有 overview bug
+
+## 三 workspace / 副屏 overview 消失回归（Hyprland 0.57 Lua）
+
+```bash
+cmake --build Debug -j4
+ctest --test-dir Debug --output-on-failure
+python3 scripts/repro-overview-shared-workspace.py
+```
+
+依赖 `Hyprland`、`hyprctl`、`kitty`、`grim` 和 Python Pillow。脚本启动独立
+compositor，按 PID 找到自己的 instance，创建两块 headless 输出后移除其
+Wayland 预览输出。启动时会短暂出现 nested 窗口；测试期间不切换主会话
+workspace、不热加载主会话插件，结束时只关闭自己的实例。
+输出 `/tmp/hyprscroller-shared-workspace.*/` 下的截图、日志和 result.json。
+这是 Lua 配置/API 路径，不依赖旧脚本中的 legacy dispatcher。
+
+复现顺序：记录 `(101,102)` canvas，原生切换主屏到 103 并记录
+`(103,102)`，再回到 `(101,102)` 打开 overview。旧动画缓存只用 window
+指针作 key，第二份副屏窗口预览把第一份坐标覆盖到屏幕外，副屏变成纯背景。
+修复后缓存身份包含 canvas、monitor 和 window。另一个回归从共享的 102
+窗口打开 overview，确保初始选择限定在当前 canvas，不接受历史 canvas。
+
+脚本先验证正常双屏截图，再检查三 workspace 的红/绿窗口像素和共享 origin
+的蓝/绿窗口像素；还检查方向/编号 canvas 切换的所有 monitor 成员、窗口
+方向移动不产生新 workspace、最终窗口仍在当前可见 canvas。
+历史原生 workspace 组合仍可被读取，不迁移或删除用户窗口。
+
+配套快捷键见 `examples/scroller-workspaces.lua`，需要在用户绑定之后加载。
+主会话配置和运行中的插件不会由回归脚本自动更新。
+
+### 禁止鼠标跳转时的跨屏键盘焦点
+
+`python3 scripts/repro-overview-shared-workspace.py --no-warps` 会在独立实例中
+启用 `cursor.no_warps=true` 和 `input.follow_mouse=0`，同时重跑 overview /
+canvas 测试，最后验证跨屏移动保持目标窗口焦点、鼠标位置不变，以及下一次
+`move_focus` 在目标显示器执行。键盘 action workspace 和跨屏焦点验证必须使用
+Hyprland 的 focused monitor，不能拿 cursor monitor 代替。
+
+### 安装前的热重载验证
+
+添加 `--reload-plugin` 会在独立实例中切到 dwindle，卸载/加载待安装插件，
+再切回 scroller，断言所有窗口的 workspace/monitor 归属和可见 workspace
+不变。切换布局可能改变焦点，因此安装流程应另外记录并恢复活动窗口。
+脚本同时覆盖 Lua 配置中的 `hl.plugin.load(...)` 自动加载入口。
+
+### 旧 canvas 共享成员迁移
+
+除了预览可见性，回归必须断言不同普通 canvas 不能引用同一个原生 workspace。
+典型旧状态是 `(1,2)`、`(1,4)`、`(1,3)`，切换时左屏仍显示 workspace 1。
+迁移以实际可见 canvas 为优先（不能信任可能滞后的 ACTIVE 字段），保留当前
+窗口；其他组的重复引用分配新的空 workspace ID，已有唯一隐藏成员保持不变。
+脚本现在还实际在旧第 1/2 组间切换，断言每块 monitor 的 workspace ID 都变化，
+再返回原组。纯测试覆盖主会话这组三组旧映射和重复迁移的幂等性。

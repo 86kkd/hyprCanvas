@@ -264,7 +264,7 @@ const Target* Model::resolve(const TargetRef& ref) const {
     return &workspace.targets[ref.targetIndex];
 }
 
-std::optional<TargetRef> Model::findByWindow(PHLWINDOW window) const {
+std::optional<TargetRef> Model::findByWindow(PHLWINDOW window, int canvasId) const {
     if (!window)
         return std::nullopt;
 
@@ -272,19 +272,19 @@ std::optional<TargetRef> Model::findByWindow(PHLWINDOW window) const {
     // care about "all selectable things", not the nested storage shape.
     for (const auto& node : targetGraph_) {
         const auto* target = resolve(node.ref);
-        if (target && target->type == TargetType::Window && target->window == window)
+        if (target && (canvasId == INVALID_CANVAS_ID || target->canvasId == canvasId) && target->type == TargetType::Window && target->window == window)
             return node.ref;
     }
 
     return std::nullopt;
 }
 
-std::optional<TargetRef> Model::findByWorkspace(WORKSPACEID workspaceId) const {
+std::optional<TargetRef> Model::findByWorkspace(WORKSPACEID workspaceId, int canvasId) const {
     // Workspace-level lookup returns the first selectable target belonging to
     // that workspace, which may be a real window or the empty-workspace target.
     for (const auto& node : targetGraph_) {
         const auto* target = resolve(node.ref);
-        if (target && target->workspaceId == workspaceId)
+        if (target && (canvasId == INVALID_CANVAS_ID || target->canvasId == canvasId) && target->workspaceId == workspaceId)
             return node.ref;
     }
 

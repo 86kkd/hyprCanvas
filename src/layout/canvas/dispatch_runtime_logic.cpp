@@ -14,11 +14,11 @@ std::string monitor_name(const CanvasLayoutInternal::DispatcherRuntime& runtime,
     return name.empty() ? "unknown" : name;
 }
 
-bool is_cursor_monitor(const CanvasLayoutInternal::DispatcherRuntime& runtime, PHLMONITOR monitor) {
+bool is_focused_monitor(const CanvasLayoutInternal::DispatcherRuntime& runtime, PHLMONITOR monitor) {
     if (!monitor)
         return false;
 
-    return runtime.getMonitorFromCursor() == monitor;
+    return runtime.getFocusedMonitor() == monitor;
 }
 
 } // namespace
@@ -49,7 +49,7 @@ bool focus_monitor_workspace(const DispatcherRuntime& runtime,
                                     ? std::to_string(targetWorkspaceId)
                                     : std::string();
     const auto specialWorkspace = workspace && runtime.isWorkspaceSpecial(workspace);
-    const auto priorMonitor = runtime.getMonitorFromCursor();
+    const auto priorMonitor = runtime.getFocusedMonitor();
     const auto priorMonitorName = monitor_name(runtime, priorMonitor);
 
     spdlog::debug("{}: focusing monitor={} workspace={} prior_monitor={}",
@@ -66,7 +66,7 @@ bool focus_monitor_workspace(const DispatcherRuntime& runtime,
                       targetWorkspaceId);
     }
 
-    if (!is_cursor_monitor(runtime, monitor))
+    if (!is_focused_monitor(runtime, monitor))
         (void)invoke_dispatcher(runtime, "focusmonitor", targetMonitorName, ctx);
 
     if (workspace && !specialWorkspace && !selector.empty())
@@ -74,7 +74,7 @@ bool focus_monitor_workspace(const DispatcherRuntime& runtime,
     else if (!workspace && !fallbackSelector.empty())
         (void)invoke_dispatcher(runtime, "workspace", fallbackSelector, ctx);
 
-    if (!is_cursor_monitor(runtime, monitor)) {
+    if (!is_focused_monitor(runtime, monitor)) {
         const auto retryContext = std::string(ctx).append("_retry");
         (void)invoke_dispatcher(runtime, "focusmonitor", targetMonitorName, retryContext.c_str());
         if (workspace && !specialWorkspace && !selector.empty())
@@ -83,14 +83,14 @@ bool focus_monitor_workspace(const DispatcherRuntime& runtime,
             (void)invoke_dispatcher(runtime, "workspace", fallbackSelector, retryContext.c_str());
     }
 
-    const auto focusedMonitor = runtime.getMonitorFromCursor();
+    const auto focusedMonitor = runtime.getFocusedMonitor();
     spdlog::debug("{}: monitor {} focus result prior={} post={} switched={} final_target_active={}",
                   ctx,
                   targetMonitorName,
                   priorMonitorName,
                   monitor_name(runtime, focusedMonitor),
                   switched,
-                  is_cursor_monitor(runtime, monitor));
+                  is_focused_monitor(runtime, monitor));
 
     const auto monitorFocused = focusedMonitor == monitor;
     const auto workspaceActive = runtime.isWorkspaceActiveOnMonitor(monitor, workspace, fallback_workspace_id);
@@ -115,7 +115,7 @@ bool focus_monitor_workspace(const DispatcherRuntime& runtime,
         (void)invoke_dispatcher(runtime, "workspace", fallbackSelector, "focus_monitor_workspace_verify");
     }
 
-    const auto finalFocusedMonitor = runtime.getMonitorFromCursor();
+    const auto finalFocusedMonitor = runtime.getFocusedMonitor();
     return runtime.isWorkspaceActiveOnMonitor(monitor, workspace, fallback_workspace_id)
         && (!require_monitor_focus || finalFocusedMonitor == monitor);
 }
@@ -125,7 +125,7 @@ void focus_window_monitor(const DispatcherRuntime& runtime, PHLWINDOW window) {
         return;
 
     const auto targetMonitor = runtime.getMonitorFromID(runtime.windowMonitorID(window));
-    const auto currentMonitor = runtime.getMonitorFromCursor();
+    const auto currentMonitor = runtime.getFocusedMonitor();
     const auto targetMonitorName = runtime.monitorName(targetMonitor);
     if (!targetMonitor || !currentMonitor || targetMonitor == currentMonitor || targetMonitorName.empty())
         return;

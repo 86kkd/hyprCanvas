@@ -233,6 +233,29 @@ void test_canvas_workspace_snapshot_round_trip() {
     expect_true(parsed->canvases[0].members[1].special, "canvas workspace snapshot keeps special member flag");
 }
 
+void test_legacy_canvas_members_become_exclusive() {
+    using namespace ScrollerCanvasSnapshot;
+    RepositorySnapshot repository;
+    repository.activeCanvasId = 1; // Stale ACTIVE must not trump visible canvas 0.
+    repository.canvases = {
+        {0, 0, 0, {{0, 1, false}, {1, 2, false}}},
+        {1, 1, 0, {{0, 1, false}, {1, 4, false}}},
+        {2, 2, 0, {{0, 1, false}, {1, 3, false}}},
+    };
+    expect_true(make_members_exclusive(repository, 0, 21), "legacy shared monitor members are migrated");
+    expect_eq(repository.canvases[0].members[0].workspaceId, 1, "visible left workspace stays intact");
+    expect_eq(repository.canvases[0].members[1].workspaceId, 2, "visible right workspace stays intact");
+    expect_eq(repository.canvases[1].members[0].workspaceId, 21, "second canvas receives independent left workspace");
+    expect_eq(repository.canvases[2].members[0].workspaceId, 22, "third canvas receives another independent left workspace");
+    expect_eq(repository.canvases[1].members[1].workspaceId, 4, "unique hidden workspace keeps its windows");
+    expect_true(!make_members_exclusive(repository, 0, 23), "migration is idempotent");
+
+    repository.canvases.push_back({3, 3, 0, {{0, 1, false}, {1, 2, false}}});
+    expect_true(make_members_exclusive(repository, 3, 23), "new native combination claims its visible members");
+    expect_eq(repository.canvases[3].members[0].workspaceId, 1, "new visible canvas retains real windows");
+    expect_eq(repository.canvases[0].members[0].workspaceId, 23, "older canvas cannot retain shared member");
+}
+
 void test_canvas_workspace_snapshot_rejects_missing_active_line() {
     const auto parsed = ScrollerCanvasSnapshot::deserialize_repository(
         "VERSION 1\n"
@@ -251,5 +274,6 @@ void run_layout_snapshot_tests() {
     test_snapshot_rejects_invalid_version();
     test_snapshot_rejects_malformed_stack_line();
     test_canvas_workspace_snapshot_round_trip();
+    test_legacy_canvas_members_become_exclusive();
     test_canvas_workspace_snapshot_rejects_missing_active_line();
 }

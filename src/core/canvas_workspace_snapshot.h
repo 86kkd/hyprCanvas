@@ -28,6 +28,10 @@ struct RepositorySnapshot {
     std::vector<CanvasWorkspaceSnapshot> canvases;
 };
 
+// Preserve the visible canvas; replace other references to the same ordinary
+// workspace with fresh IDs. No windows or compositor workspaces are mutated.
+bool make_members_exclusive(RepositorySnapshot& snapshot, int preferredCanvasId, int nextWorkspaceId);
+
 std::string                      serialize_repository(const RepositorySnapshot& snapshot);
 std::optional<RepositorySnapshot> deserialize_repository(std::string_view data);
 

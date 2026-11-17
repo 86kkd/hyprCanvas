@@ -9,11 +9,9 @@ PHLWINDOW windowFromTarget(SP<Layout::ITarget> target) {
     return target ? target->window() : nullptr;
 }
 
-// Use cursor monitor first as action context when available.
-PHLMONITOR monitorFromPointingOrCursor() {
-    if (auto monitor = ScrollerCore::HyprlandRuntime::monitorFromCursor(); monitor)
-        return monitor;
-    return nullptr;
+// Keyboard commands must follow focus even when pointer warping is disabled.
+PHLMONITOR monitorForKeyboardAction() {
+    return ScrollerCore::HyprlandRuntime::monitorForKeyboardAction();
 }
 
 // Drop all marks to avoid stale references after disable/reset.

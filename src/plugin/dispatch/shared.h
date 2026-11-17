@@ -111,9 +111,9 @@ inline PHLWORKSPACE workspaceForActionContext(int* workspace) {
         return nullptr;
     }
 
-    PHLMONITOR monitor = ScrollerCore::HyprlandRuntime::monitorFromCursor();
+    PHLMONITOR monitor = ScrollerCore::HyprlandRuntime::monitorForKeyboardAction();
     if (!monitor) {
-        spdlog::warn("layout_for_action: no monitor under cursor");
+        spdlog::warn("layout_for_action: no focused monitor or cursor monitor");
         if (workspace)
             *workspace = -1;
         return nullptr;

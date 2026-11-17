@@ -57,6 +57,14 @@ inline PHLMONITOR monitorFromCursor() {
     return State::monitorState()->query().vec(Pointer::mgr()->position()).run();
 }
 
+// Keyboard focus is independent of pointer position when cursor.no_warps is
+// enabled. Use the pointer only before Hyprland has established keyboard focus.
+inline PHLMONITOR monitorForKeyboardAction() {
+    if (const auto monitor = Desktop::focusState()->monitor())
+        return monitor;
+    return monitorFromCursor();
+}
+
 inline PHLMONITOR monitorInDirection(PHLMONITOR source, Math::eDirection direction) {
     if (!source)
         return nullptr;

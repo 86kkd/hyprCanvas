@@ -84,7 +84,7 @@ void dispatch_focusmonitor(std::string arg) {
         return;
     }
 
-    const auto sourceMonitor = ScrollerCore::monitorFromPointingOrCursor();
+    const auto sourceMonitor = ScrollerCore::monitorForKeyboardAction();
     const auto monitorDirection = CanvasLayoutInternal::direction_to_math(*direction);
     if (!g_pCompositor || !sourceMonitor || !monitorDirection) {
         spdlog::warn("dispatch_focusmonitor: no route direction={} source_monitor={}",
@@ -295,6 +295,32 @@ int lua_focus_monitor(lua_State* state) {
     return 0;
 }
 
+// Use the same canvas transaction as overview acceptance, even when the
+// caller switches directly from normal mode. No native per-monitor workspace
+// dispatch is involved, so every canvas member changes together.
+int lua_switch_workspace(lua_State* state) {
+    const auto argument = luaStringArg(state);
+    const auto direction = parsedDirectionArg(argument);
+    const int number = argument == "10" ? 10 :
+        (argument.size() == 1 && argument[0] >= '1' && argument[0] <= '9' ? argument[0] - '0' : 0);
+    if (direction && *direction != Direction::Left && *direction != Direction::Right &&
+        *direction != Direction::Up && *direction != Direction::Down)
+        return 0;
+    if (!direction && number == 0)
+        return 0;
+    auto& overview = Overview::session();
+    const bool wasActive = overview.active();
+    if (!wasActive)
+        overview.open();
+    if (overview.active()) {
+        overview.markInputHandled();
+        const bool moved = direction ? overview.moveCanvasSelection(*direction) : overview.selectCanvasNumber(number);
+        if (!wasActive)
+            overview.close(moved);
+    }
+    return 0;
+}
+
 int lua_move_window(lua_State* state) {
     dispatch_movewindow(luaStringArg(state));
     return 0;
@@ -351,6 +377,7 @@ void registerLayoutLuaFunctions() {
     registerLuaFunction("cycle_size", lua_cycle_size);
     registerLuaFunction("move_focus", lua_move_focus);
     registerLuaFunction("focus_monitor", lua_focus_monitor);
+    registerLuaFunction("switch_workspace", lua_switch_workspace);
     registerLuaFunction("move_window", lua_move_window);
     registerLuaFunction("align_window", lua_align_window);
     registerLuaFunction("admit_window", lua_admit_window);

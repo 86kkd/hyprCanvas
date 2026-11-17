@@ -75,8 +75,8 @@ public:
         return g_pCompositor ? ScrollerCore::HyprlandRuntime::monitorById(monitorId) : nullptr;
     }
 
-    PHLMONITOR getMonitorFromCursor() const override {
-        return g_pCompositor ? ScrollerCore::HyprlandRuntime::monitorFromCursor() : nullptr;
+    PHLMONITOR getFocusedMonitor() const override {
+        return g_pCompositor ? ScrollerCore::HyprlandRuntime::monitorForKeyboardAction() : nullptr;
     }
 
     bool isWindowActive(PHLWINDOW window) const override {
@@ -144,7 +144,7 @@ public:
 
     void warpCursorToWindow(PHLWINDOW window) const override {
         if (window)
-            window->warpCursor(true);
+            window->warpCursor();
     }
 };
 

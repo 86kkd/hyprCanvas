@@ -201,7 +201,7 @@ PHLWINDOW pick_cross_monitor_target_window(PHLMONITOR monitor, WORKSPACEID works
 
 // Return the current action workspace id from the active monitor context.
 int get_workspace_id() {
-    const auto monitor = ScrollerCore::monitorFromPointingOrCursor();
+    const auto monitor = ScrollerCore::monitorForKeyboardAction();
     if (!monitor)
         return -1;
 

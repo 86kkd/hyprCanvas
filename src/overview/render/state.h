@@ -5,6 +5,7 @@
 #pragma once
 
 #include <cstdint>
+#include <map>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -58,7 +59,7 @@ class RenderState {
 
     void rebuildPreviewAnimations(const Model& model);
     bool previewAnimationActive(int monitorId) const;
-    ScrollerCore::Box animatedPreviewBox(int monitorId, PHLWINDOW window, const ScrollerCore::Box& fallbackBox) const;
+    ScrollerCore::Box animatedPreviewBox(int canvasId, int monitorId, PHLWINDOW window, const ScrollerCore::Box& fallbackBox) const;
 
     SP<Render::ITexture> findTextTexture(const std::string& key) const;
     void                 storeTextTexture(std::string key, SP<Render::ITexture> texture);
@@ -69,7 +70,7 @@ class RenderState {
     std::unordered_map<int, SceneMonitor>           liveScenes_;
     std::unordered_map<int, std::vector<SP<Render::IFramebuffer>>> backdropSnapshots_;
     std::unordered_map<int, SelectionPulse>         selectionPulses_;
-    std::unordered_map<std::uintptr_t, PreviewAnimation> previewAnimations_;
+    std::map<PreviewKey, PreviewAnimation> previewAnimations_;
     std::unordered_map<std::string, SP<Render::ITexture>> textCache_;
     bool                                            lastOverviewActive_ = false;
 };

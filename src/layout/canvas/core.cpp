@@ -937,7 +937,7 @@ Config::ErrorResult CanvasLayout::layoutMsg(const std::string_view& message)
 // Predict the size of a new tiled target using the active lane if present.
 std::optional<Vector2D> CanvasLayout::predictSizeForNewTarget()
 {
-    auto monitor = monitorFromPointingOrCursor();
+    auto monitor = monitorForKeyboardAction();
     if (!monitor)
         return {};
 
@@ -1159,7 +1159,7 @@ void CanvasLayout::alterSplitRatio(PHLWINDOW, float, bool)
 Vector2D CanvasLayout::predictSizeForNewWindowTiled() {
     ensureWorkspaceRuntime();
 
-    auto monitor = monitorFromPointingOrCursor();
+    auto monitor = monitorForKeyboardAction();
     if (!monitor)
         return {};
 

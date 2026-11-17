@@ -60,12 +60,12 @@ Target initial_empty_target(const MonitorRegion& region) {
 
 // Initial selection prefers the concrete origin window when it is still present
 // in the rebuilt model.
-bool try_select_origin_window(Model& model) {
+bool try_select_origin_window(Model& model, int canvasId) {
     const auto originWindow = model.origin().window;
     if (!originWindow)
         return false;
 
-    const auto ref = model.findByWindow(originWindow);
+    const auto ref = model.findByWindow(originWindow, canvasId);
     if (!ref)
         return false;
 
@@ -75,12 +75,12 @@ bool try_select_origin_window(Model& model) {
 
 // If the origin window disappeared, fall back to "same workspace" before using
 // an arbitrary first target.
-bool try_select_origin_workspace(Model& model) {
+bool try_select_origin_workspace(Model& model, int canvasId) {
     const auto originWorkspace = model.origin().workspaceId;
     if (originWorkspace == INVALID_WORKSPACE_ID)
         return false;
 
-    const auto ref = model.findByWorkspace(originWorkspace);
+    const auto ref = model.findByWorkspace(originWorkspace, canvasId);
     if (!ref)
         return false;
 
@@ -131,16 +131,16 @@ bool Session::selectInitialTarget() {
     // `chooseInitialSelectionChoice` stays pure and testable. This method turns
     // that decision into actual model mutation in one place.
     const auto choice = chooseInitialSelectionChoice(!model_.targetGraph().empty(),
-                                                     model_.findByWindow(model_.origin().window).has_value(),
-                                                     model_.findByWorkspace(model_.origin().workspaceId).has_value(),
+                                                     model_.findByWindow(model_.origin().window, originCanvasId_).has_value(),
+                                                     model_.findByWorkspace(model_.origin().workspaceId, originCanvasId_).has_value(),
                                                      model_.firstTarget().has_value(),
                                                      initial_empty_region(model_) != nullptr);
 
     switch (choice) {
         case InitialSelectionChoice::OriginWindow:
-            return try_select_origin_window(model_);
+            return try_select_origin_window(model_, originCanvasId_);
         case InitialSelectionChoice::OriginWorkspace:
-            return try_select_origin_workspace(model_);
+            return try_select_origin_workspace(model_, originCanvasId_);
         case InitialSelectionChoice::FirstTarget:
             if (const auto ref = model_.firstTarget()) {
                 model_.setSelection(*ref);
@@ -314,6 +314,36 @@ bool Session::moveCanvasSelection(Direction direction) {
                  selection ? selection->workspaceId : INVALID_WORKSPACE_ID);
     damageMonitors();
     return true;
+}
+
+bool Session::selectCanvasNumber(int number) {
+    if (!active_ || number < 1 || number > 10)
+        return false;
+
+    // Number keys address stable canvas creation order, never native workspace
+    // IDs (which are separate per monitor). Missing groups are created lazily.
+    auto canvases = model_.canvasGraph();
+    std::sort(canvases.begin(), canvases.end(), [](const auto& a, const auto& b) {
+        return a.canvasId < b.canvasId;
+    });
+    if (canvases.empty())
+        return false;
+    auto& repo = CanvasLayoutState::canvasRepository();
+    int targetId = canvases.back().canvasId;
+    for (int count = static_cast<int>(canvases.size()); count < number; ++count) {
+        pendingCanvases_.push_back(repo.buildSyntheticCanvas(Direction::Right, targetId, pendingCanvases_));
+        targetId = pendingCanvases_.back().canvas.canvasId;
+    }
+    if (number <= static_cast<int>(canvases.size()))
+        targetId = canvases[number - 1].canvasId;
+    const auto* selection = model_.selection();
+    const auto monitorId = selection ? selection->monitorId : model_.origin().monitorId;
+    viewCanvasId_ = targetId;
+    model_.rebuild(pendingCanvases_, viewCanvasId_);
+    renderState().rebuildPreviewAnimations(model_);
+    const bool selected = selectCanvas(targetId, monitorId);
+    damageMonitors();
+    return selected;
 }
 
 bool Session::activateCanvas(int canvasId, int selectedMonitorId, bool requireSelectedMonitorFocus, const char* context) {

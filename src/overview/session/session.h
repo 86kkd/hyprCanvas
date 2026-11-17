@@ -23,6 +23,7 @@ class Session {
     void dismiss();
     bool moveSelection(Direction direction);
     bool moveCanvasSelection(Direction direction);
+    bool selectCanvasNumber(int number);
     void markInputHandled();
     bool consumeInputHandled(bool released);
     const Model& model() const;

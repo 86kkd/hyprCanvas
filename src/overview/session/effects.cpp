@@ -62,8 +62,8 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
         return g_pCompositor ? ScrollerCore::HyprlandRuntime::monitorById(monitorId) : nullptr;
     }
 
-    PHLMONITOR getMonitorFromCursor() const override {
-        return g_pCompositor ? ScrollerCore::HyprlandRuntime::monitorFromCursor() : nullptr;
+    PHLMONITOR getFocusedMonitor() const override {
+        return g_pCompositor ? ScrollerCore::HyprlandRuntime::monitorForKeyboardAction() : nullptr;
     }
 
     MONITORID monitorId(PHLMONITOR monitor) const override {

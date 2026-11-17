@@ -141,7 +141,7 @@ Box scaled_target_box(const Box& box, double overlayAlpha) {
 }
 
 Box animated_window_draw_box(const RenderState& state, int monitorId, const SceneTarget& target, double overlayAlpha) {
-    return scaled_target_box(state.animatedPreviewBox(monitorId, target.window, target.box), overlayAlpha);
+    return scaled_target_box(state.animatedPreviewBox(target.canvasId, monitorId, target.window, target.box), overlayAlpha);
 }
 
 // Snapshot previews try to mimic the live window's rounded-corner style after

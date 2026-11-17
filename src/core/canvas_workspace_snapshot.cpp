@@ -1,6 +1,8 @@
 #include "canvas_workspace_snapshot.h"
 
 #include <charconv>
+#include <algorithm>
+#include <unordered_set>
 #include <cstdlib>
 #include <sstream>
 #include <string>
@@ -8,6 +10,35 @@
 #include <vector>
 
 namespace ScrollerCanvasSnapshot {
+
+bool make_members_exclusive(RepositorySnapshot& snapshot, int preferredCanvasId, int nextWorkspaceId) {
+    for (const auto& canvas : snapshot.canvases)
+        for (const auto& member : canvas.members)
+            nextWorkspaceId = std::max(nextWorkspaceId, member.workspaceId + 1);
+
+    std::unordered_set<int> owned;
+    bool changed = false;
+    const auto claim = [&](auto& canvas) {
+        for (auto& member : canvas.members) {
+            // Special workspaces are overlays, not ordinary canvas pages.
+            if (member.special)
+                continue;
+            if (!owned.insert(member.workspaceId).second) {
+                member.workspaceId = nextWorkspaceId++;
+                owned.insert(member.workspaceId);
+                changed = true;
+            }
+        }
+    };
+    for (auto& canvas : snapshot.canvases)
+        if (canvas.canvasId == preferredCanvasId)
+            claim(canvas);
+    for (auto& canvas : snapshot.canvases)
+        if (canvas.canvasId != preferredCanvasId)
+            claim(canvas);
+    return changed;
+}
+
 namespace {
 
 template <typename T>

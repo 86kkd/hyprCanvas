@@ -13,7 +13,7 @@ namespace CanvasLayoutInternal {
 // Runtime seam around dispatcher lookups and Hyprland focus/workspace state.
 struct DispatcherRuntime : DispatcherRegistryRuntime {
     virtual PHLMONITOR getMonitorFromID(int monitorId) const = 0;
-    virtual PHLMONITOR getMonitorFromCursor() const = 0;
+    virtual PHLMONITOR getFocusedMonitor() const = 0;
     virtual bool isWindowActive(PHLWINDOW window) const = 0;
 
     virtual std::string monitorName(PHLMONITOR monitor) const = 0;

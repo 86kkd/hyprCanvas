@@ -223,7 +223,7 @@ void RenderState::rebuildPreviewAnimations(const Model& model) {
 
                 *animation.position = box_position(goalBox);
                 *animation.size = box_size(goalBox);
-                previewAnimations_[window_key(target.window)] = std::move(animation);
+                previewAnimations_[previewKey(target.canvasId, monitor->m_id, window_key(target.window))] = std::move(animation);
             }
         }
     }
@@ -241,8 +241,8 @@ bool RenderState::previewAnimationActive(int monitorId) const {
     return false;
 }
 
-ScrollerCore::Box RenderState::animatedPreviewBox(int monitorId, PHLWINDOW window, const ScrollerCore::Box& fallbackBox) const {
-    const auto it = previewAnimations_.find(window_key(window));
+ScrollerCore::Box RenderState::animatedPreviewBox(int canvasId, int monitorId, PHLWINDOW window, const ScrollerCore::Box& fallbackBox) const {
+    const auto it = previewAnimations_.find(previewKey(canvasId, monitorId, window_key(window)));
     if (it == previewAnimations_.end() || it->second.monitorId != monitorId)
         return fallbackBox;
 

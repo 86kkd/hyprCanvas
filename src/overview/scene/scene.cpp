@@ -81,6 +81,7 @@ std::string window_target_label(PHLWINDOW window) {
 
 SceneTarget build_scene_target(PHLMONITOR monitor, const Target& target, const Target* selection) {
     return {
+        .canvasId = target.canvasId,
         .type = target.type,
         .box = localize_box(monitor, target.box),
         .window = target.window,

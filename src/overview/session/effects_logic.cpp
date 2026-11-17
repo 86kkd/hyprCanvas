@@ -63,7 +63,7 @@ OriginState captureOrigin(const Runtime& runtime) {
     }
 
     if (originMonitor == INVALID_MONITOR_ID) {
-        if (const auto monitor = runtime.getMonitorFromCursor())
+        if (const auto monitor = runtime.getFocusedMonitor())
             originMonitor = runtime.monitorId(monitor);
     }
 

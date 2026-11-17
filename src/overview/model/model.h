@@ -115,8 +115,8 @@ class Model {
 
     const MonitorRegion* regionForMonitor(int monitorId) const;
     const Target* resolve(const TargetRef& ref) const;
-    std::optional<TargetRef> findByWindow(PHLWINDOW window) const;
-    std::optional<TargetRef> findByWorkspace(WORKSPACEID workspaceId) const;
+    std::optional<TargetRef> findByWindow(PHLWINDOW window, int canvasId = INVALID_CANVAS_ID) const;
+    std::optional<TargetRef> findByWorkspace(WORKSPACEID workspaceId, int canvasId = INVALID_CANVAS_ID) const;
     std::optional<TargetRef> firstTargetInCanvas(int canvasId, std::optional<int> preferredMonitorId = std::nullopt) const;
     std::optional<int> findAdjacentCanvas(int canvasId, Direction direction) const;
     std::optional<TargetRef> firstTarget() const;

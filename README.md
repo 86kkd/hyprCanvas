@@ -508,3 +508,37 @@ submap = reset
 
 bind = $mainMod CTRL, M, scroller:marksreset
 ```
+
+### Global canvas workspace bindings (Hyprland 0.57 Lua)
+
+`hl.plugin.scroller.switch_workspace("l"|"r"|"u"|"d"|"1".."10")`
+switches the complete canvas: one native backing workspace per connected monitor.
+Numbers address canvas creation order, **not** native Hyprland workspace IDs.
+Missing canvases are created with separate backing workspaces on every monitor.
+While overview is open this changes only the preview; acceptance switches all monitors.
+Outside overview it switches immediately. Directional `move_window` stays within the
+visible canvas and can hand windows between physical monitors.
+
+Load [examples/scroller-workspaces.lua](examples/scroller-workspaces.lua) **after**
+your existing keybind modules and after updating the plugin. It replaces Tab,
+number and wheel workspace switches with canvas switches; Ctrl+Shift+H/L and
+bracket window moves use directional movement. Shift/Ctrl+number window transfers
+and whole native workspace-to-monitor moves are inactive under scroller, preserving
+the monitor-only movement policy. Other layouts retain native behavior. Special
+scratchpads are separate from ordinary canvas workspaces.
+
+The Lua branch of `ChangeLayout.sh` reloads
+`~/.config/hypr/lua/scroller-workspaces.lua` after each layout change (including
+`init`). Install that module as well as the shell script, and load it after your
+user bindings in `hyprland.lua` so config reloads preserve the overrides. The
+module also removes duplicate native comma/period workspace bindings before
+installing scroller monitor/overview actions.
+Native `hl.dsp.focus({workspace=...})`, workspace gestures and external workspace
+widgets still use Hyprland's per-monitor semantics; route ordinary workspace
+navigation through the plugin API when using the global canvas model.
+
+Legacy canvas records that share a native workspace are normalized when the
+current visible canvas is captured. The visible canvas retains its backing
+workspaces and windows; duplicate references in other canvases receive fresh,
+empty backing workspace IDs. This prevents an unchanged monitor when switching
+between groups imported from earlier native per-monitor navigation.
