@@ -457,6 +457,7 @@ void GridLayout::newTarget(SP<Layout::ITarget> target) {
 
     (void)manage_window(window, monitor, true);
     syncCallbackTarget();
+    CanvasLayoutInternal::sync_new_window_pointer(window);
 }
 
 void GridLayout::movedTarget(SP<Layout::ITarget> target, std::optional<Vector2D>) {

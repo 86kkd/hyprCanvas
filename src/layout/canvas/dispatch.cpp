@@ -13,6 +13,7 @@
 #include <hyprland/src/config/shared/actions/ConfigActions.hpp>
 #include <hyprland/src/desktop/state/ViewState.hpp>
 #include <hyprland/src/output/Monitor.hpp>
+#include "core/focus_pointer_sync.h"
 #include <spdlog/spdlog.h>
 
 #include "../../core/direction.h"
@@ -143,8 +144,7 @@ public:
     }
 
     void warpCursorToWindow(PHLWINDOW window) const override {
-        if (window)
-            window->warpCursor();
+        ScrollerCore::FocusPointerSync::request(window, ScrollerCore::FocusPointerSync::Policy::Navigation);
     }
 };
 
@@ -158,6 +158,10 @@ CanvasLayoutInternal::DispatcherRuntime &dispatcher_runtime() {
 } // namespace
 
 namespace CanvasLayoutInternal {
+
+void sync_new_window_pointer(PHLWINDOW window) {
+    ScrollerCore::FocusPointerSync::request(window, ScrollerCore::FocusPointerSync::Policy::NewWindow);
+}
 
 void set_dispatcher_runtime_for_tests(DispatcherRuntime *runtime) {
     g_dispatcherRuntimeOverride = runtime;
@@ -203,6 +207,7 @@ void focus_window_monitor(PHLWINDOW window) {
 // Focus a target window and optionally warp the cursor to it.
 bool switch_to_window(PHLWINDOW window, bool warp_cursor)
 {
+    ScrollerCore::FocusPointerSync::request(nullptr, ScrollerCore::FocusPointerSync::Policy::Preserve);
     return switch_to_window(dispatcher_runtime(), window, warp_cursor);
 }
 

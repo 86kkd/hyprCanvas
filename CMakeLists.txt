@@ -33,6 +33,7 @@ add_library(hyprscroller SHARED
             src/plugin/dispatch/layout_commands.cpp
             src/plugin/dispatch/overview_mark_commands.cpp
             src/core/core.cpp
+            src/core/focus_pointer_sync.cpp
             src/core/direction.cpp
             src/core/canvas_workspace_snapshot.cpp
             src/core/layout_snapshot.cpp

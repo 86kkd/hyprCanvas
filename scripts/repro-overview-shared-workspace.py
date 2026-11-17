@@ -109,6 +109,8 @@ with (run / 'hyprland.log').open('w') as log:
         check(any(b.get('description') == 'switch whole canvas workspace' for b in json.loads(ctl('binds', '-j'))), 'canvas keyboard bindings registered')
         ctl('output', 'create', 'headless', 'TEST-1')
         ctl('output', 'create', 'headless', 'TEST-2')
+        for output in ('TEST-1', 'TEST-2'):
+            lua('hl.monitor({output=' + json.dumps(output) + ',mode="preferred",position="auto",scale=1})')
         time.sleep(.5)
         for monitor in json.loads(ctl('monitors', '-j')):
             if monitor['name'] not in ('TEST-1', 'TEST-2'):
@@ -208,6 +210,12 @@ with (run / 'hyprland.log').open('w') as log:
             launch('focus-source', '#aa2222')
             dispatch('hl.dsp.focus({monitor="TEST-2"})')
             launch('focus-peer', '#22aa22')
+            created = json.loads(ctl('activewindow', '-j'))
+            pointer = json.loads(ctl('cursorpos', '-j'))
+            check(created.get('class') == 'focus-peer', 'new window receives keyboard focus')
+            check(created['at'][0] <= pointer['x'] < created['at'][0] + created['size'][0]
+                  and created['at'][1] <= pointer['y'] < created['at'][1] + created['size'][1],
+                  'new window synchronizes pointer despite no_warps')
             dispatch('hl.dsp.focus({monitor="TEST-1"})')
             time.sleep(.3)
             source = next(m for m in json.loads(ctl('monitors', '-j')) if m['name'] == 'TEST-1')
@@ -230,6 +238,27 @@ with (run / 'hyprland.log').open('w') as log:
             time.sleep(.4)
             active = json.loads(ctl('activewindow', '-j'))
             check(active.get('monitor') == target['id'], 'next keyboard focus action operates on destination monitor')
+            # Isolate navigation from the empty-lane scenario above.
+            lua('hl.plugin.scroller.switch_workspace("6")')
+            dispatch('hl.dsp.focus({monitor="TEST-2"})')
+            launch('rapid-a', '#aa2222')
+            launch('rapid-b', '#22aa22')
+            lua('hl.plugin.scroller.move_focus("end"); hl.plugin.scroller.move_focus("begin")')
+            time.sleep(.4)
+            latest = json.loads(ctl('activewindow', '-j'))
+            pointer = json.loads(ctl('cursorpos', '-j'))
+            print('Rapid focus geometry:', latest.get('at'), latest.get('size'), pointer, flush=True)
+            check(latest['at'][0] <= pointer['x'] < latest['at'][0] + latest['size'][0]
+                  and latest['at'][1] <= pointer['y'] < latest['at'][1] + latest['size'][1],
+                  'rapid navigation synchronizes only the final target')
+            px, py = target['x'] + 20, target['y'] + 20
+            lua('hl.plugin.scroller.move_focus("u"); hl.dispatch(hl.dsp.cursor.move({x='
+                + str(px) + ',y=' + str(py) + '}))')
+            time.sleep(.4)
+            pointer = json.loads(ctl('cursorpos', '-j'))
+            check(pointer['x'] == px and pointer['y'] == py,
+                  'pointer movement supersedes pending keyboard synchronization')
+            active = json.loads(ctl('activewindow', '-j'))
             focus_result = {'cursorBefore': cursor_before, 'cursorAfter': json.loads(ctl('cursorpos', '-j')), 'activeAfterNavigation': active, 'targetMonitor': target['id']}
             # Reverse direction too, with the pointer deliberately on the right.
             dispatch('hl.dsp.cursor.move({x=' + str(target['x'] + 100) + ',y=' + str(target['y'] + 100) + '})')
@@ -246,6 +275,29 @@ with (run / 'hyprland.log').open('w') as log:
             time.sleep(.3)
             check(json.loads(ctl('activewindow', '-j')).get('monitor') == source['id'],
                   'reverse move subsequent keyboard action stays on destination')
+        # Exercise scale changes on live windows, using logical rather than
+        # framebuffer bounds for containment. Test both layout implementations.
+        for layout, canvas in [('scroller', '8'), ('scrollergrid', '9')]:
+            lua('hl.plugin.scroller.switch_workspace(' + json.dumps(canvas) + ')')
+            lua('hl.config({general={layout=' + json.dumps(layout) + '}})')
+            dispatch('hl.dsp.focus({monitor="TEST-2"})')
+            launch('scale-' + layout + '-a', '#aa2222')
+            launch('scale-' + layout + '-b', '#22aa22')
+            for scale in (1, 1.25, 2, 1):
+                lua('hl.monitor({output="TEST-2",mode="preferred",position="auto",scale=' + str(scale) + '})')
+                time.sleep(.6)
+                for direction in ('begin', 'end'):
+                    lua('hl.plugin.scroller.move_focus(' + json.dumps(direction) + ')')
+                    time.sleep(.4)
+                    win = json.loads(ctl('activewindow', '-j'))
+                    mon = next(m for m in json.loads(ctl('monitors', '-j')) if m['id'] == win['monitor'])
+                    width, height = mon['width'], mon['height']
+                    if mon['transform'] % 2:
+                        width, height = height, width
+                    check(win['at'][0] >= mon['x'] - 1 and win['at'][1] >= mon['y'] - 1
+                          and win['at'][0] + win['size'][0] <= mon['x'] + width / mon['scale'] + 1
+                          and win['at'][1] + win['size'][1] <= mon['y'] + height / mon['scale'] + 1,
+                          f'{layout} scale={scale} {direction}: focused window fits logical output')
         (run / 'result.json').write_text(json.dumps({'failures': failures, 'focus': focus_result, 'before': before, 'after': after, 'clients': clients}, indent=2))
     finally:
         if instance:

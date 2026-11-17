@@ -25,24 +25,28 @@ Hyprutils::Math::Vector2D logical_monitor_size(PHLMONITOR monitor) {
     if (!monitor)
         return {};
 
-    return logical_monitor_size(monitor->m_size, monitor->m_transformedSize, monitor->m_transform);
+    return monitor->logicalBox().size();
 }
 
 Box logical_monitor_box(PHLMONITOR monitor) {
     if (!monitor)
         return {};
 
-    return logical_monitor_box(monitor->m_position, monitor->m_size, monitor->m_transformedSize, monitor->m_transform);
+    const auto box = monitor->logicalBox();
+    return {box.pos(), box.size()};
 }
 
 Box logical_workarea_box(PHLMONITOR monitor, double outerGap) {
     if (!monitor)
         return {};
 
-    return logical_workarea_box(monitor->m_position,
-                                monitor->m_size,
-                                monitor->m_transformedSize,
-                                monitor->m_transform,
+    // Hyprland's logical box already accounts for transform and scale.
+    // Reserved edges and configured gaps are also in logical coordinates.
+    const auto box = monitor->logicalBox();
+    return logical_workarea_box(box.pos(),
+                                box.size(),
+                                box.size(),
+                                WL_OUTPUT_TRANSFORM_NORMAL,
                                 raw_reserved_edges(monitor),
                                 outerGap);
 }

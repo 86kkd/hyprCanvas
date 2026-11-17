@@ -49,6 +49,7 @@ bool                            focus_monitor_workspace(PHLMONITOR monitor, PHLW
 void                            focus_window_monitor(PHLWINDOW window);
 // Focus a target window and optionally warp the cursor to it.
 bool                            switch_to_window(PHLWINDOW window, bool warp_cursor = false);
+void                            sync_new_window_pointer(PHLWINDOW window);
 // Return the workspace id associated with the current canvas command context.
 int                             get_workspace_id();
 }

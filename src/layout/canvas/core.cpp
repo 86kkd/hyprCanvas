@@ -833,6 +833,7 @@ void CanvasLayout::newTarget(SP<Layout::ITarget> target) {
 
     spdlog::info("newTarget: window={} workspace={}", static_cast<const void*>(window.get()), ScrollerCore::HyprlandRuntime::windowWorkspaceId(window));
     if (onWindowCreatedTiling(window, Math::DIRECTION_DEFAULT)) {
+        CanvasLayoutInternal::sync_new_window_pointer(window);
         // During newTarget(), CWindow::layoutTarget() is not guaranteed to be
         // bound yet, and CWindow::setBox() does not retain geometry this early.
         // Commit the authoritative model box through the callback target itself.
