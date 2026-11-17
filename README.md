@@ -113,23 +113,23 @@ hl.plugin.load(os.getenv("HOME") .. "/.config/hypr/plugins/hyprscroller.so")
 ```
 
 Instead, if you use `hyprpm`, it should be as simple as adding this to
-your `~/.config/hypr/hyprland.conf` :
+your `~/.config/hypr/hyprland.lua`:
 
-``` conf
-exec-once = hyprpm reload -n
+``` lua
+hl.on("hyprland.start", function()
+    hl.exec_cmd("hyprpm reload -n")
+end)
 ```
 
 To turn on the layout, use
 
-``` conf
-general {
-    ...
-
-    layout = scroller
-
-    ...
-}
+``` lua
+hl.config({ general = { layout = "scroller" } })
 ```
+
+For manual runtime loading, use `hyprctl plugin load /path/to/hyprscroller.so`.
+This is a plugin-management command, not a dispatcher. Add `-i <instance-signature>`
+when targeting a nested test instance. Do not load the same plugin twice.
 
 
 ## Lua commands

@@ -50,6 +50,11 @@ make debug
 
 ## 2. 快速复现 overview
 
+版本说明：本节及其子节中的旧版 shell repro 脚本保留了 Hyprlang 配置和旧
+`scroller:*` dispatcher 调用，尚未迁移，不适用于当前 0.57 基线。当前版本
+请使用本文末尾的 `scripts/repro-overview-shared-workspace.py`，或第 3 节起的
+Lua 手工测试流程。不要直接运行旧脚本来验证当前版本。
+
 如果你要复现“指定 monitor 上的浮动嵌套 Hyprland + 创建窗口 + 打开
 overview”这条固定链路，优先直接用仓库里的脚本：
 
@@ -262,45 +267,28 @@ hyprscroller_apply_five_monitor_cross_layout \
 
 ## 3. 手工启动嵌套 Hyprland 测试实例
 
-先写一份最小测试配置，例如 `/tmp/hyprscroller-test.conf`：
+先写一份最小测试配置，例如 `/tmp/hyprscroller-test.lua`：
 
-```ini
-monitor = , preferred, auto, 1
-
-plugin = /home/linda/Documents/hyprscroller/Debug/hyprscroller.so
-
-env = XCURSOR_SIZE,24
-
-general {
-    layout = scroller
-    gaps_in = 4
-    gaps_out = 8
-    border_size = 2
-}
-
-decoration {
-    rounding = 6
-}
-
-misc {
-    disable_hyprland_logo = true
-    disable_splash_rendering = true
-    force_default_wallpaper = 0
-}
-
-input {
-    kb_layout = us
-}
-
-debug {
-    disable_logs = false
-}
+```lua
+hl.plugin.load("/home/linda/Documents/hyprscroller/Debug/hyprscroller.so")
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
+hl.config({
+    general = { layout = "scroller", gaps_in = 4, gaps_out = 8, border_size = 2 },
+    decoration = { rounding = 6 },
+    misc = { disable_hyprland_logo = true, disable_splash_rendering = true },
+    input = { kb_layout = "us" },
+    debug = { disable_logs = false },
+})
 ```
+
+当前基线使用 Lua 配置，不支持旧的 `plugin = ...`。运行时手动加载可用
+`hyprctl -i <instance-signature> plugin load /path/to/hyprscroller.so`；
+这是插件管理命令，不是 dispatcher。不要对已经加载的插件重复加载。
 
 然后直接启动一个嵌套测试实例：
 
 ```bash
-env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.conf
+env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.lua
 ```
 
 说明：
@@ -342,8 +330,8 @@ hyprctl -i <instance-signature> ...
 例如在测试实例里启动两个 `kitty`：
 
 ```bash
-hyprctl -i <instance-signature> dispatch exec kitty
-hyprctl -i <instance-signature> dispatch exec kitty
+hyprctl -i <instance-signature> eval 'hl.dispatch(hl.dsp.exec_cmd("kitty"))'
+hyprctl -i <instance-signature> eval 'hl.dispatch(hl.dsp.exec_cmd("kitty"))'
 ```
 
 查看窗口状态：
@@ -363,9 +351,9 @@ hyprctl -i <instance-signature> activeworkspace -j
 测试 `general:layout` 切换时，不要改主配置文件，直接对测试实例下发：
 
 ```bash
-hyprctl -i <instance-signature> keyword general:layout master
-hyprctl -i <instance-signature> keyword general:layout dwindle
-hyprctl -i <instance-signature> keyword general:layout scroller
+hyprctl -i <instance-signature> eval 'hl.config({general={layout="master"}})'
+hyprctl -i <instance-signature> eval 'hl.config({general={layout="dwindle"}})'
+hyprctl -i <instance-signature> eval 'hl.config({general={layout="scroller"}})'
 ```
 
 常见回归点：
@@ -381,32 +369,32 @@ hyprctl -i <instance-signature> keyword general:layout scroller
 打开 overview：
 
 ```bash
-hyprctl -i <instance-signature> dispatch scroller:toggleoverview
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.toggle_overview()'
 ```
 
 移动 overview 里的逻辑选中项：
 
 ```bash
-hyprctl -i <instance-signature> dispatch scroller:movefocus r
-hyprctl -i <instance-signature> dispatch scroller:movefocus l
-hyprctl -i <instance-signature> dispatch scroller:movefocus u
-hyprctl -i <instance-signature> dispatch scroller:movefocus d
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_focus("r")'
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_focus("l")'
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_focus("u")'
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_focus("d")'
 ```
 
 移动 overview 里的 canvas workspace focus：
 
 ```bash
-hyprctl -i <instance-signature> dispatch scroller:focusmonitor r
-hyprctl -i <instance-signature> dispatch scroller:focusmonitor l
-hyprctl -i <instance-signature> dispatch scroller:focusmonitor u
-hyprctl -i <instance-signature> dispatch scroller:focusmonitor d
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.focus_monitor("r")'
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.focus_monitor("l")'
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.focus_monitor("u")'
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.focus_monitor("d")'
 ```
 
 接受或取消：
 
 ```bash
-hyprctl -i <instance-signature> dispatch scroller:toggleoverview
-hyprctl -i <instance-signature> dispatch scroller:canceloverview
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.toggle_overview()'
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.cancel_overview()'
 ```
 
 推荐重点回归：
@@ -416,18 +404,18 @@ hyprctl -i <instance-signature> dispatch scroller:canceloverview
 - 打开/关闭 overview 时是否有卡片残留
 - overview 期间真实 focus 是否被错误改变
 
-## 8. 手工测试 scroller dispatchers
+## 8. 手工测试 scroller Lua 命令
 
 常用命令：
 
 ```bash
-hyprctl -i <instance-signature> dispatch scroller:movefocus r
-hyprctl -i <instance-signature> dispatch scroller:movewindow r
-hyprctl -i <instance-signature> dispatch scroller:setmode row
-hyprctl -i <instance-signature> dispatch scroller:setmode col
-hyprctl -i <instance-signature> dispatch scroller:togglefullscreen
-hyprctl -i <instance-signature> dispatch scroller:createlane r
-hyprctl -i <instance-signature> dispatch scroller:focuslane r
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_focus("r")'
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_window("r")'
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.set_mode("row")'
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.set_mode("col")'
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.toggle_fullscreen()'
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.create_lane("r")'
+hyprctl -i <instance-signature> eval 'hl.plugin.scroller.focus_lane("r")'
 ```
 
 推荐测试组合：
@@ -444,7 +432,7 @@ hyprctl -i <instance-signature> dispatch scroller:focuslane r
 如果你是直接在终端里运行：
 
 ```bash
-env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.conf
+env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.lua
 ```
 
 那么这个终端里的 stdout/stderr 就是测试实例的 `Hyprland` 日志。
@@ -452,7 +440,7 @@ env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.c
 如果要落盘：
 
 ```bash
-env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprland-test.conf > /tmp/hyprland-test.log 2>&1
+env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.lua > /tmp/hyprland-test.log 2>&1
 ```
 
 重点关注：
@@ -494,7 +482,7 @@ WAYLAND_DISPLAY=wayland-2 grim /tmp/hyprscroller-test.png
 测试结束后，直接让测试实例退出：
 
 ```bash
-hyprctl -i <instance-signature> dispatch exit
+hyprctl -i <instance-signature> eval 'hl.dispatch(hl.dsp.exit())'
 ```
 
 不要直接对主实例下发这个命令。
@@ -505,7 +493,7 @@ hyprctl -i <instance-signature> dispatch exit
 
 1. `make debug`
 2. 优先运行 `./scripts/repro-overview.sh --outer-monitor <monitor>`
-3. 如果脚本不适用，再手工启动嵌套 `env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.conf`
+3. 如果脚本不适用，再手工启动嵌套 `env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.lua`
 4. 用 `hyprctl instances -j` 找到测试实例
 5. 在测试实例里创建目标窗口
 6. 跑目标场景
@@ -513,7 +501,7 @@ hyprctl -i <instance-signature> dispatch exit
    - `Hyprland` 终端日志
    - `~/.hyprland/plugins/hyprscroller/hyprscroller.log`
    - 必要时的截图
-8. 用 `hyprctl -i <instance-signature> dispatch exit` 退出测试实例
+8. 用 `hyprctl -i <instance-signature> eval 'hl.dispatch(hl.dsp.exit())'` 退出测试实例
 
 ## 13. 建议记录的复现信息
 
@@ -608,13 +596,21 @@ workspace、不热加载主会话插件，结束时只关闭自己的实例。
 配套快捷键见 `examples/scroller-workspaces.lua`，需要在用户绑定之后加载。
 主会话配置和运行中的插件不会由回归脚本自动更新。
 
-### 禁止鼠标跳转时的跨屏键盘焦点
+### no_warps 下的跨屏焦点与鼠标同步
 
 `python3 scripts/repro-overview-shared-workspace.py --no-warps` 会在独立实例中
 启用 `cursor.no_warps=true` 和 `input.follow_mouse=0`，同时重跑 overview /
-canvas 测试，最后验证跨屏移动保持目标窗口焦点、鼠标位置不变，以及下一次
-`move_focus` 在目标显示器执行。键盘 action workspace 和跨屏焦点验证必须使用
-Hyprland 的 focused monitor，不能拿 cursor monitor 代替。
+canvas 测试，验证跨屏移动保持目标窗口焦点、鼠标同步到目标窗口内，以及下一次
+`move_focus` 在目标显示器执行。插件主动请求的导航和新窗口同步会明确绕过
+`cursor.no_warps`；新窗口只有实际获得焦点后才同步鼠标。连续导航只执行最新的
+同步请求，鼠标移动或点击会取消尚未执行的请求。
+
+鼠标坐标同步与光标是否显示是不同的行为：实现只更新位置，不合成鼠标输入，
+也不主动改变光标隐藏状态。当前脚本验证焦点和坐标，不验证光标是否闪现，
+也不注入物理鼠标输入。策略与生命周期见 [焦点与鼠标同步](focus-pointer-sync.md)。
+
+键盘 action workspace 和跨屏焦点验证必须使用 Hyprland 的 focused monitor，
+不能拿 cursor monitor 代替。
 
 ### 安装前的热重载验证
 

@@ -202,8 +202,8 @@ with (run / 'hyprland.log').open('w') as log:
         check(moved['workspace']['id'] in current.values(), 'window movement stays in the visible canvas')
         check({w['id'] for w in json.loads(ctl('workspaces', '-j'))} <= known, 'window movement creates no workspace')
         if args.no_warps:
-            # A fresh canvas gives the source exactly one window. With warps
-            # disabled, focus can move to TEST-2 while the pointer stays on TEST-1.
+            # A fresh canvas gives the source exactly one window. Plugin focus
+            # synchronization must follow it to TEST-2 despite no_warps.
             lua('hl.plugin.scroller.switch_workspace("5")')
             time.sleep(.5)
             dispatch('hl.dsp.focus({monitor="TEST-1"})')
