@@ -40,3 +40,64 @@ Use this checklist after changing `src/layout/canvas/*`, `src/layout/lane/*`, or
 - If any step fails, capture the exact dispatcher, workspace, monitor orientation, and whether the active lane was empty/fullscreen/special.
 - Re-run steps 10-15 after any change touching cross-monitor handoff, dispatcher helpers, or focus suppression.
 - Re-run steps 16-19 after any change touching `src/overview/*`, renderer integration, or overview accept/cancel flow.
+
+## Ordered card stacks
+
+- Put four windows A/B/C/D in one stack, in that order. Focus B, then C:
+  C is fully visible, B remains above C and partially exposed (19.1% of the stack axis), A/D expose narrow edges.
+- Focus D, then C: C is fully visible, D remains below C and partially exposed (19.1% of the stack axis),
+  A/B expose narrow edges. Repeat C/B/C to verify direction reversals.
+- Click an exposed card and verify that it expands without changing the spatial
+  order; repeated focus notifications must not change the secondary card.
+- Leave the stack for the next lane at its boundary, then return. Confirm the
+  stack order is unchanged; no wraparound is required for this check.
+- Close or expel the secondary window, then continue navigating. Confirm a
+  surviving neighbor becomes partially exposed (19.1% of the stack axis) and no stale window is referenced.
+- Reduce the stack to two windows and confirm ordinary layout returns. Add a
+  third window and confirm card layout resumes. Repeat in column mode, where
+  the same ordering and exposure rules apply horizontally.
+- Toggle fullscreen/maximize and exit, and inspect overview before and after a
+  focus change. Confirm the active card and projected geometry agree.
+
+### Card transition animation
+
+- Switch B → C → B and inspect intermediate frames: position and size should
+  follow the configured Hyprland animation, without repeated geometry resets.
+- Reverse direction several times before the animation completes. Each movement
+  should continue from the current rendered position and settle on the last
+  selected window.
+- Disable global animations, then separately disable `windowsMove`: both should
+  make deck transitions immediate. Re-enable and confirm animated transitions.
+- Expel a card, reduce the deck to two windows, switch layouts, and unload the
+  plugin. Confirm all windows continue using the configured Hyprland animations.
+
+### Narrow-edge title tags
+
+- With four cards, focus B then C: only the narrow A/D cards have title tags,
+  at A's upper-left and D's lower-left. Reverse focus and check that the main
+  and secondary cards have no tags.
+- Change a background window's title; confirm its tag updates. Test a long title
+  and a non-Latin title; neither should wrap or spill outside the narrow strip.
+- During a focus animation, tags follow their windows and remain occluded by
+  foreground cards. Open overview and confirm there are no duplicate live tags.
+- Repeat in column mode and at fractional monitor scale. Expel a tagged window,
+  reduce the stack to two windows, and unload the plugin; tags should disappear.
+
+### Pointer focus in card stacks
+
+- Enable `input.follow_mouse = 1`. Move slowly around the center of the active
+  card: covered siblings must never take focus.
+- Move into each exposed top/bottom strip, then make 1px movements throughout
+  the transition. Focus should stay on the selected card without oscillating.
+- Enter a secondary window and verify it can receive focus. Repeat with
+  disabled animations, in column mode, and with fractional monitor scaling.
+- Use keyboard focus after pointer selection, leave the stack, and open a
+  floating window/menu over it. Native keyboard, floating and popup focus should
+  remain intact.
+- Close/expel windows until only two remain, change layouts, then unload/reload
+  the plugin. Confirm hit areas return to ordinary full-window layout behavior.
+
+- Check deck visible shares: primary 61.8%, secondary 19.1%, all remaining
+  strips together 19.1%, both axes and after changing window count.
+- Check narrow-edge labels have opaque rounded backgrounds and larger text;
+  long titles ellipsize and tiny strips do not spill into adjacent windows.

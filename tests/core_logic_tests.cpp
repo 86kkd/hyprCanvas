@@ -462,6 +462,116 @@ void test_stack_logic() {
     expect_true(!invalid.has_value(), "stack logic ignores directions outside the active stack axis");
 }
 
+void test_stack_deck() {
+    using ScrollerModel::StackLogic::deck_cards;
+    expect_true(deck_cards(2, 0, 900.0, 800.0).empty(), "two windows keep ordinary layout");
+    expect_true(deck_cards(3, 3, 900.0, 800.0).empty(), "invalid active index produces no cards");
+    expect_true(deck_cards(3, 0, 0.0, 800.0).empty(), "empty viewport produces no cards");
+    // Exercise both navigation directions and missing/stale history. Verify
+    // actual occlusion along the local axis, not only placement formulas.
+    for (const size_t count : {3u, 4u, 5u, 100u}) {
+        for (size_t active = 0; active < count; ++active) {
+            for (const size_t previous : {active > 0 ? active - 1 : count,
+                                          active + 1, active, count}) {
+                const auto cards = deck_cards(count, active, 900.0, 800.0, previous);
+                const auto half = previous < count && previous != active
+                    ? previous : (active > 0 ? active - 1 : active + 1);
+                expect_true(cards.size() == count, "deck includes all windows");
+                expect_true(cards.back().index == active, "active card is painted last");
+                std::vector<bool> seen(count, false);
+                std::vector<double> offsets(count);
+                for (size_t i = 0; i < count; ++i) {
+                    const auto &card = cards[i];
+                    expect_true(card.narrow == (card.index != active && card.index != half),
+                                "only narrow background cards receive edge labels");
+                    expect_true(!seen[card.index], "each window appears once");
+                    seen[card.index] = true;
+                    offsets[card.index] = card.offset;
+                    expect_true(card.offset >= 0.0 && card.offset + card.span <= 900.0 + 1e-9,
+                                "all cards stay within viewport");
+                    expect_true(800.0 - 2.0 * card.inset > 0.0, "card widths remain positive");
+                    // Every later card occludes an interval of this card.
+                    std::vector<std::pair<double, double>> visible{{card.offset, card.offset + card.span}};
+                    for (size_t j = i + 1; j < count; ++j) {
+                        std::vector<std::pair<double, double>> remaining;
+                        const auto start = cards[j].offset;
+                        const auto end = start + cards[j].span;
+                        for (const auto &[lo, hi] : visible) {
+                            if (hi <= start || lo >= end)
+                                remaining.emplace_back(lo, hi);
+                            else {
+                                if (lo < start)
+                                    remaining.emplace_back(lo, start);
+                                if (hi > end)
+                                    remaining.emplace_back(end, hi);
+                            }
+                        }
+                        visible = std::move(remaining);
+                    }
+                    double exposure = 0.0;
+                    for (const auto &[lo, hi] : visible)
+                        exposure += hi - lo;
+                    if (card.index == active)
+                        expect_near(exposure, 556.2, 1e-9, "active window occupies 61.8 percent");
+                    else if (card.index == half)
+                        expect_near(exposure, 171.9, 1e-9, "last focused window occupies 19.1 percent on either side");
+                    else
+                        expect_near(exposure, 171.9 / (count - 2), 1e-9, "other windows equally share 19.1 percent");
+                }
+                expect_near(offsets.front(), 0.0, 1e-9, "first window remains at start");
+                expect_near(offsets.back() + cards.back().span, 900.0, 1e-9, "last window remains at end");
+                for (size_t i = 1; i < count; ++i)
+                    expect_true(offsets[i - 1] < offsets[i], "focus changes preserve original spatial order");
+            }
+        }
+    }
+    const auto tiny = deck_cards(20, 7, 30.0, 20.0);
+    expect_true(tiny.back().span > 0.0, "small viewports keep positive card spans");
+}
+
+void test_stack_visible_hit_boxes() {
+    using ScrollerCore::Box;
+    using ScrollerModel::StackLogic::deck_hit_box;
+    using ScrollerModel::StackLogic::deck_cards;
+    using ScrollerModel::StackLogic::deck_peek;
+    expect_near(deck_peek(4, 900), 85.95, 1e-9, "two narrow strips share 19.1 percent");
+    expect_near(deck_peek(100, 900) * 98, 171.9, 1e-9, "large decks preserve total strip share");
+    for (const auto mode : {Mode::Row, Mode::Column}) {
+        for (size_t active = 0; active < 4; ++active) {
+            const auto cards = deck_cards(4, active, 900, 600);
+            const Box viewport = mode == Mode::Row ? Box{0, 0, 600, 900} : Box{0, 0, 900, 600};
+            std::vector<Box> boxes;
+            for (const auto& card : cards)
+                boxes.push_back(mode == Mode::Row
+                    ? Box{card.inset, card.offset, 600 - 2 * card.inset, card.span}
+                    : Box{card.offset, card.inset, card.span, 600 - 2 * card.inset});
+            for (size_t i = 0; i < cards.size(); ++i) {
+                const auto hit = deck_hit_box(boxes, i, cards[i].index < active, mode, viewport);
+                expect_true(hit.w > 0 && hit.h > 0, "every exposed card remains targetable");
+                for (size_t j = i + 1; j < boxes.size(); ++j) {
+                    const auto& front = boxes[j];
+                    const auto overlapW = std::min(hit.x + hit.w, front.x + front.w) - std::max(hit.x, front.x);
+                    const auto overlapH = std::min(hit.y + hit.h, front.y + front.h) - std::max(hit.y, front.y);
+                    expect_true(overlapW <= 1e-9 || overlapH <= 1e-9, "covered area never belongs to background hitbox");
+                }
+                if (cards[i].narrow)
+                    expect_near(mode == Mode::Row ? hit.h : hit.w, 85.95, 1e-9, "whole narrow strip is targetable");
+            }
+        }
+    }
+    std::vector<Box> moving{{0, 0, 600, 600}, {0, 60, 600, 600}};
+    expect_near(deck_hit_box(moving, 0, true, Mode::Row, {0,0,600,900}).h, 60, 1e-9,
+                "hit area follows current rendered occluder position");
+    moving.back().y = 30;
+    expect_near(deck_hit_box(moving, 0, true, Mode::Row, {0,0,600,900}).h, 30, 1e-9,
+                "animation updates the exposed hit strip");
+    moving.back().y = 0;
+    expect_near(deck_hit_box(moving, 0, true, Mode::Row, {0,0,600,900}).h, 0, 1e-9,
+                "fully covered window has no hit area");
+    expect_near(deck_hit_box(moving, 1, false, Mode::Row, {0,100,600,300}).h, 300, 1e-9,
+                "hit regions stay inside the visible work area");
+}
+
 } // namespace
 
 void run_core_logic_tests() {
@@ -476,4 +586,6 @@ void run_core_logic_tests() {
     test_fit_size_helpers();
     test_list_move_only();
     test_stack_logic();
+    test_stack_deck();
+    test_stack_visible_hit_boxes();
 }

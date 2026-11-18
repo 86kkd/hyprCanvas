@@ -10,6 +10,9 @@
 
 #include "core/layout_profile.h"
 #include "core/window_key.h"
+#include <hyprland/src/plugins/PluginAPI.hpp>
+
+extern HANDLE PHANDLE;
 
 namespace ScrollerModel {
 
@@ -18,6 +21,26 @@ Window::Window(PHLWINDOW window, double box_h, Mode mode)
       height(WindowHeight::One),
       box_y(window ? ScrollerCore::stack_local_origin_for_window(mode, ScrollerCore::HyprlandRuntime::windowPosition(window)) - ScrollerCore::HyprlandRuntime::windowBorderSize(window) : 0.0),
       box_h(box_h) {}
+
+Window::~Window() {
+    if (labelDecoration)
+        HyprlandAPI::removeWindowDecoration(PHANDLE, labelDecoration.get());
+}
+
+void Window::set_deck_label(DeckLabelEdge edge, double span) {
+    const auto win = window.lock();
+    if (!win)
+        return;
+    if (!labelDecoration && edge != DeckLabelEdge::None) {
+        labelDecoration = makeShared<StackLabelDecoration>(win);
+        if (!HyprlandAPI::addWindowDecoration(PHANDLE, win, SP<IHyprWindowDecoration>(labelDecoration))) {
+            labelDecoration.reset();
+            return;
+        }
+    }
+    if (labelDecoration)
+        labelDecoration->configure(edge, span);
+}
 
 PHLWINDOWREF Window::ptr() const {
     return window;

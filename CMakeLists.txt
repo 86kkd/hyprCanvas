@@ -79,6 +79,8 @@ add_library(hyprscroller SHARED
             src/overview/render/hooks.cpp
             src/overview/render/pass_element.h
             src/overview/render/pass_element.cpp
+            src/model/stack/pointer.cpp
+            src/model/stack/label.cpp
             src/model/stack/window.cpp
             src/model/stack/core.cpp
             src/model/stack/membership.cpp

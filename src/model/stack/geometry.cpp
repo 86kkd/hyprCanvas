@@ -15,6 +15,8 @@
 #include <hyprland/src/Compositor.hpp>
 #include <spdlog/spdlog.h>
 
+#include "model/stack/logic.h"
+#include "model/stack/pointer.h"
 #include "core/fit_size.h"
 #include "core/layout_math.h"
 #include "core/layout_profile.h"
@@ -79,6 +81,42 @@ Box safe_committed_box(const Box &logicalBox, const Box &visibleBox, const Box &
 
 std::vector<WindowGeometryEntry> Stack::capture_window_boxes(const Vector2D &gap_x, double gap) const {
     std::vector<WindowGeometryEntry> boxes;
+    if (windows.size() > 2 && active && !expanded() && !fullscreen() && !maximized()) {
+        std::vector<Window *> models;
+        size_t activeIndex = 0;
+        std::optional<size_t> previousIndex;
+        for (auto node = windows.first(); node; node = node->next()) {
+            if (node == active)
+                activeIndex = models.size();
+            if (node->data() == previousActive)
+                previousIndex = models.size();
+            models.push_back(node->data());
+        }
+        const auto cards = StackLogic::deck_cards(models.size(), activeIndex,
+            StackInternal::stack_local_span(geom, mode), StackInternal::stack_cross_span(geom, mode), previousIndex);
+        for (const auto &card : cards) {
+            const auto window = models[card.index]->ptr().lock();
+            if (!window)
+                continue;
+            auto frame = geom;
+            if (mode == Mode::Column) {
+                frame.y += card.inset;
+                frame.h -= 2.0 * card.inset;
+            } else {
+                frame.x += card.inset;
+                frame.w -= 2.0 * card.inset;
+            }
+            const auto border = ScrollerCore::HyprlandRuntime::windowBorderSize(window);
+            const auto labelEdge = !card.narrow ? DeckLabelEdge::None : mode == Mode::Column
+                ? (card.index < activeIndex ? DeckLabelEdge::Left : DeckLabelEdge::Right)
+                : (card.index < activeIndex ? DeckLabelEdge::Top : DeckLabelEdge::Bottom);
+            const auto peek = StackLogic::deck_peek(models.size(), StackInternal::stack_local_span(geom, mode));
+            boxes.push_back({window, logical_window_box(frame, mode, border, gap_x,
+                StackInternal::stack_local_origin(geom, mode) + card.offset, card.span, 0.0, 0.0),
+                labelEdge, std::max(0.0, peek - 2.0 * border), card.index < activeIndex});
+        }
+        return boxes;
+    }
     for (auto win = windows.first(); win != nullptr; win = win->next()) {
         const auto window = win->data()->ptr().lock();
         if (!window)
@@ -197,6 +235,11 @@ void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const 
     if (!active)
         return;
 
+    if (windows.size() <= 2 || expanded() || fullscreen() || maximized()) {
+        DeckPointer::forget(this);
+        for_each_window_model([](Window *window) { window->set_deck_label(DeckLabelEdge::None); });
+    }
+
     // Scroller-managed fullscreen is a hard override: only the active window is
     // shown and it should exactly match the fullscreen box.
     if (fullscreen()) {
@@ -209,6 +252,11 @@ void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const 
             Vector2D(full.x, full.y),
             Vector2D(full.w, full.h));
         StackInternal::sync_window_target_geometry(activeWindow);
+        return;
+    }
+
+    if (windows.size() > 2 && !expanded() && !fullscreen() && !maximized()) {
+        adjust_windows(active, gap_x, gap, visibleBox);
         return;
     }
 
@@ -314,6 +362,41 @@ void Stack::fit_size(FitSize fitsize, const Vector2D &gap_x, double gap, const S
 void Stack::adjust_windows(ListNode<Window *> *win, const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox) {
     if (!win)
         return;
+
+    if (windows.size() > 2 && !expanded() && !fullscreen() && !maximized()) {
+        const auto anchor = active ? active->data()->ptr().lock() : nullptr;
+        const auto monitor = anchor ? ScrollerCore::HyprlandRuntime::monitorById(anchor->monitorID()) : nullptr;
+        const auto fullBox = monitor ? ScrollerCore::logical_monitor_box(monitor) : visibleBox;
+        // Commit and raise from back to front, so both rendering and pointer
+        // hit testing agree with the selected card. Focus itself is unchanged.
+        std::vector<DeckPointer::Card> pointerCards;
+        for (const auto &entry : capture_window_boxes(gap_x, gap)) {
+            if (const auto node = findWindowNode(entry.window))
+                node->data()->set_deck_label(entry.labelEdge, entry.labelSpan);
+            const auto border = ScrollerCore::HyprlandRuntime::windowBorderSize(entry.window);
+            const auto box = safe_committed_box(entry.box, visibleBox, fullBox, std::max(1.0, 2.0 * border + 1.0));
+            // Submit one final goal through the layout target. Writing setBox
+            // first and then syncing the target restarts the native animation
+            // when target rounding/decorations change that provisional goal.
+            const auto target = entry.window->layoutTarget();
+            const CBox clientBox{box.x, box.y, box.w, box.h};
+            if (target) {
+                const auto reserved = entry.window->getFullWindowReservedArea();
+                const CBox visualBox{clientBox.pos() - reserved.topLeft,
+                    clientBox.size() + reserved.topLeft + reserved.bottomRight};
+                target->setPositionGlobal(Layout::STargetBox{.logicalBox = visualBox, .visualBox = visualBox});
+                pointerCards.push_back({entry.window, visualBox, entry.beforeActive});
+            } else {
+                entry.window->setBox(clientBox);
+            }
+            Desktop::windowState()->raise(entry.window);
+        }
+        DeckPointer::update(this, std::move(pointerCards), mode, visibleBox);
+        return;
+    }
+
+    DeckPointer::forget(this);
+    for_each_window_model([](Window *window) { window->set_deck_label(DeckLabelEdge::None); });
 
     // First rebuild pure local ordering around the anchor window. At this point
     // we still operate in stack-local coordinates, not compositor coordinates.

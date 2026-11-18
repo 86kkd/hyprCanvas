@@ -1,5 +1,26 @@
 # Hyprscroller
 
+Stacks with more than two windows automatically use an overlapping card layout:
+the active window occupies 61.8% of the visible stack axis, the previously
+focused window 19.1%, and the remaining windows equally share 19.1%. Windows
+retain their original order: moving down leaves the previous window above the
+active card; moving up leaves it below. Without focus history, an adjacent
+window becomes secondary. Row mode stacks vertically; column mode stacks
+horizontally. Fullscreen and maximized windows retain their normal behavior.
+Returning to one or two windows restores the ordinary layout and saved size
+settings. Card placement is automatic while the stack contains three or more
+windows; per-window size and alignment settings apply again outside that mode.
+Deck movement and resizing use Hyprland's existing window animation settings;
+the plugin does not register or override animation curves.
+Narrow background cards show a larger 18px title in an opaque rounded rectangle
+(up to 34px high, scaled down when necessary) on the exposed edge:
+upper-left above the active card, lower-left below it. Long titles are ellipsized;
+column mode places the tags vertically on the exposed left/right edges.
+Background strips divide their fixed 19.1% share equally regardless of count. Pointer focus uses only the currently visible
+strip or foreground area, tracking native window animations rather than the
+covered full-window rectangles. Narrow side slivers do not steal pointer focus.
+
+
 [Hyprscroller](https://github.com/86kkd/hyprscroller) is a
 [Hyprland](https://hyprland.org) layout plugin that creates a window layout
 similar to [PaperWM](https://github.com/paperwm/PaperWM). I initialy

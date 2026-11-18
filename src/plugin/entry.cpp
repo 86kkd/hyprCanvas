@@ -42,6 +42,7 @@
 #include "layout/canvas/canvas_workspace_repository.h"
 #include "layout/grid/layout.h"
 #include "core/focus_pointer_sync.h"
+#include "model/stack/pointer.h"
 #include "overview/render/render.h"
 
 // Hyprland plugin handle used by config lookups and dispatcher registration.
@@ -164,6 +165,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     spdlog::info("pluginInit: initializing overview renderer hooks");
     Overview::initializeRendererHooks(PHANDLE);
     ScrollerCore::FocusPointerSync::initialize();
+    ScrollerModel::DeckPointer::initialize();
     spdlog::info("pluginInit: overview renderer hooks initialized");
 
     // Keep the exported plugin metadata stable for plugin discovery and UI.
@@ -173,6 +175,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 // Plugin shutdown hook used for final logging only.
 APICALL EXPORT void PLUGIN_EXIT() {
     ScrollerCore::FocusPointerSync::shutdown();
+    ScrollerModel::DeckPointer::shutdown();
     for (const auto &workspaceRef : ScrollerCore::HyprlandRuntime::workspaces()) {
         const auto workspace = workspaceRef.lock();
         if (!workspace)

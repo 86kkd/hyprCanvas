@@ -13,6 +13,7 @@
  * code much easier to follow.
  */
 #include "model/stack/internal.h"
+#include "model/stack/pointer.h"
 
 #include <algorithm>
 #include <cmath>
@@ -183,6 +184,7 @@ Stack::Stack(std::unique_ptr<Window> window, StackWidth width, double maxw, doub
 }
 
 Stack::~Stack() {
+    DeckPointer::forget(this);
     for (auto win = windows.first(); win != nullptr; win = win->next())
         delete win->data();
     windows.clear();
@@ -228,7 +230,7 @@ Vector2D Stack::get_height() const {
     if (windows.empty())
         return Vector2D(geom.y, geom.y);
 
-    if (mode == Mode::Column)
+    if (mode == Mode::Column || (windows.size() > 2 && !expanded() && !fullscreen() && !maximized()))
         return Vector2D(geom.y, geom.y + geom.h);
 
     Vector2D height;

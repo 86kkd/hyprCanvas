@@ -1,0 +1,25 @@
+{
+  "schema_version": 1,
+  "ratio_basis": "visible_extent_along_stack_axis",
+  "ratios": {
+    "main_percent": 61.8,
+    "secondary_percent": 19.1,
+    "others_total_percent": 19.1
+  },
+  "other_windows": {
+    "distribution": "equal",
+    "count_policy": "keep_total_share"
+  },
+  "focus": {
+    "order": "preserve_original",
+    "secondary": "previous_focused_window",
+    "wrap": false
+  },
+  "preview": {
+    "window_count": 5,
+    "direction": "row",
+    "extent_px": 900,
+    "labels": true,
+    "ruler": true
+  }
+}

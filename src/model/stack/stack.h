@@ -25,12 +25,16 @@
 #include "core/intrusive_list.h"
 #include "core/types.h"
 #include "core/core.h"
+#include "model/stack/label.h"
 
 namespace ScrollerModel {
 
 struct WindowGeometryEntry {
     PHLWINDOW         window = nullptr;
     ScrollerCore::Box box;
+    DeckLabelEdge labelEdge = DeckLabelEdge::None;
+    double labelSpan = 0.0;
+    bool beforeActive = false;
 };
 
 enum class StackWidth {
@@ -80,6 +84,8 @@ class Window {
 public:
     // Construct model wrapper for a backend window and its initial logical geometry.
     Window(PHLWINDOW window, double box_h, Mode mode);
+    ~Window();
+    void set_deck_label(DeckLabelEdge edge, double span = 0.0);
     // Access original compositor window handle.
     PHLWINDOWREF ptr() const;
     // Return logical geometry height used by scroller model.
@@ -109,6 +115,8 @@ public:
     ScrollerSnapshot::WindowSnapshot capture_snapshot() const;
 
 private:
+    SP<StackLabelDecoration> labelDecoration;
+
     // Minimal restore point used by fullscreen/overview style transforms.
     struct Memory {
         double box_y = 0.0;
@@ -258,6 +266,8 @@ public:
     ScrollerSnapshot::StackSnapshot capture_snapshot() const;
 
 private:
+    // Record focus history only when selection actually changes.
+    void activate_window(ListNode<Window *> *node);
     // Find the list node that owns a given compositor window.
     ListNode<Window *> *findWindowNode(PHLWINDOW window) const;
     // Shift a window range so the active window stays visible inside the stack viewport.
@@ -290,6 +300,8 @@ private:
     ScrollerCore::Box full;
     // Currently active model window node.
     ListNode<Window *> *active = nullptr;
+    // Last selected model, cleared before removal; transient presentation state.
+    Window *previousActive = nullptr;
     // Ordered windows inside this stack.
     List<Window *> windows;
 };

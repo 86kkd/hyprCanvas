@@ -65,6 +65,8 @@ void Stack::remove_window(PHLWINDOW window) {
         active = StackLogic::next_active_after_removal(active, windows.last());
 
     auto *removed = win->data();
+    if (previousActive == removed)
+        previousActive = nullptr;
     windows.erase(win);
     delete removed;
     if (windows.size() != 1 || !active)
@@ -75,9 +77,16 @@ void Stack::remove_window(PHLWINDOW window) {
     active->data()->update_height(WindowHeight::One, StackInternal::stack_local_span(geom, mode));
 }
 
+void Stack::activate_window(ListNode<Window *> *node) {
+    if (node == active)
+        return;
+    previousActive = active ? active->data() : nullptr;
+    active = node;
+}
+
 void Stack::focus_window(PHLWINDOW window) {
     if (auto *win = findWindowNode(window))
-        active = win;
+        activate_window(win);
 }
 
 PHLWINDOW Stack::get_active_window() {
@@ -130,13 +139,13 @@ FocusMoveResult Stack::move_focus(Direction direction, bool focus_wrap) {
     const auto forward = ScrollerCore::stack_item_forward_direction(mode);
     if (direction == backward && active != windows.first()) {
         reorder = Reorder::Auto;
-        active = active->prev();
+        activate_window(active->prev());
         return FocusMoveResult::Moved;
     }
 
     if (direction == forward && active != windows.last()) {
         reorder = Reorder::Auto;
-        active = active->next();
+        activate_window(active->next());
         return FocusMoveResult::Moved;
     }
 
@@ -164,7 +173,7 @@ FocusMoveResult Stack::move_focus(Direction direction, bool focus_wrap) {
     // the opposite end of the stack.
     auto previous = active;
     if (focus_wrap)
-        active = direction == backward ? windows.last() : windows.first();
+        activate_window(direction == backward ? windows.last() : windows.first());
     return active != previous ? FocusMoveResult::Moved : FocusMoveResult::NoOp;
 }
 
@@ -184,7 +193,7 @@ void Stack::admit_window(std::unique_ptr<Window> window) {
         window->set_geom_y(StackInternal::stack_local_origin(geom, mode));
     }
 
-    active = windows.emplace_after(active, window.release());
+    activate_window(windows.emplace_after(active, window.release()));
 }
 
 void Stack::restore_window(std::unique_ptr<Window> window, bool insertBeforeActive) {
@@ -197,13 +206,13 @@ void Stack::restore_window(std::unique_ptr<Window> window, bool insertBeforeActi
     if (!active) {
         window->set_geom_h(StackInternal::stack_local_span(geom, mode));
         window->set_geom_y(StackInternal::stack_local_origin(geom, mode));
-        active = windows.emplace_after(active, window.release());
+        activate_window(windows.emplace_after(active, window.release()));
         return;
     }
 
-    active = insertBeforeActive
+    activate_window(insertBeforeActive
         ? windows.emplace_before(active, window.release())
-        : windows.emplace_after(active, window.release());
+        : windows.emplace_after(active, window.release()));
 }
 
 std::unique_ptr<Window> Stack::expel_active(double /*gap*/) {
@@ -214,6 +223,9 @@ std::unique_ptr<Window> Stack::expel_active(double /*gap*/) {
     // Ownership is transferred back to the caller. We compute the replacement
     // active node before erasing so later code still has a valid focus cursor.
     std::unique_ptr<Window> window(active->data());
+    window->set_deck_label(DeckLabelEdge::None);
+    if (previousActive == window.get())
+        previousActive = nullptr;
     auto *nextActive = StackLogic::next_active_after_removal(active, windows.last());
     windows.erase(active);
     active = nextActive;
