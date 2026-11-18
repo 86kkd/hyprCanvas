@@ -10,6 +10,9 @@ horizontally. Fullscreen and maximized windows retain their normal behavior.
 Returning to one or two windows restores the ordinary layout and saved size
 settings. Card placement is automatic while the stack contains three or more
 windows; per-window size and alignment settings apply again outside that mode.
+Moving a window toward a stack expanded with the scroller fullscreen toggle
+places it in a separate stack on the requested side instead of joining the
+fullsize stack. The destination retains its fullsize and restore geometry.
 Deck movement and resizing use Hyprland's existing window animation settings;
 the plugin does not register or override animation curves.
 Narrow background cards show a larger 18px title in an opaque rounded rectangle

@@ -349,6 +349,22 @@ void Lane::insert_window_payload(ActiveWindowPayload payload, Direction directio
     // Insertion always resets reorder policy because the lane structure has
     // materially changed and later relayout should be free to normalize it.
     reorder = Reorder::Auto;
+    // Preserve a fullsize destination, including its restore geometry. Incoming
+    // windows get their own stack on the requested side, never join its deck.
+    if (active && active->data()->expanded()) {
+        auto *reference = active->data();
+        auto *stack = create_stack_from_payload(std::move(payload));
+        if (!stack)
+            return;
+        const bool before = direction == Direction::Left || direction == Direction::Up || direction == Direction::Begin;
+        active = before ? stacks.emplace_before(active, stack) : stacks.emplace_after(active, stack);
+        position_stack_relative_to_reference(stack, reference,
+            before ? ScrollerCore::local_item_backward_direction(mode) : ScrollerCore::local_item_forward_direction(mode));
+        rememberWindowStack(stack->get_active_window(), stack);
+        recalculate_lane_geometry();
+        debugVerifyStackCache();
+        return;
+    }
     const bool singleWindowLane = stacks.size() == 1 && stacks.first()->data()->size() == 1;
     if (singleWindowLane)
         stacks.first()->data()->update_width(StackWidth::OneHalf, max.w, max.h);

@@ -349,6 +349,12 @@ void Lane::move_active_window_to_adjacent_stack(Direction dir) {
     const auto targetWindowCountBefore = target->data()->size();
 
     active = target;
+    // Fullsize stacks remain independent: cross to the requested side instead
+    // of admitting another window and changing their membership.
+    if (target->data()->expanded()) {
+        insert_window_payload(std::move(payload), dir);
+        return;
+    }
     active->data()->admit_window(payload.release_window());
     rememberWindowStack(movedWindow, active->data());
 
@@ -414,6 +420,10 @@ void Lane::admit_window_left() {
         return;
 
     auto prev = active->prev();
+    if (prev->data()->expanded()) {
+        move_active_window_to_adjacent_stack(ScrollerCore::local_item_backward_direction(mode));
+        return;
+    }
     auto payload = extract_active_window_payload();
     const auto movedWindow = payload.window ? payload.window->ptr().lock() : nullptr;
     if (!payload)

@@ -101,3 +101,18 @@ Use this checklist after changing `src/layout/canvas/*`, `src/layout/lane/*`, or
   strips together 19.1%, both axes and after changing window count.
 - Check narrow-edge labels have opaque rounded backgrounds and larger text;
   long titles ellipsize and tiny strips do not spill into adjacent windows.
+
+### Fullsize insertion boundaries
+
+Automated isolated regression: `python3 scripts/repro-fullsize-insertion.py`.
+
+- Expand a single-window stack with the scroller fullscreen toggle (`mainMod+F`).
+  From its right neighbor, move a window left: it must become a separate stack
+  to the left of the fullsize target. Repeat rightward from the left neighbor.
+- The target must keep its single window and fullsize geometry. Toggle fullsize
+  off and confirm its original size is restored.
+- Repeat in column mode with up/down, and with the legacy admit command.
+- After disabling fullsize on the target, ordinary adjacent-stack insertion
+  must still merge the incoming window into that stack.
+- Cross-lane/monitor insertion next to an expanded target must preserve its
+  fullsize state and place the incoming window in a separate stack.
