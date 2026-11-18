@@ -15,8 +15,8 @@ namespace ScrollerModel::StackLogic {
 inline constexpr double kDeckMainShare = 0.618;
 inline constexpr double kDeckSecondaryShare = 0.191;
 inline constexpr double kDeckOthersShare = 0.191;
-inline double deck_peek(size_t count, double localSpan) {
-    return count > 2 ? std::max(0.0, localSpan) * kDeckOthersShare / static_cast<double>(count - 2) : 0.0;
+inline double deck_peek(size_t count, double localSpan, bool fullsize = false) {
+    return count > 2 ? std::max(0.0, localSpan) * (fullsize ? 0.05 : kDeckOthersShare) / static_cast<double>(count - 2) : 0.0;
 }
 
 // A single rectangular hit area for the exposed top/bottom (or left/right)
@@ -69,20 +69,23 @@ struct DeckCard {
     double span;
     double inset;
     bool narrow = false;
+    double exposedSpan = 0.0;
 };
 
 inline std::vector<DeckCard> deck_cards(size_t count, size_t activeIndex,
                                         double localSpan, double crossSpan,
-                                        std::optional<size_t> previousIndex = std::nullopt) {
-    if (count <= 2 || activeIndex >= count || localSpan <= 0.0 || crossSpan <= 0.0)
+                                        std::optional<size_t> previousIndex = std::nullopt, bool fullsize = false) {
+    if (count < (fullsize ? 2u : 3u) || activeIndex >= count || localSpan <= 0.0 || crossSpan <= 0.0)
         return {};
 
     // A newly created/restored stack has no focus history. Prefer the previous
     // neighbor, or the next neighbor when the first card is active.
     const auto secondaryIndex = previousIndex && *previousIndex < count && *previousIndex != activeIndex
         ? *previousIndex : (activeIndex > 0 ? activeIndex - 1 : activeIndex + 1);
-    const auto peek = deck_peek(count, localSpan);
-    const auto cardSpan = localSpan * kDeckMainShare;
+    const auto peek = deck_peek(count, localSpan, fullsize);
+    const auto cardSpan = localSpan * (fullsize ? 0.9 : kDeckMainShare);
+    // With only one background window it gets the entire remaining 10%.
+    const auto secondarySpan = localSpan * (fullsize ? (count == 2 ? 0.1 : 0.05) : kDeckSecondaryShare);
     const auto insetStep = std::min(12.0, crossSpan * 0.12 / static_cast<double>(count - 1));
     std::vector<DeckCard> ordered;
     ordered.reserve(count);
@@ -92,10 +95,12 @@ inline std::vector<DeckCard> deck_cards(size_t count, size_t activeIndex,
             // Above the active card expose top edges; below it expose bottom
             // edges. Origins always follow the original list order.
             const auto exposedIndex = index <= activeIndex ? index - 1 : index;
-            offset += exposedIndex == secondaryIndex ? localSpan * kDeckSecondaryShare : peek;
+            offset += exposedIndex == secondaryIndex ? secondarySpan : peek;
         }
         const auto distance = index > activeIndex ? index - activeIndex : activeIndex - index;
-        ordered.push_back({index, offset, cardSpan, static_cast<double>(distance) * insetStep, index != activeIndex && index != secondaryIndex});
+        ordered.push_back({index, offset, cardSpan, static_cast<double>(distance) * insetStep,
+            index != activeIndex && (fullsize || index != secondaryIndex),
+            index == activeIndex ? cardSpan : index == secondaryIndex ? secondarySpan : peek});
     }
 
     // Paint each side from the outside inward, then paint the active card last.

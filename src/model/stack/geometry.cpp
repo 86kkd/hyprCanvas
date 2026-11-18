@@ -81,7 +81,7 @@ Box safe_committed_box(const Box &logicalBox, const Box &visibleBox, const Box &
 
 std::vector<WindowGeometryEntry> Stack::capture_window_boxes(const Vector2D &gap_x, double gap) const {
     std::vector<WindowGeometryEntry> boxes;
-    if (windows.size() > 2 && active && !expanded() && !fullscreen() && !maximized()) {
+    if (active && uses_deck()) {
         std::vector<Window *> models;
         size_t activeIndex = 0;
         std::optional<size_t> previousIndex;
@@ -93,7 +93,7 @@ std::vector<WindowGeometryEntry> Stack::capture_window_boxes(const Vector2D &gap
             models.push_back(node->data());
         }
         const auto cards = StackLogic::deck_cards(models.size(), activeIndex,
-            StackInternal::stack_local_span(geom, mode), StackInternal::stack_cross_span(geom, mode), previousIndex);
+            StackInternal::stack_local_span(geom, mode), StackInternal::stack_cross_span(geom, mode), previousIndex, expanded());
         for (const auto &card : cards) {
             const auto window = models[card.index]->ptr().lock();
             if (!window)
@@ -110,10 +110,9 @@ std::vector<WindowGeometryEntry> Stack::capture_window_boxes(const Vector2D &gap
             const auto labelEdge = !card.narrow ? DeckLabelEdge::None : mode == Mode::Column
                 ? (card.index < activeIndex ? DeckLabelEdge::Left : DeckLabelEdge::Right)
                 : (card.index < activeIndex ? DeckLabelEdge::Top : DeckLabelEdge::Bottom);
-            const auto peek = StackLogic::deck_peek(models.size(), StackInternal::stack_local_span(geom, mode));
             boxes.push_back({window, logical_window_box(frame, mode, border, gap_x,
                 StackInternal::stack_local_origin(geom, mode) + card.offset, card.span, 0.0, 0.0),
-                labelEdge, std::max(0.0, peek - 2.0 * border), card.index < activeIndex});
+                labelEdge, std::max(0.0, card.exposedSpan - 2.0 * border), card.index < activeIndex});
         }
         return boxes;
     }
@@ -235,12 +234,12 @@ void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const 
     if (!active)
         return;
 
-    if (windows.size() <= 2 || expanded() || fullscreen() || maximized()) {
+    if (!uses_deck()) {
         DeckPointer::forget(this);
         for_each_window_model([](Window *window) { window->set_deck_label(DeckLabelEdge::None); });
     }
 
-    // Scroller-managed fullscreen is a hard override: only the active window is
+    // Hyprland-native fullscreen is a hard override: only the active window is
     // shown and it should exactly match the fullscreen box.
     if (fullscreen()) {
         PHLWINDOW activeWindow = active->data()->ptr().lock();
@@ -255,7 +254,7 @@ void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const 
         return;
     }
 
-    if (windows.size() > 2 && !expanded() && !fullscreen() && !maximized()) {
+    if (uses_deck()) {
         adjust_windows(active, gap_x, gap, visibleBox);
         return;
     }
@@ -363,7 +362,7 @@ void Stack::adjust_windows(ListNode<Window *> *win, const Vector2D &gap_x, doubl
     if (!win)
         return;
 
-    if (windows.size() > 2 && !expanded() && !fullscreen() && !maximized()) {
+    if (uses_deck()) {
         const auto anchor = active ? active->data()->ptr().lock() : nullptr;
         const auto monitor = anchor ? ScrollerCore::HyprlandRuntime::monitorById(anchor->monitorID()) : nullptr;
         const auto fullBox = monitor ? ScrollerCore::logical_monitor_box(monitor) : visibleBox;

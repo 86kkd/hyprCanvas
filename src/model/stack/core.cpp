@@ -230,7 +230,7 @@ Vector2D Stack::get_height() const {
     if (windows.empty())
         return Vector2D(geom.y, geom.y);
 
-    if (mode == Mode::Column || (windows.size() > 2 && !expanded() && !fullscreen() && !maximized()))
+    if (mode == Mode::Column || uses_deck())
         return Vector2D(geom.y, geom.y + geom.h);
 
     Vector2D height;
@@ -247,6 +247,10 @@ bool Stack::fullscreen() const {
 
     auto window = active->data()->ptr().lock();
     return ScrollerCore::HyprlandRuntime::windowIsFullscreen(window);
+}
+
+bool Stack::uses_deck() const {
+    return windows.size() >= (expanded() ? 2u : 3u) && !fullscreen() && !maximized();
 }
 
 bool Stack::expanded() const {
@@ -268,8 +272,18 @@ void Stack::set_mode(Mode nextMode, double maxw, double maxh) {
     // Mode flips reinterpret which axis is local. Recompute stack bounds for the
     // new orientation, then rewrite the single active window when the stack only
     // owns one item so that its local coordinates still span the whole stack.
+    const bool wasExpanded = expanded();
+    if (wasExpanded)
+        geom = mem.geom;
     mode = nextMode;
     update_width(width, maxw, maxh);
+    if (wasExpanded) {
+        // Restore into the new orientation, while keeping the focused-window
+        // fullsize deck spread over the entire monitor workarea.
+        mem.geom = geom;
+        geom.w = maxw;
+        geom.h = maxh;
+    }
     if (active && size() == 1) {
         active->data()->set_geom_h(StackInternal::stack_local_span(geom, mode));
         active->data()->set_geom_y(StackInternal::stack_local_origin(geom, mode));

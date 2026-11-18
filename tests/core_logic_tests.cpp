@@ -529,6 +529,49 @@ void test_stack_deck() {
     expect_true(tiny.back().span > 0.0, "small viewports keep positive card spans");
 }
 
+void test_fullsize_deck() {
+    using namespace ScrollerModel::StackLogic;
+    using ScrollerCore::Box;
+    expect_true(deck_cards(1, 0, 1000, 800, std::nullopt, true).empty(),
+                "single fullsize window keeps ordinary fullscreen geometry");
+    for (size_t count : {2u, 3u, 5u, 20u}) {
+        for (size_t active = 0; active < count; ++active) {
+            for (size_t previous = 0; previous < count; ++previous) {
+                if (active == previous)
+                    continue;
+                const auto cards = deck_cards(count, active, 1000, 800, previous, true);
+                for (const auto mode : {Mode::Row, Mode::Column}) {
+                    std::vector<Box> boxes;
+                    for (const auto& c : cards)
+                        boxes.push_back(mode == Mode::Row
+                            ? Box{c.inset, c.offset, 800 - 2*c.inset, c.span}
+                            : Box{c.offset, c.inset, c.span, 800 - 2*c.inset});
+                    const Box viewport = mode == Mode::Row ? Box{0,0,800,1000} : Box{0,0,1000,800};
+                    double background = 0;
+                    for (size_t i = 0; i < cards.size(); ++i) {
+                        const auto& card = cards[i];
+                        const auto hit = deck_hit_box(boxes, i, card.index < active, mode, viewport);
+                        const auto exposed = mode == Mode::Row ? hit.h : hit.w;
+                        if (card.index == active) {
+                            expect_near(exposed, 900, 1e-8, "fullsize main occupies 90 percent");
+                            expect_true(!card.narrow, "fullsize main has no strip label");
+                        } else {
+                            background += exposed;
+                            const auto expected = count == 2 ? 100.0 : card.index == previous ? 50.0 : 50.0/(count-2);
+                            expect_near(exposed, expected, 1e-8, "fullsize background keeps assigned visible share");
+                            expect_true(card.narrow, "all fullsize background windows have labels");
+                        }
+                        expect_near(card.exposedSpan, exposed, 1e-8, "label extent matches actual visible strip");
+                        expect_true(card.offset >= 0 && card.offset + card.span <= 1000 + 1e-8,
+                                    "fullsize cards remain inside viewport");
+                    }
+                    expect_near(background, 100, 1e-8, "fullsize backgrounds together occupy 10 percent");
+                }
+            }
+        }
+    }
+}
+
 void test_stack_visible_hit_boxes() {
     using ScrollerCore::Box;
     using ScrollerModel::StackLogic::deck_hit_box;
@@ -587,5 +630,6 @@ void run_core_logic_tests() {
     test_list_move_only();
     test_stack_logic();
     test_stack_deck();
+    test_fullsize_deck();
     test_stack_visible_hit_boxes();
 }

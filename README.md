@@ -6,7 +6,13 @@ focused window 19.1%, and the remaining windows equally share 19.1%. Windows
 retain their original order: moving down leaves the previous window above the
 active card; moving up leaves it below. Without focus history, an adjacent
 window becomes secondary. Row mode stacks vertically; column mode stacks
-horizontally. Fullscreen and maximized windows retain their normal behavior.
+horizontally. Scroller fullsize (`mainMod+F`) with multiple windows gives the
+focused window 90% of the monitor workarea along the stack axis and its full
+cross-axis span. Two windows use 90% / 10%; with three or more, the previous
+window gets 5% and the rest equally share 5%. All background windows have edge
+labels. Switching focus transfers the large region to the new main window;
+leaving fullsize restores ordinary proportions. Native fullscreen and maximized
+windows retain their normal behavior.
 Returning to one or two windows restores the ordinary layout and saved size
 settings. Card placement is automatic while the stack contains three or more
 windows; per-window size and alignment settings apply again outside that mode.

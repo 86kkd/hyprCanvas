@@ -206,6 +206,8 @@ public:
     void set_fullscreen(const ScrollerCore::Box &fullbbox);
     // Return true when stack-managed fullscreen is active.
     bool expanded() const;
+    // Fullsize uses a focused-window deck even with only two members.
+    bool uses_deck() const;
     // Snapshot/restore geometry for minimize-disruptive transforms.
     void push_geom();
     void pop_geom();

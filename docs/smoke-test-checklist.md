@@ -116,3 +116,17 @@ Automated isolated regression: `python3 scripts/repro-fullsize-insertion.py`.
   must still merge the incoming window into that stack.
 - Cross-lane/monitor insertion next to an expanded target must preserve its
   fullsize state and place the incoming window in a separate stack.
+
+### Focused-window fullsize decks
+
+Automated isolated regression: `python3 scripts/repro-fullsize-deck.py`
+(requires `grim` in addition to the insertion regression dependencies).
+
+- With 2, 3 and 5 windows in one stack, toggle scroller fullsize. The main
+  window must occupy 90% of the stack axis and the entire cross axis.
+- With 2 windows the secondary gets 10%; otherwise the secondary gets 5%, and
+  the other windows equally share 5%. Keep original order during focus changes.
+- Check all background strips show labels at their exposed edges, and pointer
+  focus uses only visible regions in both orientations.
+- Toggle fullsize off and verify ordinary window geometry is restored. Close
+  background windows down to one and verify the remaining window fills the area.
