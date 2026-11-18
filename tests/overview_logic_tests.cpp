@@ -136,6 +136,43 @@ void test_overview_target_selection_keeps_empty_targets_reachable_in_canvas() {
                 "overview movefocus can select same-canvas empty workspace targets before accept");
 }
 
+void test_overview_axis_alignment_tolerance() {
+    // Projection and symmetric deck insets can leave a few ulps of center
+    // drift. A sibling above/below must not steal the first horizontal move.
+    for (const double drift : {-1e-10, 1e-10}) {
+        const std::vector<OverviewLogic::CanvasTargetCandidate> targets = {
+            {.canvasId=10, .monitorId=1, .box={0, 100, 200, 200}},
+            {.canvasId=10, .monitorId=1, .box={10+drift, 120, 180, 200}},
+            {.canvasId=10, .monitorId=1, .box={-240, 100, 200, 200}},
+            {.canvasId=10, .monitorId=1, .box={240, 100, 200, 200}},
+        };
+        for (size_t index : {0u, 1u}) {
+            expect_true(OverviewLogic::pickTargetIndexInCanvas(targets, index, Direction::Left) == 2,
+                        "left skips same-stack center drift on first press");
+            expect_true(OverviewLogic::pickTargetIndexInCanvas(targets, index, Direction::Right) == 3,
+                        "right skips same-stack center drift on first press");
+        }
+        const std::vector<OverviewLogic::TargetCandidate> siblings = {
+            {.monitorId=1, .box=targets[0].box}, {.monitorId=1, .box=targets[1].box},
+        };
+        expect_true(!OverviewLogic::pickTargetIndex(siblings, 0, Direction::Left) &&
+                    !OverviewLogic::pickTargetIndex(siblings, 0, Direction::Right),
+                    "horizontal edge stays put instead of moving vertically");
+        expect_true(OverviewLogic::pickTargetIndex(siblings, 0, Direction::Down) == 1,
+                    "down still selects the stacked sibling");
+        auto transposed = siblings;
+        for (auto& t : transposed) {
+            std::swap(t.box.x,t.box.y);
+            std::swap(t.box.w,t.box.h);
+        }
+        expect_true(!OverviewLogic::pickTargetIndex(transposed, 0, Direction::Up) &&
+                    !OverviewLogic::pickTargetIndex(transposed, 0, Direction::Down),
+                    "column stack ignores vertical center drift");
+        expect_true(OverviewLogic::pickTargetIndex(transposed, 0, Direction::Right) == 1,
+                    "right still selects horizontal sibling");
+    }
+}
+
 void test_overview_empty_accept_plan() {
     const auto plan = OverviewLogic::buildEmptyAcceptPlan(7, 42);
     expect_eq(plan.size(), static_cast<size_t>(2), "overview empty accept plan emits two steps");
@@ -180,6 +217,7 @@ void run_overview_logic_tests() {
     test_overview_target_selection_prefers_rendered_neighbor();
     test_overview_target_selection_stops_at_preview_edge();
     test_overview_target_selection_keeps_empty_targets_reachable_in_canvas();
+    test_overview_axis_alignment_tolerance();
     test_overview_empty_accept_plan();
     test_overview_window_accept_plan();
     test_overview_special_workspace_accept_plan();

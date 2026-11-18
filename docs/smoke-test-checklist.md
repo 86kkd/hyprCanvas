@@ -130,3 +130,14 @@ Automated isolated regression: `python3 scripts/repro-fullsize-deck.py`
   focus uses only visible regions in both orientations.
 - Toggle fullsize off and verify ordinary window geometry is restored. Close
   background windows down to one and verify the remaining window fills the area.
+
+### Overview first directional move inside a stack
+
+Automated isolated regression: `python3 scripts/repro-overview-stack-navigation.py`.
+
+- Place a multi-window row stack between two other stacks. Select each member in
+  overview and press left/right once: selection must reach the corresponding
+  neighboring stack, without first jumping to a vertically stacked sibling.
+- Repeat after re-entering overview and in column mode with up/down.
+- At a navigation edge, an aligned sibling must not become a target because of
+  floating-point projection drift; movement along the stack axis still works.

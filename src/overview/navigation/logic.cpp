@@ -48,15 +48,20 @@ bool nearly_equal(double lhs, double rhs, double epsilon = 1e-6) {
 }
 
 bool is_in_direction(const ScrollerCore::Box& from, const ScrollerCore::Box& candidate, Direction direction) {
+    // Projection arithmetic can move an otherwise aligned center by a few
+    // ulps. Do not classify a same-column sibling as left/right (or a same-row
+    // sibling as up/down), which would outrank the real directional neighbor.
+    const auto dx = center_x(candidate) - center_x(from);
+    const auto dy = center_y(candidate) - center_y(from);
     switch (direction) {
         case Direction::Left:
-            return center_x(candidate) < center_x(from);
+            return dx < 0.0 && !nearly_equal(dx, 0.0);
         case Direction::Right:
-            return center_x(candidate) > center_x(from);
+            return dx > 0.0 && !nearly_equal(dx, 0.0);
         case Direction::Up:
-            return center_y(candidate) < center_y(from);
+            return dy < 0.0 && !nearly_equal(dy, 0.0);
         case Direction::Down:
-            return center_y(candidate) > center_y(from);
+            return dy > 0.0 && !nearly_equal(dy, 0.0);
         default:
             return false;
     }
