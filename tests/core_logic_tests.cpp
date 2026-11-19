@@ -441,25 +441,6 @@ void test_stack_logic() {
     single.push_back(42);
     expect_true(ScrollerModel::StackLogic::next_active_after_removal(single.first(), single.last()) == nullptr,
                 "stack logic clears active selection when removing the only node");
-
-    const auto alignBeg = ScrollerModel::StackLogic::aligned_local_position(
-        Direction::Up, Direction::Up, Direction::Down, 100.0, 300.0, 80.0);
-    expect_true(alignBeg.has_value(), "stack logic resolves backward alignment");
-    expect_near(*alignBeg, 100.0, 1e-9, "stack logic aligns backward to the local origin");
-
-    const auto alignEnd = ScrollerModel::StackLogic::aligned_local_position(
-        Direction::Down, Direction::Up, Direction::Down, 100.0, 300.0, 80.0);
-    expect_true(alignEnd.has_value(), "stack logic resolves forward alignment");
-    expect_near(*alignEnd, 320.0, 1e-9, "stack logic aligns forward to the far edge");
-
-    const auto alignCenter = ScrollerModel::StackLogic::aligned_local_position(
-        Direction::Center, Direction::Up, Direction::Down, 100.0, 300.0, 80.0);
-    expect_true(alignCenter.has_value(), "stack logic resolves centered alignment");
-    expect_near(*alignCenter, 210.0, 1e-9, "stack logic centers within the local span");
-
-    const auto invalid = ScrollerModel::StackLogic::aligned_local_position(
-        Direction::Left, Direction::Up, Direction::Down, 100.0, 300.0, 80.0);
-    expect_true(!invalid.has_value(), "stack logic ignores directions outside the active stack axis");
 }
 
 void test_stack_deck() {

@@ -90,7 +90,6 @@ public:
     PHLWINDOW get_active_window() const;
     bool is_active(PHLWINDOW window) const;
     size_t stack_count() const;
-    ScrollerModel::Reorder get_reorder() const;
 
     // Window/stack membership changes.
     void add_active_window(PHLWINDOW window);
@@ -122,8 +121,6 @@ public:
     void resize_active_stack(int step);
     void resize_active_window(const Vector2D &delta);
     void set_mode(Mode m);
-    // TODO(remove-align-window): Delete with the align_window command path.
-    void align_stack(Direction dir);
     void move_active_stack(Direction dir);
     void move_active_window_to_adjacent_stack(Direction dir);
     void move_active_window_to_new_stack(Direction dir);
@@ -138,7 +135,6 @@ public:
     void commit_restored_geometry();
     void append_restored_stack(ScrollerModel::Stack *stack);
     void set_active_stack_by_index(size_t index);
-    void set_reorder(ScrollerModel::Reorder value);
     ScrollerSnapshot::LaneSnapshot capture_snapshot() const;
 
 private:
@@ -158,7 +154,6 @@ private:
     void move_focus_begin();
     void move_focus_end();
 
-    void center_active_stack();
     void adjust_stacks(ListNode<ScrollerModel::Stack *> *stack);
     // Return the stack span that should be preserved when moving a free-sized stack.
     double stack_primary_span_for_transfer(const ScrollerModel::Stack *stack) const;
@@ -177,8 +172,6 @@ private:
     bool ephemeral;
     // Inner gap used between stacked windows.
     int gap;
-    // Current reorder policy for relayout decisions.
-    ScrollerModel::Reorder reorder;
     // Current navigation/insertion mode for the lane.
     Mode mode;
     // Active stack node inside this lane.

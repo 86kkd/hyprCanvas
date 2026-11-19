@@ -109,7 +109,7 @@ It is responsible for:
 
 - which window is active inside the stack
 - adding, removing, and restoring window payloads
-- size/alignment policy for that local group
+- size policy for that local group
 - geometry calculations for the windows it owns
 
 If a `Lane` answers "which stack should handle this operation?", `Stack`

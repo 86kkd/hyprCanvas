@@ -15,7 +15,7 @@ leaving fullsize restores ordinary proportions. Native fullscreen and maximized
 windows retain their normal behavior.
 Returning to one or two windows restores the ordinary layout and saved size
 settings. Card placement is automatic while the stack contains three or more
-windows; per-window size and alignment settings apply again outside that mode.
+windows; per-window size settings apply again outside that mode.
 Moving a window toward a stack expanded with the scroller fullscreen toggle
 places it in a separate stack on the requested side instead of joining the
 fullsize stack. The destination retains its fullsize and restore geometry.
@@ -173,7 +173,6 @@ following functions under `hl.plugin.scroller` instead:
 | `focus_monitor(direction)` | Move monitor focus, or select another canvas in overview. |
 | `move_window(direction)` | Move the active window in the requested direction. |
 | `cycle_size(step)` | Cycle the active stack size with `next` or `prev`. |
-| `align_window(direction)` | Align the active stack or window. |
 | `set_mode(mode)` | Select `row` or `col` mode. |
 | `fit_size(scope)` | Fit `active`, `visible`, `all`, `toend`, or `tobeg`. |
 | `toggle_fullscreen()` | Toggle scroller-managed fullscreen expansion. |
@@ -199,15 +198,13 @@ following functions under `hl.plugin.scroller` instead:
 *Hyprscroller* works in one of two modes that can be changed at any moment.
 
 1. *row* mode: it is the default. It creates new windows in a new column.
-   `cyclesize` affects the width of the active column. `alignwindow` aligns
-   the active column according to the argument received. `fitsize` fits the
+   `cyclesize` affects the width of the active column. `fitsize` fits the
    selected columns to the width of the monitor.
 
 2. *column* mode: It creates new windows in the current column, right below the
    active window. `cyclesize` affects the height of the active window.
-   `alignwindow` aligns the active window within the column, according to the
-   argument received. `fitsize` fits the selected windows in the column to the
-   height of the monitor.
+   `fitsize` fits the selected windows in the column to the height of the
+   monitor.
 
 
 ## Window/Column Focus and Movement
@@ -235,27 +232,6 @@ width of the monitor. In *column* mode, the fractions are relative to the
 height of the monitor, and are: one third, one half, two thirds or one.
 However, using `resizewindow`, you can modify the width or height of
 any window freely.
-
-
-## Aligning
-
-Columns are generally aligned in automatic mode, always making the active one
-visible, and trying to make at least the previously focused one visible too if
-it fits the viewport, if not, the one adjacent on the other side. However, you
-can always align any column to the *center*, *left* or *right* of the monitor
-(in *row* mode), or *up* (top), *down* (bottom) or to the *center* in *column*
-mode. For example center a column for easier reading, regardless of what happens to
-the other columns. As soon as you change focus or move a column, the alignment
-is lost.
-
-`alignwindow` takes a parameter: `l` or `left`, `r` or `right`, `c` or
-`center` or `centre`, `u` or `up` and `d` or `down`.
-
-To use *right* or *left* you need to be in *row* mode, and to use *up* or
-*down* in *column* mode. *center* behaves differently depending on the mode.
-In *row* mode it aligns the active column to the center of the monitor. In
-*column* mode, it aligns the active window within its column, to a centered
-position.
 
 
 ## Building and Splitting Stacks
@@ -416,27 +392,6 @@ bind = $mainMod, bracketright, scroller:setmode, col
 # Sizing keys
 bind = $mainMod, equal, scroller:cyclesize, next
 bind = $mainMod, minus, scroller:cyclesize, prev
-
-# Center submap
-# will switch to a submap called center
-bind = $mainMod, C, submap, center
-# will start a submap called "center"
-submap = center
-# sets repeatable binds for resizing the active window
-bind = , C, scroller:alignwindow, c
-bind = , C, submap, reset
-bind = , right, scroller:alignwindow, r
-bind = , right, submap, reset
-bind = , left, scroller:alignwindow, l
-bind = , left, submap, reset
-bind = , up, scroller:alignwindow, u
-bind = , up, submap, reset
-bind = , down, scroller:alignwindow, d
-bind = , down, submap, reset
-# use reset to go back to the global submap
-bind = , escape, submap, reset
-# will reset the submap, meaning end the current one and return to the global one
-submap = reset
 
 # Resize submap
 # will switch to a submap called resize

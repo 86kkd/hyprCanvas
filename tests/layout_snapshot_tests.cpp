@@ -25,13 +25,11 @@ void test_snapshot_round_trip() {
 
     LaneSnapshot firstLane;
     firstLane.mode = static_cast<int>(Mode::Row);
-    firstLane.reorder = 1;
     firstLane.ephemeral = false;
     firstLane.activeStackIndex = 0;
 
     StackSnapshot firstStack;
     firstStack.width = 3;
-    firstStack.reorder = 1;
     firstStack.fullscreened = true;
     firstStack.maximized = false;
     firstStack.geom = {10.0, 20.0, 300.0, 400.0};
@@ -43,12 +41,10 @@ void test_snapshot_round_trip() {
 
     LaneSnapshot secondLane;
     secondLane.mode = static_cast<int>(Mode::Column);
-    secondLane.reorder = 0;
     secondLane.ephemeral = true;
     secondLane.activeStackIndex = 0;
     secondLane.stacks.push_back({
         .width = 1,
-        .reorder = 0,
         .fullscreened = false,
         .maximized = true,
         .geom = {100.0, 120.0, 800.0, 900.0},

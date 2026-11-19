@@ -291,12 +291,6 @@ void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const 
         adjust_windows(active, gap_x, gap, visibleBox);
         return;
     }
-    // Lazy reorder means the caller deliberately positioned the active window;
-    // we only need to propagate that anchor to neighbors.
-    if (reorder != Reorder::Auto) {
-        adjust_windows(active, gap_x, gap, visibleBox);
-        return;
-    }
 
     Window *prev = active->prev() ? active->prev()->data() : nullptr;
     Window *next = active->next() ? active->next()->data() : nullptr;
@@ -328,7 +322,6 @@ void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const 
 }
 
 void Stack::fit_size(FitSize fitsize, const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox) {
-    reorder = Reorder::Auto;
     // Fit-size acts on a contiguous range of windows. The helpers decide which
     // range should be scaled (all / visible / before / after active), then
     // normalize that range so the chosen windows exactly fill the stack span.
@@ -513,7 +506,6 @@ void Stack::resize_active_window(const ScrollerCore::Box &bounds, const Vector2D
                 return;
         }
     }
-    reorder = Reorder::Auto;
     width = StackWidth::Free;
 
     // Resizing by drag always puts the stack into free-width mode because the

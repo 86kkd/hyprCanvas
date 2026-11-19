@@ -7,7 +7,7 @@
  * `Window` stores per-window geometry state (logical height, cached
  * positions, and height mode), while `Stack` manages an ordered stack
  * of windows and all stack-level layout math for movement, resizing,
- * fullscreen/maximized behavior, and alignment.
+ * and fullscreen/maximized behavior.
  *
  * The lane/controller layer composes these primitives to implement
  * workspace-level navigation and monitor integration.
@@ -66,13 +66,6 @@ enum class WindowHeight {
     Free,
     // Compatibility value used by optional IPC hooks / fallbacks.
     Auto
-};
-
-enum class Reorder {
-    // Automatic layout may move windows to preserve visibility.
-    Auto,
-    // Preserve current order, avoid aggressive repositioning unless needed.
-    Lazy
 };
 
 /**
@@ -244,13 +237,9 @@ public:
     void restore_window(std::unique_ptr<Window> window, bool insertBeforeActive);
     // Remove the active model window and transfer ownership to the caller as a unique owner.
     std::unique_ptr<Window> expel_active(double gap);
-    // Move active window toward viewport edges/center inside the current stack.
-    // TODO(remove-align-window): Delete with the align_window command path.
-    void align_window(Direction direction, double gap);
 
     // Width and height mode inspection + mutation.
     StackWidth get_width() const;
-    Reorder get_reorder() const;
     const ScrollerCore::Box &get_saved_geom() const;
     void set_width_free();
 #ifdef COLORS_IPC
@@ -270,7 +259,7 @@ public:
     // Append a window model without applying insert heuristics. Used only when rebuilding snapshots.
     void append_restored_window(std::unique_ptr<Window> window);
     // Restore stack-wide persisted geometry and behavior flags.
-    void restore_state(StackWidth restoredWidth, Reorder restoredReorder,
+    void restore_state(StackWidth restoredWidth,
                        const ScrollerCore::Box &restoredGeom, const ScrollerCore::Box &restoredMemGeom,
                        bool restoredFullscreened, bool restoredMaximized);
     // Export this stack's persisted state and ordered windows.
@@ -295,8 +284,6 @@ private:
     Mode mode;
     // Height preset of the active window when cycling window sizes.
     WindowHeight height;
-    // Auto/lazy reorder policy used by viewport adjustments.
-    Reorder reorder;
     // Whether this stack already has stable initial geometry.
     bool initialized;
     // Current stack geometry in canvas coordinates.

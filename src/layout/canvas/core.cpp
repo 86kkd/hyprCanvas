@@ -92,16 +92,6 @@ ScrollerModel::WindowHeight restored_height_or_default(int value) {
     }
 }
 
-ScrollerModel::Reorder restored_reorder_or_default(int value) {
-    switch (static_cast<ScrollerModel::Reorder>(value)) {
-    case ScrollerModel::Reorder::Auto:
-    case ScrollerModel::Reorder::Lazy:
-        return static_cast<ScrollerModel::Reorder>(value);
-    default:
-        return ScrollerModel::Reorder::Auto;
-    }
-}
-
 std::vector<PHLWINDOW> live_tiled_workspace_windows(PHLWORKSPACE workspace) {
     std::vector<PHLWINDOW> windows;
     if (!workspace)
@@ -565,7 +555,6 @@ bool CanvasLayout::restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snaps
         const auto &laneSnapshot = snapshot.lanes[laneIndex];
         auto *lane = new Lane(fallbackMonitor, restored_mode_or_default(laneSnapshot.mode, ScrollerCore::default_mode_for_monitor(fallbackMonitor)));
         lane->set_ephemeral(laneSnapshot.ephemeral);
-        lane->set_reorder(restored_reorder_or_default(laneSnapshot.reorder));
 
         for (size_t stackIndex = 0; stackIndex < laneSnapshot.stacks.size(); ++stackIndex) {
             const auto &stackSnapshot = laneSnapshot.stacks[stackIndex];
@@ -592,7 +581,6 @@ bool CanvasLayout::restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snaps
             }
 
             stack->restore_state(restored_width_or_default(stackSnapshot.width),
-                                 restored_reorder_or_default(stackSnapshot.reorder),
                                  stackSnapshot.geom,
                                  stackSnapshot.memGeom,
                                  stackSnapshot.fullscreened,

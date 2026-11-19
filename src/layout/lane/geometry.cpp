@@ -26,7 +26,6 @@
 #include "../canvas/internal.h"
 
 using ScrollerCore::Box;
-using ScrollerModel::Reorder;
 using ScrollerModel::Stack;
 using ScrollerModel::StackWidth;
 
@@ -178,53 +177,6 @@ Vector2D Lane::calculate_gap_x(const ListNode<Stack *> *stack) const {
     return Vector2D(gap0, gap1);
 }
 
-// Center the active stack inside the lane according to its width mode.
-void Lane::center_active_stack() {
-    if (!active)
-        return;
-
-    Stack *stack = active->data();
-    if (stack->maximized())
-        return;
-
-    if (mode == Mode::Column) {
-        switch (stack->get_width()) {
-        case StackWidth::OneThird:
-            stack->set_geom_pos(max.x, max.y + max.h / 3.0);
-            break;
-        case StackWidth::OneHalf:
-            stack->set_geom_pos(max.x, max.y + max.h / 4.0);
-            break;
-        case StackWidth::TwoThirds:
-            stack->set_geom_pos(max.x, max.y + max.h / 6.0);
-            break;
-        case StackWidth::Free:
-            stack->set_geom_pos(max.x, ScrollerCore::center_span(max.y, max.h, stack->get_geom_h()));
-            break;
-        default:
-            break;
-        }
-        return;
-    }
-
-    switch (stack->get_width()) {
-    case StackWidth::OneThird:
-        stack->set_geom_pos(max.x + max.w / 3.0, max.y);
-        break;
-    case StackWidth::OneHalf:
-        stack->set_geom_pos(max.x + max.w / 4.0, max.y);
-        break;
-    case StackWidth::TwoThirds:
-        stack->set_geom_pos(max.x + max.w / 6.0, max.y);
-        break;
-    case StackWidth::Free:
-        stack->set_geom_pos(ScrollerCore::center_span(max.x, max.w, stack->get_geom_w()), max.y);
-        break;
-    default:
-        break;
-    }
-}
-
 // Predict the initial size for a new window inserted into this lane.
 Vector2D Lane::predict_window_size() const {
     return ScrollerCore::predict_window_size(mode, max);
@@ -267,7 +219,6 @@ void Lane::toggle_maximize_active_stack() {
 
     Stack *stack = active->data();
     stack->toggle_maximized(max.w, max.h);
-    reorder = Reorder::Auto;
     recalculate_lane_geometry();
 }
 
@@ -338,17 +289,6 @@ void Lane::recalculate_lane_geometry() {
         set_stack_primary_position(active->data(), mode, max, activePos);
         adjust_stacks(active);
         spdlog::debug("lane_recalc_clamp_after: active_window={} active_pos={} stacks_after={}",
-                      logging::active_window_ptr(active->data()),
-                      stack_primary_origin(active->data(), mode),
-                      logging::summarize_stacks(stacks, mode));
-        return;
-    }
-    // Lazy reorder means "respect the caller's explicit position" and only
-    // restack neighbors around it. Auto reorder may still move the active stack.
-    if (reorder != Reorder::Auto) {
-        set_stack_primary_position(active->data(), mode, max, activePos);
-        adjust_stacks(active);
-        spdlog::debug("lane_recalc_lazy: active_window={} active_pos={} stacks_after={}",
                       logging::active_window_ptr(active->data()),
                       stack_primary_origin(active->data(), mode),
                       logging::summarize_stacks(stacks, mode));

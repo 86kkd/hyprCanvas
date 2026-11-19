@@ -262,18 +262,6 @@ void CanvasLayout::move_window(int workspace, Direction direction) {
     persistSnapshot();
 }
 
-// Align the active stack/window inside the current lane viewport.
-//
-// TODO(remove-align-window): Delete this entrypoint once the Lua/dispatch
-// align_window command is removed.
-void CanvasLayout::align_window(int workspace, Direction direction) {
-    (void)workspace;
-    withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [direction](Lane *lane) {
-        lane->align_stack(direction);
-    });
-    persistSnapshot();
-}
-
 // Change the active lane traversal mode.
 void CanvasLayout::set_mode(int workspace, Mode mode) {
     (void)workspace;

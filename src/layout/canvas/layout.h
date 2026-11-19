@@ -113,8 +113,6 @@ public:
     void cycle_window_size(int workspace, int step);
     void move_focus(int workspace, Direction);
     void move_window(int workspace, Direction);
-    // TODO(remove-align-window): Delete this API with the align command path.
-    void align_window(int workspace, Direction);
     void set_mode(int workspace, Mode);
     // TODO(remove-fit-size-command): Delete the public fit_size command API.
     // Internal Stack::fit_size helpers used by move_window/relayout are separate.

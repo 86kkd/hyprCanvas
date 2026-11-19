@@ -90,9 +90,9 @@ TODO(canvas-workspace-model)
 
 ### 建议完成判定
 
-- [ ] 对外命令与内部 align API 已全部删除
-- [ ] 无残留 `Reorder::Lazy` 仅服务于 align 的死路径（若有，一并清理）
-- [ ] 文档示例已去掉 `align_window` / `alignwindow`
+- [x] 对外命令与内部 align API 已全部删除
+- [x] 无残留 `Reorder::Lazy` 仅服务于 align 的死路径（若有，一并清理）
+- [x] 文档示例已去掉 `align_window` / `alignwindow`
 - [ ] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 
 ---

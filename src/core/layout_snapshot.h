@@ -29,7 +29,6 @@ struct WindowSnapshot {
 
 struct StackSnapshot {
     int                          width = 0;
-    int                          reorder = 0;
     bool                         fullscreened = false;
     bool                         maximized = false;
     ScrollerCore::Box            geom;
@@ -40,7 +39,6 @@ struct StackSnapshot {
 
 struct LaneSnapshot {
     int                         mode = 0;
-    int                         reorder = 0;
     bool                        ephemeral = false;
     size_t                      activeStackIndex = 0;
     std::vector<StackSnapshot>  stacks;

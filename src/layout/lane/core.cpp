@@ -24,12 +24,11 @@
 #include "../../core/window_key.h"
 
 using ScrollerCore::Box;
-using ScrollerModel::Reorder;
 using ScrollerModel::Stack;
 using ScrollerModel::StackWidth;
 
 Lane::Lane(PHLWINDOW window)
-    : ephemeral(false), gap(0), reorder(Reorder::Auto), mode(Mode::Row), active(nullptr) {
+    : ephemeral(false), gap(0), mode(Mode::Row), active(nullptr) {
     const auto monitor = ScrollerCore::HyprlandRuntime::monitorById(window->monitorID());
     if (!monitor)
         return;
@@ -39,7 +38,7 @@ Lane::Lane(PHLWINDOW window)
 }
 
 Lane::Lane(PHLMONITOR monitor, Mode laneMode)
-    : ephemeral(false), gap(0), reorder(Reorder::Auto), mode(laneMode), active(nullptr) {
+    : ephemeral(false), gap(0), mode(laneMode), active(nullptr) {
     if (monitor)
         update_sizes(monitor);
 }
@@ -183,10 +182,6 @@ size_t Lane::stack_count() const {
     return stacks.size();
 }
 
-Reorder Lane::get_reorder() const {
-    return reorder;
-}
-
 ActiveWindowRestorePlan Lane::capture_active_window_restore_plan(Direction direction) const {
     ActiveWindowRestorePlan plan;
     plan.direction = direction;
@@ -226,7 +221,6 @@ ActiveWindowPayload Lane::extract_active_window_payload() {
         return {};
 
     forgetWindowStack(payloadWindow);
-    reorder = Reorder::Auto;
 
     if (stack->size() == 0) {
         // If the extracted window was the last member of its stack, the lane no
@@ -309,9 +303,6 @@ void Lane::insert_window_payload(ActiveWindowPayload payload, Direction directio
     if (!payload)
         return;
 
-    // Insertion always resets reorder policy because the lane structure has
-    // materially changed and later relayout should be free to normalize it.
-    reorder = Reorder::Auto;
     // Preserve a fullsize destination, including its restore geometry. Incoming
     // windows get their own stack on the requested side, never join its deck.
     if (active && active->data()->expanded()) {
@@ -407,7 +398,6 @@ void Lane::restore_active_window_payload(ActiveWindowPayload payload, const Acti
     if (compositorWindow)
         rememberWindowStack(compositorWindow, stack);
 
-    reorder = Reorder::Auto;
     recalculate_lane_geometry();
     debugVerifyStackCache();
 }
@@ -454,14 +444,9 @@ void Lane::set_active_stack_by_index(size_t index) {
     active = node ? node : stacks.first();
 }
 
-void Lane::set_reorder(Reorder value) {
-    reorder = value;
-}
-
 ScrollerSnapshot::LaneSnapshot Lane::capture_snapshot() const {
     ScrollerSnapshot::LaneSnapshot snapshot;
     snapshot.mode = static_cast<int>(mode);
-    snapshot.reorder = static_cast<int>(reorder);
     snapshot.ephemeral = ephemeral;
 
     size_t index = 0;

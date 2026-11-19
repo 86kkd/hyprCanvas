@@ -54,7 +54,6 @@ bool Stack::swap_windows(PHLWINDOW a, PHLWINDOW b) {
 }
 
 void Stack::remove_window(PHLWINDOW window) {
-    reorder = Reorder::Auto;
     auto *win = findWindowNode(window);
     if (!win)
         return;
@@ -118,14 +117,12 @@ void Stack::move_active(Direction direction) {
     const auto backward = ScrollerCore::stack_item_backward_direction(mode);
     const auto forward = ScrollerCore::stack_item_forward_direction(mode);
     if (direction == backward && active != windows.first()) {
-        reorder = Reorder::Auto;
         auto previous = active->prev();
         windows.swap(active, previous);
         return;
     }
 
     if (direction == forward && active != windows.last()) {
-        reorder = Reorder::Auto;
         auto next = active->next();
         windows.swap(active, next);
     }
@@ -138,13 +135,11 @@ FocusMoveResult Stack::move_focus(Direction direction, bool focus_wrap) {
     const auto backward = ScrollerCore::stack_item_backward_direction(mode);
     const auto forward = ScrollerCore::stack_item_forward_direction(mode);
     if (direction == backward && active != windows.first()) {
-        reorder = Reorder::Auto;
         activate_window(active->prev());
         return FocusMoveResult::Moved;
     }
 
     if (direction == forward && active != windows.last()) {
-        reorder = Reorder::Auto;
         activate_window(active->next());
         return FocusMoveResult::Moved;
     }
@@ -178,7 +173,6 @@ FocusMoveResult Stack::move_focus(Direction direction, bool focus_wrap) {
 }
 
 void Stack::admit_window(std::unique_ptr<Window> window) {
-    reorder = Reorder::Auto;
     if (!window)
         return;
 
@@ -197,7 +191,6 @@ void Stack::admit_window(std::unique_ptr<Window> window) {
 }
 
 void Stack::restore_window(std::unique_ptr<Window> window, bool insertBeforeActive) {
-    reorder = Reorder::Auto;
     if (!window)
         return;
 
@@ -216,7 +209,6 @@ void Stack::restore_window(std::unique_ptr<Window> window, bool insertBeforeActi
 }
 
 std::unique_ptr<Window> Stack::expel_active(double /*gap*/) {
-    reorder = Reorder::Auto;
     if (!active)
         return {};
 
@@ -230,31 +222,6 @@ std::unique_ptr<Window> Stack::expel_active(double /*gap*/) {
     windows.erase(active);
     active = nextActive;
     return window;
-}
-
-// TODO(remove-align-window): Delete with Lane::align_stack / align_window.
-void Stack::align_window(Direction direction, double /*gap*/) {
-    if (!active)
-        return;
-
-    // Alignment snaps the active window to one logical edge/center position
-    // without immediately reordering the whole stack around it.
-    const auto backward = ScrollerCore::stack_item_backward_direction(mode);
-    const auto forward = ScrollerCore::stack_item_forward_direction(mode);
-    const auto target = StackLogic::aligned_local_position(
-        direction,
-        backward,
-        forward,
-        StackInternal::stack_local_origin(geom, mode),
-        StackInternal::stack_local_span(geom, mode),
-        active->data()->get_geom_h());
-    if (!target)
-        return;
-
-    // Lazy reorder preserves this exact local position until a later relayout
-    // chooses to normalize neighbors around the active window again.
-    reorder = Reorder::Lazy;
-    active->data()->set_geom_y(*target);
 }
 
 } // namespace ScrollerModel

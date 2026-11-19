@@ -127,21 +127,6 @@ void dispatch_movewindow(std::string arg) {
     spdlog::warn("dispatch_movewindow: no layout for arg='{}'", arg);
 }
 
-// alignwindow <dir>: align active window/stack against lane/stack geometry.
-//
-// TODO(remove-align-window): Delete this command surface entirely. Manual
-// left/right/center alignment is no longer part of the intended workflow; drop
-// Lua `align_window`, canvas/grid `align_window`, `Lane::align_stack`, and
-// `Stack::align_window` together so nothing keeps a Lazy-align side path.
-void dispatch_alignwindow(std::string arg) {
-    const auto direction = parsedDirectionArg(arg);
-    if (!direction)
-        return;
-
-    if (const auto action = workspaceLayoutForAction())
-        action.layout->align_window(action.workspace, *direction);
-}
-
 // setmode row|col: switch between row mode and column mode.
 void dispatch_setmode(std::string arg) {
     withParsedModeArgOrWarn("dispatch_setmode", arg, [&](Mode mode) {
@@ -237,12 +222,6 @@ int lua_move_window(lua_State* state) {
     return 0;
 }
 
-// TODO(remove-align-window): Remove this Lua binding with the command.
-int lua_align_window(lua_State* state) {
-    dispatch_alignwindow(luaStringArg(state));
-    return 0;
-}
-
 int lua_set_mode(lua_State* state) {
     dispatch_setmode(luaStringArg(state));
     return 0;
@@ -273,8 +252,6 @@ void registerLayoutLuaFunctions() {
     registerLuaFunction("focus_monitor", lua_focus_monitor);
     registerLuaFunction("switch_workspace", lua_switch_workspace);
     registerLuaFunction("move_window", lua_move_window);
-    // TODO(remove-align-window): Drop this registration.
-    registerLuaFunction("align_window", lua_align_window);
     registerLuaFunction("set_mode", lua_set_mode);
     // TODO(remove-fit-size-command): Drop this registration.
     registerLuaFunction("fit_size", lua_fit_size);

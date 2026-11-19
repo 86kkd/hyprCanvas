@@ -11,6 +11,11 @@
 namespace ScrollerSnapshot {
 namespace {
 
+// LANE/STACK lines keep a column for the removed Auto/Lazy reorder policy so
+// the format stays readable by older builds. Its value is written as Auto and
+// ignored on read.
+constexpr int kRetiredReorderToken = 0;
+
 template <typename T>
 bool parse_token(std::string_view token, T &out);
 
@@ -115,10 +120,10 @@ std::string serialize_repository(const RepositorySnapshot &snapshots) {
         out << "WORKSPACE " << canvas.workspaceId << ' ' << canvas.activeLaneIndex << ' '
             << canvas.lanes.size() << ' ' << canvas.version << '\n';
         for (const auto &lane : canvas.lanes) {
-            out << "LANE " << lane.mode << ' ' << lane.reorder << ' ' << (lane.ephemeral ? 1 : 0) << ' '
+            out << "LANE " << lane.mode << ' ' << kRetiredReorderToken << ' ' << (lane.ephemeral ? 1 : 0) << ' '
                 << lane.activeStackIndex << ' ' << lane.stacks.size() << '\n';
             for (const auto &stack : lane.stacks) {
-                out << "STACK " << stack.width << ' ' << stack.reorder << ' '
+                out << "STACK " << stack.width << ' ' << kRetiredReorderToken << ' '
                     << (stack.fullscreened ? 1 : 0) << ' ' << (stack.maximized ? 1 : 0) << ' ';
                 append_box(out, stack.geom);
                 out << ' ';
@@ -146,6 +151,7 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
     CanvasSnapshot *currentCanvas = nullptr;
     LaneSnapshot *currentLane = nullptr;
     StackSnapshot *currentStack = nullptr;
+    int retiredReorder = 0;
 
     while (std::getline(input, line)) {
         const auto tokens = split_tokens(line);
@@ -203,7 +209,7 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
             size_t stackCount = 0;
             if (tokens.size() != 6 ||
                 !parse_token(tokens[1], lane.mode) ||
-                !parse_token(tokens[2], lane.reorder) ||
+                !parse_token(tokens[2], retiredReorder) ||
                 !parse_bool_token(tokens[3], lane.ephemeral) ||
                 !parse_size_token(tokens[4], lane.activeStackIndex) ||
                 !parse_size_token(tokens[5], stackCount))
@@ -223,7 +229,7 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
             size_t windowCount = 0;
             if (tokens.size() != 15 ||
                 !parse_token(tokens[1], stack.width) ||
-                !parse_token(tokens[2], stack.reorder) ||
+                !parse_token(tokens[2], retiredReorder) ||
                 !parse_bool_token(tokens[3], stack.fullscreened) ||
                 !parse_bool_token(tokens[4], stack.maximized) ||
                 !parse_box(tokens, 5, stack.geom) ||

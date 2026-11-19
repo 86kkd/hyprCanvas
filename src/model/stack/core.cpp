@@ -159,7 +159,7 @@ void sync_window_target_geometry(PHLWINDOW window) {
 namespace ScrollerModel {
 
 Stack::Stack(PHLWINDOW cwindow, double maxw, double maxh, Mode mode)
-    : mode(mode), height(WindowHeight::One), reorder(Reorder::Auto), initialized(false), maxdim(false) {
+    : mode(mode), height(WindowHeight::One), initialized(false), maxdim(false) {
     // New stacks start from the configured default width preset, then create one
     // model window whose local-axis span matches the stack's current mode.
     const auto preset = StackInternal::parse_stack_width_preset(cwindow, maxw);
@@ -173,12 +173,12 @@ Stack::Stack(PHLWINDOW cwindow, double maxw, double maxh, Mode mode)
 }
 
 Stack::Stack(double maxw, double maxh, Mode mode)
-    : width(StackWidth::OneHalf), mode(mode), height(WindowHeight::One), reorder(Reorder::Auto), initialized(true), maxdim(false) {
+    : width(StackWidth::OneHalf), mode(mode), height(WindowHeight::One), initialized(true), maxdim(false) {
     update_width(width, maxw, maxh);
 }
 
 Stack::Stack(std::unique_ptr<Window> window, StackWidth width, double maxw, double maxh, Mode mode)
-    : width(width), mode(mode), height(WindowHeight::One), reorder(Reorder::Auto), initialized(true), maxdim(false) {
+    : width(width), mode(mode), height(WindowHeight::One), initialized(true), maxdim(false) {
     // This constructor is used when a window model is already detached from a
     // source stack and must be rebuilt into a fresh one-window destination stack.
     update_width(width, maxw, maxh);
@@ -315,10 +315,6 @@ StackWidth Stack::get_width() const {
     return width;
 }
 
-Reorder Stack::get_reorder() const {
-    return reorder;
-}
-
 const ScrollerCore::Box &Stack::get_saved_geom() const {
     return mem.geom;
 }
@@ -377,11 +373,10 @@ void Stack::append_restored_window(std::unique_ptr<Window> window) {
         active = windows.first();
 }
 
-void Stack::restore_state(StackWidth restoredWidth, Reorder restoredReorder,
+void Stack::restore_state(StackWidth restoredWidth,
                           const ScrollerCore::Box &restoredGeom, const ScrollerCore::Box &restoredMemGeom,
                           bool restoredFullscreened, bool restoredMaximized) {
     width = restoredWidth;
-    reorder = restoredReorder;
     geom = restoredGeom;
     mem.geom = restoredMemGeom;
     fullscreened = restoredFullscreened;
@@ -392,7 +387,6 @@ void Stack::restore_state(StackWidth restoredWidth, Reorder restoredReorder,
 ScrollerSnapshot::StackSnapshot Stack::capture_snapshot() const {
     ScrollerSnapshot::StackSnapshot snapshot;
     snapshot.width = static_cast<int>(width);
-    snapshot.reorder = static_cast<int>(reorder);
     snapshot.fullscreened = fullscreened;
     snapshot.maximized = maxdim;
     snapshot.geom = geom;
