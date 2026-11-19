@@ -92,6 +92,7 @@ add_library(hyprscroller SHARED
             src/layout/canvas/dispatch_logic.cpp
             src/layout/canvas/route.cpp
             src/layout/canvas/route_logic.cpp
+            src/layout/canvas/topology_route.cpp
             src/layout/canvas/layout_repository.cpp
             src/layout/canvas/canvas_workspace_repository.cpp
             src/layout/canvas/workspace.cpp
@@ -131,6 +132,7 @@ if(BUILD_TESTING)
                    tests/core_logic_tests.cpp
                    tests/layout_snapshot_tests.cpp
                    tests/layout_logic_tests.cpp
+                   tests/topology_route_tests.cpp
                    tests/overview_logic_tests.cpp
                    tests/overview_model_tests.cpp
                    tests/overview_scene_tests.cpp
@@ -151,7 +153,8 @@ if(BUILD_TESTING)
                    src/overview/navigation/selection.cpp
                    src/layout/canvas/dispatch_logic.cpp
                    src/layout/canvas/dispatch_runtime_logic.cpp
-                   src/layout/canvas/route_logic.cpp)
+                   src/layout/canvas/route_logic.cpp
+                   src/layout/canvas/topology_route.cpp)
     target_include_directories(hyprscroller_logic_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${DEPS_INCLUDE_DIRS}

@@ -8,6 +8,7 @@ int main() {
     run_core_logic_tests();
     run_layout_snapshot_tests();
     run_layout_logic_tests();
+    run_topology_route_tests();
     run_overview_logic_tests();
     run_overview_model_tests();
     run_overview_scene_tests();

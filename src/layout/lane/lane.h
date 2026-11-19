@@ -10,6 +10,7 @@
 
 #include <cstdint>
 #include <memory>
+#include <optional>
 #include <utility>
 
 #include "../../core/layout_snapshot.h"
@@ -90,6 +91,10 @@ public:
     PHLWINDOW get_active_window() const;
     bool is_active(PHLWINDOW window) const;
     size_t stack_count() const;
+    // Coordinates of the active stack/window for topology routing.
+    size_t active_stack_index() const;
+    size_t active_stack_window_count() const;
+    size_t active_stack_window_index() const;
 
     // Window/stack membership changes.
     void add_active_window(PHLWINDOW window);
@@ -113,7 +118,9 @@ public:
     void focus_window(PHLWINDOW window);
     bool active_item_at_edge(Direction direction) const;
     bool active_stack_has_multiple_windows() const;
-    FocusMoveResult move_focus(Direction dir, bool focus_wrap);
+    // Focus the stack at `stackIndex`, and the window at `windowIndex` inside
+    // it when given; otherwise that stack keeps its own active window.
+    void focus_position(size_t stackIndex, std::optional<size_t> windowIndex);
 
     // Command-facing stack and window operations.
     void set_active_stack_visible_count(int count);
@@ -144,11 +151,6 @@ private:
 
     // Calculate lateral gaps for a stack based on neighbor presence.
     Vector2D calculate_gap_x(const ListNode<ScrollerModel::Stack *> *stack) const;
-
-    FocusMoveResult move_focus_backward_stack(Direction direction, bool focus_wrap);
-    FocusMoveResult move_focus_forward_stack(Direction direction, bool focus_wrap);
-    void move_focus_begin();
-    void move_focus_end();
 
     void adjust_stacks(ListNode<ScrollerModel::Stack *> *stack);
     // Return the stack span that should be preserved when moving a free-sized stack.

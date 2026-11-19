@@ -348,9 +348,9 @@ TODO(canvas-workspace-model)
 
 ### 建议完成判定
 
-- [ ] 按 feature 文档 §3–§4 完成实现与验收
-- [ ] `move_focus` 与 `move_window` 共用同一邻居/路由决策出口
-- [ ] 不再依赖 `GridModel` / `scrollergrid`
+- [x] 按 feature 文档 §3–§4 完成实现与验收
+- [x] `move_focus` 与 `move_window` 共用同一邻居/路由决策出口
+- [x] 不再依赖 `GridModel` / `scrollergrid`
 
 ---
 

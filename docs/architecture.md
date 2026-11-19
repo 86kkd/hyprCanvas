@@ -170,11 +170,14 @@ Directional focus starts in a Lua command:
 1. A keybinding calls `hl.plugin.scroller.move_focus("l")` or similar.
 2. [`src/plugin/dispatch/layout_commands.cpp`](../src/plugin/dispatch/layout_commands.cpp)
    parses the direction and resolves the active `CanvasLayout`.
-3. `CanvasLayout::move_focus` decides whether the request is:
-   - a local move inside the current lane
-   - a move to an adjacent lane
-   - a move that should create a temporary empty lane
+3. `CanvasLayout::move_focus` builds a `TopologyIndex` (lane, stack, and
+   window coordinates of the focused item) and asks
+   `CanvasLayoutInternal::neighbor` where the direction leads:
+   - a local target inside the current lane
+   - an adjacent lane
+   - a temporary empty lane at the canvas edge
    - a cross-monitor handoff
+   - nothing
 4. The chosen lane or target monitor is activated and the compositor focus is
    updated.
 
@@ -187,11 +190,11 @@ Directional window movement starts similarly:
 
 1. A keybinding calls `hl.plugin.scroller.move_window(...)`.
 2. The Lua command resolves the active `CanvasLayout`.
-3. `CanvasLayout::move_window` chooses whether the window stays:
-   - in the same stack
-   - in the same lane but a different stack
-   - in an adjacent lane
-   - on another monitor
+3. `CanvasLayout::move_window` asks the same `neighbor` query with the
+   move-window intent, which decides whether the window:
+   - reorders its stack, joins a neighboring stack, or splits into a new one
+   - moves into an adjacent lane or a new lane at the canvas edge
+   - moves to another monitor
 4. Payload extraction and insertion helpers move the active window while
    preserving the source stack or lane state when possible.
 
@@ -236,6 +239,9 @@ Workspace-level control plane for `scroller`.
 - `core.cpp`: target callbacks, workspace ownership, lane cache, lifecycle
 - `focus.cpp`: focus routing and cross-monitor focus handoff
 - `commands.cpp`: command-facing mutating operations such as movewindow
+- `topology_route.cpp`: the read-only topology index and the `neighbor`
+  decision shared by `move_focus` and `move_window`; the index is rebuilt from
+  the lane list for every directional command, so it never goes stale
 - `dispatch_logic.cpp` and `route_logic.cpp`: pure logic helpers that keep
   decision-heavy code unit-testable
 
@@ -272,7 +278,9 @@ worth keeping stable across refactors.
 - [`tests/core_logic_tests.cpp`](../tests/core_logic_tests.cpp)
   covers shared helpers and low-level logic.
 - [`tests/layout_logic_tests.cpp`](../tests/layout_logic_tests.cpp)
-  covers layout routing and handoff decision helpers.
+  covers dispatch and handoff decision helpers.
+- [`tests/topology_route_tests.cpp`](../tests/topology_route_tests.cpp)
+  covers directional neighbor routing for focus and window movement.
 - [`tests/layout_snapshot_tests.cpp`](../tests/layout_snapshot_tests.cpp)
   covers layout snapshot behavior.
 - overview coverage is split across

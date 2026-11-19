@@ -128,48 +128,19 @@ void Stack::move_active(Direction direction) {
     }
 }
 
-FocusMoveResult Stack::move_focus(Direction direction, bool focus_wrap) {
-    if (!active)
-        return FocusMoveResult::NoOp;
+size_t Stack::active_index() const {
+    size_t index = 0;
+    for (auto *node = windows.first(); node != nullptr && node != active; node = node->next())
+        ++index;
+    return index;
+}
 
-    const auto backward = ScrollerCore::stack_item_backward_direction(mode);
-    const auto forward = ScrollerCore::stack_item_forward_direction(mode);
-    if (direction == backward && active != windows.first()) {
-        activate_window(active->prev());
-        return FocusMoveResult::Moved;
-    }
-
-    if (direction == forward && active != windows.last()) {
-        activate_window(active->next());
-        return FocusMoveResult::Moved;
-    }
-
-    // Reaching the stack edge does not always mean "stop". We first ask whether
-    // Hyprland has another monitor in that direction; if so, the caller may
-    // want cross-monitor focus instead of stack-local wrapping.
-    auto monitorDirection = [&]() -> Math::eDirection {
-        switch (direction) {
-        case Direction::Left:
-            return Math::fromChar('l');
-        case Direction::Right:
-            return Math::fromChar('r');
-        case Direction::Up:
-            return Math::fromChar('u');
-        case Direction::Down:
-        default:
-            return Math::fromChar('d');
-        }
-    }();
-
-    if (ScrollerCore::HyprlandRuntime::monitorInDirection(monitorDirection) != nullptr)
-        return FocusMoveResult::CrossMonitor;
-
-    // Only once there is no monitor hand-off available do we optionally wrap to
-    // the opposite end of the stack.
-    auto previous = active;
-    if (focus_wrap)
-        activate_window(direction == backward ? windows.last() : windows.first());
-    return active != previous ? FocusMoveResult::Moved : FocusMoveResult::NoOp;
+void Stack::focus_index(size_t index) {
+    auto *node = windows.first();
+    for (size_t i = 0; node != nullptr && i < index; ++i)
+        node = node->next();
+    if (node)
+        activate_window(node);
 }
 
 void Stack::admit_window(std::unique_ptr<Window> window) {

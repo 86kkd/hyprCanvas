@@ -9,7 +9,6 @@ inline constexpr WORKSPACEID WORKSPACE_INVALID = -1;
 
 enum class Direction { Left, Right, Up, Down, Begin, End, Center };
 enum class Mode { Row, Column };
-enum class FocusMoveResult { Moved, NoOp, CrossMonitor };
 
 namespace ScrollerCore {
 

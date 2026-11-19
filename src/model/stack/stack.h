@@ -211,8 +211,10 @@ public:
     bool active_at_edge(Direction direction) const;
     // Move active model window inside the same stack list.
     void move_active(Direction direction);
-    // Focus movement with wrap behavior across monitor edges.
-    FocusMoveResult move_focus(Direction direction, bool focus_wrap);
+    // Zero-based position of the active window in stack order.
+    size_t active_index() const;
+    // Activate the window at a zero-based position; out-of-range is ignored.
+    void focus_index(size_t index);
 
     // Insert a model window whose ownership has been transferred to this stack.
     // Internal membership helper used by move_window / lane transfers.

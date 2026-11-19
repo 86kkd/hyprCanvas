@@ -152,11 +152,13 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 1. 快捷键调用 `hl.plugin.scroller.move_focus("l")` 之类。
 2. [`src/plugin/dispatch/layout_commands.cpp`](../src/plugin/dispatch/layout_commands.cpp)
    解析方向，并解析出当前活动的 `CanvasLayout`。
-3. `CanvasLayout::move_focus` 判断这次请求属于：
-   - 当前 lane 内的本地移动
-   - 移动到相邻 lane
-   - 需要创建临时空 lane 的移动
+3. `CanvasLayout::move_focus` 生成 `TopologyIndex`（焦点所在的 lane / stack /
+   window 坐标），再问 `CanvasLayoutInternal::neighbor` 这个方向通往哪里：
+   - 当前 lane 内的本地目标
+   - 相邻 lane
+   - 在画布边缘新建临时空 lane
    - 跨显示器交接
+   - 无动作
 4. 激活选定的 lane 或目标显示器，并更新合成器焦点。
 
 主要实现位于
@@ -168,10 +170,9 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 
 1. 快捷键调用 `hl.plugin.scroller.move_window(...)`。
 2. Lua 命令解析出当前活动的 `CanvasLayout`。
-3. `CanvasLayout::move_window` 决定窗口去向：
-   - 留在同一 stack
-   - 留在同一 lane，但换到另一个 stack
-   - 进入相邻 lane
+3. `CanvasLayout::move_window` 以“移动窗口”意图调用同一个 `neighbor` 查询，决定窗口：
+   - 调整 stack 顺序、并入相邻 stack，或拆成新 stack
+   - 进入相邻 lane，或进入画布边缘新建的 lane
    - 换到另一台显示器
 4. 通过 payload 提取与插入辅助函数移动活动窗口，并尽可能保留源 stack / lane 状态。
 
@@ -214,6 +215,8 @@ Overview 是一层独立的只读导航层。
 - `core.cpp`：target 回调、工作区归属、lane 缓存、生命周期
 - `focus.cpp`：焦点路由与跨显示器焦点交接
 - `commands.cpp`：面向命令的变更操作，例如 movewindow
+- `topology_route.cpp`：只读拓扑索引与 `move_focus` / `move_window` 共用的
+  `neighbor` 决策；每次方向命令都从 lane 列表重新生成索引，不会过期
 - `dispatch_logic.cpp` 与 `route_logic.cpp`：纯逻辑辅助，让决策密集代码可单测
 
 ### `src/layout/lane`
@@ -247,7 +250,9 @@ Overview 的 session、model、navigation、scene 与 render 钩子。
 - [`tests/core_logic_tests.cpp`](../tests/core_logic_tests.cpp)
   覆盖共享辅助与底层逻辑。
 - [`tests/layout_logic_tests.cpp`](../tests/layout_logic_tests.cpp)
-  覆盖布局路由与交接决策辅助。
+  覆盖 dispatch 与交接决策辅助。
+- [`tests/topology_route_tests.cpp`](../tests/topology_route_tests.cpp)
+  覆盖焦点移动与窗口移动的方向邻居路由。
 - [`tests/layout_snapshot_tests.cpp`](../tests/layout_snapshot_tests.cpp)
   覆盖布局快照行为。
 - overview 相关测试拆在

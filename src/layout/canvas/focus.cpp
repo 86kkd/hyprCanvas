@@ -22,22 +22,6 @@
 #include "internal.h"
 #include "route.h"
 
-namespace {
-// Human-readable result names used by logs after a focus route completes.
-const char* focus_move_result_name(FocusMoveResult result) {
-    switch (result) {
-    case FocusMoveResult::Moved:
-        return "moved";
-    case FocusMoveResult::NoOp:
-        return "noop";
-    case FocusMoveResult::CrossMonitor:
-        return "cross_monitor";
-    }
-
-    return "unknown";
-}
-} // namespace
-
 // Synchronize the canvas active lane/window with a concrete focused window.
 void CanvasLayout::onWindowFocusChange(PHLWINDOW window)
 {
@@ -410,8 +394,7 @@ void CanvasLayout::createEphemeralLaneForFocus(int workspace, Direction directio
     persistSnapshot();
 }
 
-void CanvasLayout::finalizeLocalFocusMove(int workspace, Direction direction, Lane *lane,
-                                          const char *moveResultName) {
+void CanvasLayout::finalizeLocalFocusMove(int workspace, Direction direction, Lane *lane) {
     if (!lane)
         return;
 
@@ -420,7 +403,7 @@ void CanvasLayout::finalizeLocalFocusMove(int workspace, Direction direction, La
                  workspace,
                  ScrollerCore::direction_name(direction),
                  static_cast<const void*>(after ? after.get() : nullptr),
-                 moveResultName);
+                 "moved");
 
     // Keep the plugin's active-lane pointer in sync before handing focus back
     // to Hyprland. Command code assumes the model already points at the same
@@ -433,9 +416,9 @@ void CanvasLayout::finalizeLocalFocusMove(int workspace, Direction direction, La
 // and temporary empty-lane creation when the user moves into blank space.
 // Reading guide:
 // `dispatch_movefocus` resolves the active `CanvasLayout` and lands here.
-// This function then turns one directional request into one of a few routes:
-// local focus move, adjacent-lane focus, cross-monitor handoff, or creation of
-// a temporary empty lane that the user can move into.
+// `CanvasLayoutInternal::neighbor` (shared with `move_window`) turns the
+// request into one route: local focus move, adjacent-lane focus,
+// cross-monitor handoff, or creation of a temporary empty lane.
 void CanvasLayout::move_focus(int workspace, Direction direction)
 {
     // Phase 1: snapshot the current lane/window/monitor state before any move.
@@ -459,70 +442,32 @@ void CanvasLayout::move_focus(int workspace, Direction direction)
         return;
     }
 
-    const auto mode = lane->get_mode();
-    const auto betweenLanes = CanvasLayoutInternal::direction_moves_between_lanes(mode, direction);
-    const auto laneEmpty = lane->empty();
-    const auto targetMonitorFromDirection = directionalMoveTargetMonitor(sourceMonitor, direction);
-    const auto emptyLaneTargetMonitor = laneEmpty
-        ? targetMonitorFromDirection
-        : nullptr;
-    const auto moveResult = laneEmpty ? FocusMoveResult::NoOp : lane->move_focus(direction, scroller::plugin_config::focusWrap());
-    if (CanvasLayoutInternal::should_cross_monitor_from_empty_lane(laneEmpty, betweenLanes, emptyLaneTargetMonitor != nullptr)) {
-        handoffFocusAcrossMonitor(workspace,
-                                  direction,
-                                  before,
-                                  sourceMonitor,
-                                  beforeActiveWorkspaceId,
-                                  beforeSpecialWorkspaceId,
-                                  sourceLaneNode,
-                                  emptyLaneTargetMonitor);
-        return;
-    }
+    // Phase 2: ask the topology index where this direction leads, then run
+    // exactly one action for that answer.
+    const auto targetMonitor = directionalMoveTargetMonitor(sourceMonitor, direction);
+    const auto next = CanvasLayoutInternal::neighbor(topologyIndex(lane), {
+        .intent = CanvasLayoutInternal::NeighborIntent::Focus,
+        .direction = direction,
+        .monitorInDirection = targetMonitor != nullptr,
+        .focusWrap = scroller::plugin_config::focusWrap(),
+    });
 
-    if (!laneEmpty && !betweenLanes && moveResult == FocusMoveResult::NoOp && targetMonitorFromDirection) {
-        spdlog::info("move_focus: blocked local move, attempting cross-monitor fallback workspace={} direction={}",
-                     workspace, ScrollerCore::direction_name(direction));
-        handoffFocusAcrossMonitor(workspace,
-                                  direction,
-                                  before,
-                                  sourceMonitor,
-                                  beforeActiveWorkspaceId,
-                                  beforeSpecialWorkspaceId,
-                                  sourceLaneNode,
-                                  targetMonitorFromDirection);
+    switch (next.kind) {
+    case CanvasLayoutInternal::NeighborKind::NoOp:
         return;
-    }
-
-    // Phase 2: lane-axis routing stays pure until the final action dispatch so
-    // the empty-lane, adjacent-lane, and cross-monitor cases remain readable
-    // and unit-testable.
-    const auto handoffPlan = betweenLanes
-        ? CanvasLayoutInternal::plan_directional_handoff(
-              lanes, activeLane, sourceMonitor, mode, direction, !laneEmpty, CanvasLayoutInternal::resolve_monitor_in_direction)
-        : CanvasLayoutInternal::DirectionalHandoffPlan{};
-    const auto action = CanvasLayoutInternal::decide_move_focus_route(true, laneEmpty, betweenLanes, moveResult, handoffPlan.route);
-
-    switch (action) {
-    case CanvasLayoutInternal::MoveFocusRouteAction::DispatchBuiltin:
-        CanvasLayoutInternal::dispatch_builtin_movefocus(direction);
+    case CanvasLayoutInternal::NeighborKind::LocalTarget:
+        lane->focus_position(next.stackIndex, next.windowIndex);
+        finalizeLocalFocusMove(workspace, direction, lane);
         return;
-    case CanvasLayoutInternal::MoveFocusRouteAction::NoOp:
+    case CanvasLayoutInternal::NeighborKind::AdjacentLane:
+        focusAdjacentLane(workspace, direction, sourceLaneNode, sourceMonitor, laneNodeAt(next.laneIndex));
         return;
-    case CanvasLayoutInternal::MoveFocusRouteAction::AdjacentLane:
-        focusAdjacentLane(workspace, direction, sourceLaneNode, sourceMonitor, handoffPlan.targetLaneNode);
+    case CanvasLayoutInternal::NeighborKind::CreateEphemeral:
+        createEphemeralLaneForFocus(workspace, direction, sourceMonitor, lane->get_mode(), laneNodeAt(next.laneIndex));
         return;
-    case CanvasLayoutInternal::MoveFocusRouteAction::CrossMonitor: {
-        const auto monitor = moveResult == FocusMoveResult::CrossMonitor
-            ? CanvasLayoutInternal::resolve_monitor_in_direction(sourceMonitor, direction)
-            : handoffPlan.targetMonitor;
-        handoffFocusAcrossMonitor(workspace, direction, before, sourceMonitor, beforeActiveWorkspaceId, beforeSpecialWorkspaceId, sourceLaneNode, monitor);
-        return;
-    }
-    case CanvasLayoutInternal::MoveFocusRouteAction::CreateLane:
-        createEphemeralLaneForFocus(workspace, direction, sourceMonitor, mode, handoffPlan.targetLaneNode);
-        return;
-    case CanvasLayoutInternal::MoveFocusRouteAction::FinalizeLocalMove:
-        finalizeLocalFocusMove(workspace, direction, lane, focus_move_result_name(moveResult));
+    case CanvasLayoutInternal::NeighborKind::CrossMonitor:
+        handoffFocusAcrossMonitor(workspace, direction, before, sourceMonitor, beforeActiveWorkspaceId,
+                                  beforeSpecialWorkspaceId, sourceLaneNode, targetMonitor);
         return;
     }
 }

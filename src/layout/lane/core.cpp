@@ -182,6 +182,21 @@ size_t Lane::stack_count() const {
     return stacks.size();
 }
 
+size_t Lane::active_stack_index() const {
+    size_t index = 0;
+    for (auto *node = stacks.first(); node != nullptr && node != active; node = node->next())
+        ++index;
+    return index;
+}
+
+size_t Lane::active_stack_window_count() const {
+    return active ? active->data()->size() : 0;
+}
+
+size_t Lane::active_stack_window_index() const {
+    return active ? active->data()->active_index() : 0;
+}
+
 ActiveWindowRestorePlan Lane::capture_active_window_restore_plan(Direction direction) const {
     ActiveWindowRestorePlan plan;
     plan.direction = direction;

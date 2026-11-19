@@ -277,54 +277,6 @@ void test_route_logic() {
     expect_true(direction_inserts_before_current(Mode::Column, Direction::Left),
                 "column left inserts before current lane");
 
-    expect_eq(choose_directional_handoff_route(false, true, true, true),
-              DirectionalHandoffRoute::NoOp,
-              "same-lane movement never chooses a cross-lane handoff");
-    expect_eq(choose_directional_handoff_route(true, true, false, true),
-              DirectionalHandoffRoute::AdjacentLane,
-              "adjacent lane route wins before create or cross-monitor");
-    expect_eq(choose_directional_handoff_route(true, false, true, true),
-              DirectionalHandoffRoute::CrossMonitor,
-              "cross-monitor route wins when no adjacent lane exists");
-    expect_eq(choose_directional_handoff_route(true, false, false, true),
-              DirectionalHandoffRoute::CreateLane,
-              "missing adjacent lane and monitor falls back to lane creation");
-
-    expect_eq(decide_move_focus_route(true, false, false, FocusMoveResult::Moved, DirectionalHandoffRoute::NoOp),
-              MoveFocusRouteAction::FinalizeLocalMove,
-              "move_focus keeps same-lane movement local");
-    expect_eq(decide_move_focus_route(true, true, true, FocusMoveResult::NoOp, DirectionalHandoffRoute::AdjacentLane),
-              MoveFocusRouteAction::AdjacentLane,
-              "move_focus routes empty-lane navigation to an adjacent lane");
-    expect_eq(decide_move_focus_route(true, true, true, FocusMoveResult::NoOp, DirectionalHandoffRoute::CreateLane),
-              MoveFocusRouteAction::CreateLane,
-              "move_focus can create an empty lane when routing into blank space");
-    expect_eq(decide_move_focus_route(true, false, true, FocusMoveResult::CrossMonitor, DirectionalHandoffRoute::AdjacentLane),
-              MoveFocusRouteAction::AdjacentLane,
-              "move_focus prefers adjacent lanes over monitor escape on lane directions");
-    expect_eq(decide_move_focus_route(true, false, true, FocusMoveResult::CrossMonitor, DirectionalHandoffRoute::NoOp),
-              MoveFocusRouteAction::CrossMonitor,
-              "move_focus returns cross-monitor handoff for monitor edges");
-    expect_eq(decide_move_focus_route(false, false, false, FocusMoveResult::NoOp, DirectionalHandoffRoute::NoOp),
-              MoveFocusRouteAction::DispatchBuiltin,
-              "move_focus falls back to builtin routing when no lane exists");
-    expect_true(should_cross_monitor_from_empty_lane(true, false, true),
-                "empty lanes can cross monitors on local directions when a monitor exists");
-    expect_true(!should_cross_monitor_from_empty_lane(true, true, true),
-                "empty lanes keep lane-axis routing priority when moving between lanes");
-    expect_true(!should_cross_monitor_from_empty_lane(true, false, false),
-                "empty lanes do not force cross-monitor handoff without a target monitor");
-
-    expect_eq(decide_cross_lane_move_window_action(true, true, DirectionalHandoffRoute::AdjacentLane),
-              CrossLaneMoveWindowAction::AdjacentLaneTransfer,
-              "movewindow transfers into adjacent lanes");
-    expect_eq(decide_cross_lane_move_window_action(true, true, DirectionalHandoffRoute::CrossMonitor),
-              CrossLaneMoveWindowAction::CrossMonitorTransfer,
-              "movewindow routes to cross-monitor handoff when needed");
-    expect_eq(decide_cross_lane_move_window_action(false, true, DirectionalHandoffRoute::AdjacentLane),
-              CrossLaneMoveWindowAction::BuiltinFallback,
-              "movewindow falls back to builtin dispatch when current window is missing");
-
     expect_true(should_mark_special_ephemeral_lane_for_restore(true, false, true, true),
                 "hidden special workspace marks an empty ephemeral lane for restore");
     expect_true(!should_mark_special_ephemeral_lane_for_restore(true, true, true, true),

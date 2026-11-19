@@ -3,6 +3,7 @@
 void run_core_logic_tests();
 void run_layout_snapshot_tests();
 void run_layout_logic_tests();
+void run_topology_route_tests();
 void run_overview_logic_tests();
 void run_overview_model_tests();
 void run_overview_scene_tests();

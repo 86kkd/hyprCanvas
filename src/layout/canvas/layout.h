@@ -25,6 +25,7 @@
 #include "../../core/types.h"
 #include "core/intrusive_list.h"
 #include "handoff_state.h"
+#include "topology_route.h"
 
 class Lane;
 
@@ -155,6 +156,10 @@ private:
     int laneIndexOf(Lane *lane) const;
     // Count lanes in the current canvas.
     size_t laneCount() const;
+    // Return the lane node at a zero-based index, or null when out of range.
+    ListNode<Lane *> *laneNodeAt(size_t index) const;
+    // Derive the routing coordinates of a lane's focused item.
+    CanvasLayoutInternal::TopologyIndex topologyIndex(Lane *lane) const;
     // Resolve the monitor currently showing this canvas.
     PHLMONITOR getVisibleCanvasMonitor(PHLMONITOR fallbackMonitor = nullptr) const;
     // Relayout this canvas on its visible monitor.
@@ -182,17 +187,15 @@ private:
     // Move the active window payload into an adjacent lane and finish source cleanup.
     void transferMoveWindowToAdjacentLane(Lane *sourceLane, PHLWINDOW currentWindow, ListNode<Lane *> *targetLaneNode, Direction direction, PHLMONITOR sourceMonitor);
     // Move the active window payload into a newly created lane and finish source cleanup.
-    void transferMoveWindowToNewLane(Lane *sourceLane, PHLWINDOW currentWindow, PHLMONITOR sourceMonitor, Mode mode, Direction direction);
-    // Handle movement that stays on the lane's primary axis unless it crosses monitors.
-    void handleMoveWindowWithinLane(int workspace, Direction direction, Lane *lane, PHLWINDOW currentWindow, PHLMONITOR sourceMonitor);
-    // Handle movement that routes through adjacent lanes, monitor handoff, or lane creation.
-    void handleMoveWindowAcrossLanes(int workspace, Direction direction, Lane *lane, PHLWINDOW currentWindow, PHLMONITOR sourceMonitor, Mode mode);
+    void transferMoveWindowToNewLane(Lane *sourceLane, PHLWINDOW currentWindow, PHLMONITOR sourceMonitor, Mode mode, Direction direction, ListNode<Lane *> *anchor);
+    // Apply a move_window route that stays inside the lane.
+    void applyLocalWindowMove(Lane *lane, CanvasLayoutInternal::LocalMove move, Direction direction);
     // Focus the adjacent lane chosen by directional routing and clean up the source lane if needed.
     void focusAdjacentLane(int workspace, Direction direction, ListNode<Lane *> *sourceLaneNode, PHLMONITOR sourceMonitor, ListNode<Lane *> *targetLaneNode);
     // Create a temporary empty lane used when focus moves into blank space.
     void createEphemeralLaneForFocus(int workspace, Direction direction, PHLMONITOR sourceMonitor, Mode mode, ListNode<Lane *> *anchor);
     // Finish a successful local focus movement by logging and switching focus.
-    void finalizeLocalFocusMove(int workspace, Direction direction, Lane *lane, const char *moveResultName);
+    void finalizeLocalFocusMove(int workspace, Direction direction, Lane *lane);
     // Switch Hyprland focus to a window and resync canvas state if the switch fails.
     bool focusManagedWindow(PHLWINDOW window, bool warpCursor = false, const char *context = nullptr, bool suppressWorkspaceSync = false);
     // Drop an empty lane and resolve a valid replacement active lane.

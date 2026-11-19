@@ -57,11 +57,16 @@
 
 ## 4. 验收标准
 
-- [ ] `move_focus` 与 `move_window` 共用同一邻居/路由决策出口
-- [ ] 布局真相仍是 lane/stack；无 `GridModel` 寻路依赖
-- [ ] `scrollergrid` 已删除或不再可加载
-- [ ] ephemeral 空 lane 与跨屏 handoff 行为可用 ctest 与/或 smoke 覆盖
-- [ ] `ctest --test-dir ./Debug --output-on-failure` 全绿
+- [x] `move_focus` 与 `move_window` 共用同一邻居/路由决策出口
+- [x] 布局真相仍是 lane/stack；无 `GridModel` 寻路依赖
+- [x] `scrollergrid` 已删除或不再可加载
+- [x] ephemeral 空 lane 与跨屏 handoff 行为可用 ctest 与/或 smoke 覆盖
+- [x] `ctest --test-dir ./Debug --output-on-failure` 全绿
+
+> 已落地：`src/layout/canvas/topology_route.{h,cpp}` 提供 `TopologyIndex` 与 `neighbor()`，
+> `move_focus` / `move_window` 都只按其结果执行动作；索引在每次方向命令时从 lane 列表重建，
+> 因此无需额外的失效逻辑。`Lane::move_focus` / `Stack::move_focus` 中各自探测显示器、
+> 各自回绕的旧旁路已删除，决策表覆盖在 `tests/topology_route_tests.cpp`。
 
 ## 5. 禁止事项
 

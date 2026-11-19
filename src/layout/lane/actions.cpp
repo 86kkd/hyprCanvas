@@ -106,87 +106,13 @@ bool Lane::active_stack_has_multiple_windows() const {
     return active && active->data()->size() > 1;
 }
 
-// Execute directional focus movement inside this lane.
-FocusMoveResult Lane::move_focus(Direction dir, bool focus_wrap) {
+void Lane::focus_position(size_t stackIndex, std::optional<size_t> windowIndex) {
+    set_active_stack_by_index(stackIndex);
     if (!active)
-        return FocusMoveResult::NoOp;
-
-    FocusMoveResult result = FocusMoveResult::NoOp;
-    switch (dir) {
-    case Direction::Begin:
-        if (active != stacks.first()) {
-            move_focus_begin();
-            result = FocusMoveResult::Moved;
-        }
-        break;
-    case Direction::End:
-        if (active != stacks.last()) {
-            move_focus_end();
-            result = FocusMoveResult::Moved;
-        }
-        break;
-    default:
-        if (dir == ScrollerCore::local_item_backward_direction(mode)) {
-            result = move_focus_backward_stack(dir, focus_wrap);
-        } else if (dir == ScrollerCore::local_item_forward_direction(mode)) {
-            result = move_focus_forward_stack(dir, focus_wrap);
-        } else if (dir == ScrollerCore::stack_item_backward_direction(mode) ||
-                   dir == ScrollerCore::stack_item_forward_direction(mode)) {
-            result = active->data()->move_focus(dir, focus_wrap);
-        } else {
-            return FocusMoveResult::NoOp;
-        }
-        break;
-    }
-    if (result != FocusMoveResult::Moved)
-        return result;
-
+        return;
+    if (windowIndex)
+        active->data()->focus_index(*windowIndex);
     recalculate_lane_geometry();
-    return result;
-}
-
-// Move focus to the previous stack, wrapping or crossing monitor when needed.
-FocusMoveResult Lane::move_focus_backward_stack(Direction direction, bool focus_wrap) {
-    if (active == stacks.first()) {
-        const auto monitor = ScrollerCore::HyprlandRuntime::monitorInDirection(
-            direction == Direction::Up ? Math::fromChar('u') : Math::fromChar('l'));
-        if (monitor == nullptr) {
-            auto previous = active;
-            if (focus_wrap)
-                active = stacks.last();
-            return active != previous ? FocusMoveResult::Moved : FocusMoveResult::NoOp;
-        }
-        return FocusMoveResult::CrossMonitor;
-    }
-    active = active->prev();
-    return FocusMoveResult::Moved;
-}
-
-// Move focus to the next stack, wrapping or crossing monitor when needed.
-FocusMoveResult Lane::move_focus_forward_stack(Direction direction, bool focus_wrap) {
-    if (active == stacks.last()) {
-        const auto monitor = ScrollerCore::HyprlandRuntime::monitorInDirection(
-            direction == Direction::Down ? Math::fromChar('d') : Math::fromChar('r'));
-        if (monitor == nullptr) {
-            auto previous = active;
-            if (focus_wrap)
-                active = stacks.first();
-            return active != previous ? FocusMoveResult::Moved : FocusMoveResult::NoOp;
-        }
-        return FocusMoveResult::CrossMonitor;
-    }
-    active = active->next();
-    return FocusMoveResult::Moved;
-}
-
-// Jump focus to the first stack in the lane.
-void Lane::move_focus_begin() {
-    active = stacks.first();
-}
-
-// Jump focus to the last stack in the lane.
-void Lane::move_focus_end() {
-    active = stacks.last();
 }
 
 // Size the active stack so `count` stacks share the lane workarea. Maximized

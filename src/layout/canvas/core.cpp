@@ -231,6 +231,29 @@ size_t CanvasLayout::laneCount() const {
     return count;
 }
 
+ListNode<Lane *> *CanvasLayout::laneNodeAt(size_t index) const {
+    auto *node = lanes.first();
+    for (size_t i = 0; node != nullptr && i < index; ++i)
+        node = node->next();
+    return node;
+}
+
+CanvasLayoutInternal::TopologyIndex CanvasLayout::topologyIndex(Lane *lane) const {
+    const auto laneIndex = lane ? laneIndexOf(lane) : -1;
+    if (laneIndex < 0)
+        return {};
+
+    return {
+        .mode = lane->get_mode(),
+        .laneCount = laneCount(),
+        .laneIndex = static_cast<size_t>(laneIndex),
+        .stackCount = lane->stack_count(),
+        .stackIndex = lane->active_stack_index(),
+        .windowCount = lane->active_stack_window_count(),
+        .windowIndex = lane->active_stack_window_index(),
+    };
+}
+
 void CanvasLayout::setActiveLane(Lane *lane) {
     activeLane = getLaneNode(lane);
 }
