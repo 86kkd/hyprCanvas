@@ -17,8 +17,8 @@ inline SP<Config::Values::CColorValue>  freeColumnBorderValue;
 inline void registerConfigValues(HANDLE handle) {
     columnDefaultWidthValue = Config::Values::makeConfigValue<Config::Values::CStringValue>(
         "plugin:scroller:column_default_width",
-        "Default size preset for newly created scroller columns.",
-        Config::STRING{"onehalf"},
+        "How many stacks a new stack's span should share the workarea with (1-8), or floating.",
+        Config::STRING{"2"},
         {});
     focusWrapValue = Config::Values::makeConfigValue<Config::Values::CIntValue>(
         "plugin:scroller:focus_wrap",
@@ -43,7 +43,7 @@ inline void registerConfigValues(HANDLE handle) {
 }
 
 inline std::string columnDefaultWidth() {
-    return columnDefaultWidthValue ? columnDefaultWidthValue->value() : "onehalf";
+    return columnDefaultWidthValue ? columnDefaultWidthValue->value() : "2";
 }
 
 inline bool focusWrap() {

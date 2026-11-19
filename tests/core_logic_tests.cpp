@@ -15,6 +15,7 @@
 #include "core/intrusive_list.h"
 #include "core/workarea_pager.h"
 #include "model/stack/logic.h"
+#include "model/stack/width.h"
 
 #include "test_suite.h"
 #include "test_support.h"
@@ -368,6 +369,35 @@ void test_span_scale_helper() {
                 "span scale helper rejects zero-total ranges");
 }
 
+void test_stack_width_visible_count() {
+    using ScrollerModel::StackWidth;
+    expect_near(StackWidth::visible(3).extent(1800.0), 600.0, 1e-9,
+                "visible stack width divides the workarea by its count");
+    expect_near(StackWidth::free().extent(1800.0), 1800.0, 1e-9,
+                "free stack width reports the full workarea");
+    expect_eq(StackWidth::visible(0).visible_stacks(), StackWidth::kMinVisibleStacks,
+              "visible stack width clamps counts below the minimum");
+    expect_eq(StackWidth::visible(99).visible_stacks(), StackWidth::kMaxVisibleStacks,
+              "visible stack width clamps counts above the maximum");
+
+    expect_true(StackWidth::from_snapshot(0).is_free(), "snapshot width 0 restores a free stack");
+    expect_eq(StackWidth::from_snapshot(4).visible_stacks(), 4, "snapshot width keeps a valid visible count");
+    expect_eq(StackWidth::from_snapshot(-3).visible_stacks(), StackWidth::kDefaultVisibleStacks,
+              "invalid snapshot width falls back to the default count");
+    expect_eq(StackWidth::visible(3).to_snapshot(), 3, "visible stack width serializes its count");
+
+    const auto three = ScrollerModel::parse_visible_stack_count("3");
+    expect_true(three.has_value() && *three == 3, "visible stack count parses integers");
+    expect_true(!ScrollerModel::parse_visible_stack_count("0").has_value(),
+                "visible stack count rejects zero");
+    expect_true(!ScrollerModel::parse_visible_stack_count("9").has_value(),
+                "visible stack count rejects counts above the maximum");
+    expect_true(!ScrollerModel::parse_visible_stack_count("next").has_value(),
+                "visible stack count rejects the removed cycle arguments");
+    expect_true(!ScrollerModel::parse_visible_stack_count("2.5").has_value(),
+                "visible stack count rejects fractional input");
+}
+
 void test_list_move_only() {
     static_assert(!std::is_copy_constructible_v<List<int>>);
     static_assert(!std::is_copy_assignable_v<List<int>>);
@@ -578,6 +608,7 @@ void run_core_logic_tests() {
     test_workarea_pager();
     test_owner_index();
     test_span_scale_helper();
+    test_stack_width_visible_count();
     test_list_move_only();
     test_stack_logic();
     test_stack_deck();

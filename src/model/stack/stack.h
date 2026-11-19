@@ -26,6 +26,7 @@
 #include "core/types.h"
 #include "core/core.h"
 #include "model/stack/label.h"
+#include "model/stack/width.h"
 
 namespace ScrollerModel {
 
@@ -35,23 +36,6 @@ struct WindowGeometryEntry {
     DeckLabelEdge labelEdge = DeckLabelEdge::None;
     double labelSpan = 0.0;
     bool beforeActive = false;
-};
-
-// TODO(set_window_size): The OneThird/OneHalf/TwoThirds cycle ladder should go
-// away. Prefer an explicit visible-stack count (n => span = workarea / n), and
-// keep Free only for pointer-drag / carried geometry. Creation defaults and
-// `column_default_width` will need to follow the same model.
-enum class StackWidth {
-    // Predefined proportional width presets used when creating or cycling stacks.
-    OneThird = 0,
-    // Exactly half of available workspace width.
-    OneHalf,
-    // Two-thirds of available workspace width.
-    TwoThirds,
-    // Sentinal used to count user-defined width states.
-    Number,
-    // Keep stack at explicit width (free mode or carried-over width).
-    Free
 };
 
 enum class WindowHeight {
@@ -247,7 +231,7 @@ public:
     std::string get_height_name() const;
 #endif
 
-    // Update stack width from a predefined mode and current monitor bounds.
+    // Apply a width intent against the current monitor bounds.
     void update_width(StackWidth cwidth, double maxw, double maxh);
     // Scale every window proportionally so together they fill the stack span.
     void fit_windows_to_span(const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox);
@@ -276,7 +260,7 @@ private:
     };
 
     // Current horizontal width mode of the stack.
-    StackWidth width;
+    StackWidth width = StackWidth::visible(StackWidth::kDefaultVisibleStacks);
     // Orientation profile used for stack-vs-window axis decisions.
     Mode mode;
     // Height preset of the active window when cycling window sizes.

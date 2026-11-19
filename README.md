@@ -172,7 +172,7 @@ following functions under `hl.plugin.scroller` instead:
 | `move_focus(direction)` | Move focus inside the layout, or move the overview selection. |
 | `focus_monitor(direction)` | Move monitor focus, or select another canvas in overview. |
 | `move_window(direction)` | Move the active window in the requested direction. |
-| `cycle_size(step)` | Cycle the active stack size with `next` or `prev`. |
+| `set_window_size(n)` | Size the active stack so `n` stacks (1–8) share the monitor workarea. |
 | `set_mode(mode)` | Select `row` or `col` mode. |
 | `toggle_fullscreen()` | Toggle scroller-managed fullscreen expansion. |
 | `toggle_overview(action)` / `cancel_overview()` | Open, accept, or cancel overview. |
@@ -197,10 +197,10 @@ following functions under `hl.plugin.scroller` instead:
 *Hyprscroller* works in one of two modes that can be changed at any moment.
 
 1. *row* mode: it is the default. It creates new windows in a new column.
-   `cyclesize` affects the width of the active column.
+   `set_window_size` affects the width of the active column.
 
 2. *column* mode: It creates new windows in the current column, right below the
-   active window. `cyclesize` affects the height of the active window.
+   active window. `set_window_size` affects the height of the active column.
 
 
 ## Window/Column Focus and Movement
@@ -221,13 +221,14 @@ in a direction or to the beginning or end or the row.
 
 ## Resizing
 
-`cyclesize` accepts an argument which is either `+1`/`1`/`next`, or
-`-1`/`prev`/`previous`. It cycles forward or backward through three column
-widths (in *row* mode): one third, one half or two thirds of the available
-width of the monitor. In *column* mode, the fractions are relative to the
-height of the monitor, and are: one third, one half, two thirds or one.
-However, using `resizewindow`, you can modify the width or height of
-any window freely.
+`set_window_size(n)` sizes the active stack to `workarea / n` along the lane
+axis, so `n` is how many stacks fit on the monitor at once: width in *row*
+mode, height in *column* mode. `n` ranges from 1 to 8; a typical monitor uses
+2, an ultrawide 3 or 4. The command is ignored while the active stack is
+maximized or expanded with `toggle_fullscreen`.
+Using `resizewindow`, you can still modify the width or height of any window
+freely; that stack then keeps its free size until `set_window_size` is called
+again.
 
 
 ## Building and Splitting Stacks
@@ -295,9 +296,11 @@ as the name. Again, see the example configuration.
 
 *hyprscroller* currently accepts the following options:
 
-1. `column_default_width`: determines the width of new columns in *row* mode.
-Possible arguments are: `onehalf` (default), `onethird`, `twothirds`,
-`maximized`, `floating` (uses the default width set by the application).
+1. `column_default_width`: the visible-stack count new stacks start with,
+using the same `workarea / n` rule as `set_window_size`. Possible values are
+`1` to `8` (default `2`), or `floating` (uses the window's last floating size).
+The old `onehalf` / `onethird` / `twothirds` / `maximized` names are no longer
+recognized and fall back to `2`.
 
 2. `focus_wrap`: determines whether focus will *wrap* when at the first or
 last window of a row/column. Possible arguments are: `true`|`1` (default), or
@@ -308,7 +311,7 @@ For example:
 ``` conf
 plugin {
     scroller {
-        column_default_width = onehalf
+        column_default_width = 3
         focus_wrap = false
     }
 }
@@ -328,6 +331,8 @@ hl.bind("SUPER + CTRL + LEFT", function() hl.plugin.scroller.move_window("l") en
 hl.bind("SUPER + CTRL + RIGHT", function() hl.plugin.scroller.move_window("r") end)
 hl.bind("SUPER + BRACKETLEFT", function() hl.plugin.scroller.set_mode("row") end)
 hl.bind("SUPER + BRACKETRIGHT", function() hl.plugin.scroller.set_mode("col") end)
+hl.bind("SUPER + 2", function() hl.plugin.scroller.set_window_size(2) end)
+hl.bind("SUPER + 3", function() hl.plugin.scroller.set_window_size(3) end)
 hl.bind("SUPER + TAB", function() hl.plugin.scroller.toggle_overview() end)
 ```
 
@@ -359,10 +364,6 @@ bind = $mainMod CTRL, end, scroller:movewindow, end
 # Modes
 bind = $mainMod, bracketleft, scroller:setmode, row
 bind = $mainMod, bracketright, scroller:setmode, col
-
-# Sizing keys
-bind = $mainMod, equal, scroller:cyclesize, next
-bind = $mainMod, minus, scroller:cyclesize, prev
 
 # Resize submap
 # will switch to a submap called resize

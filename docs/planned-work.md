@@ -54,11 +54,11 @@ TODO(canvas-workspace-model)
 
 ### 建议完成判定
 
-- [ ] 已提供 `hl.plugin.scroller.set_window_size(n)`（或最终定名）
-- [ ] `cycle_size` / `cycle_window_size` / `resize_active_stack(step)` 及 1/3·1/2·2/3 循环路径已删除
-- [ ] 默认宽度配置与新语义对齐
-- [ ] grid 侧不再残留旧 cycle API
-- [ ] README / 架构文档中的旧命令说明已更新
+- [x] 已提供 `hl.plugin.scroller.set_window_size(n)`（或最终定名）
+- [x] `cycle_size` / `cycle_window_size` / `resize_active_stack(step)` 及 1/3·1/2·2/3 循环路径已删除
+- [x] 默认宽度配置与新语义对齐
+- [x] grid 侧不再残留旧 cycle API
+- [x] README / 架构文档中的旧命令说明已更新
 - [ ] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 
 ---

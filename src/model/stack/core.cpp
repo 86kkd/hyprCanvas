@@ -73,51 +73,21 @@ Vector2D compose_window_size(const ScrollerCore::Box &geom, Mode mode, double bo
     return Vector2D(cross_size, main_size);
 }
 
-// Convert width presets such as one-half or two-thirds into a concrete span on
-// the active primary axis.
-//
-// TODO(set_window_size): Replace this fixed 1/3·1/2·2/3 table with a helper
-// driven by visible-stack count (extent = max / n). Keep Free as the escape
-// hatch for non-preset geometry.
-double preset_extent(StackWidth width, double max) {
-    switch (width) {
-    case StackWidth::OneThird:
-        return max / 3.0;
-    case StackWidth::OneHalf:
-        return max / 2.0;
-    case StackWidth::TwoThirds:
-        return 2.0 * max / 3.0;
-    case StackWidth::Free:
-        return max;
-    default:
-        return max;
-    }
-}
-
 StackWidthPreset parse_stack_width_preset(PHLWINDOW window, double fallback_maxw) {
-    // The "floating" preset means "seed the stack from the window's last known
-    // floating size when possible". Every other preset maps directly to one of
-    // the proportional width enums.
-    //
-    // TODO(set_window_size): `plugin:scroller:column_default_width` should move
-    // off onehalf/onethird/twothirds names toward a visible-stack count default.
+    // The setting is a visible-stack count, or "floating" to seed the stack
+    // from the window's last known floating size when possible.
+    const auto defaultWidth = StackWidth::visible(StackWidth::kDefaultVisibleStacks);
     const std::string preset = scroller::plugin_config::columnDefaultWidth();
-    if (preset == "onehalf")
-        return {.width = StackWidth::OneHalf, .maxw = fallback_maxw};
-    if (preset == "onethird")
-        return {.width = StackWidth::OneThird, .maxw = fallback_maxw};
-    if (preset == "twothirds")
-        return {.width = StackWidth::TwoThirds, .maxw = fallback_maxw};
-    if (preset == "maximized")
-        return {.width = StackWidth::Free, .maxw = fallback_maxw};
+    if (const auto count = parse_visible_stack_count(preset))
+        return {.width = StackWidth::visible(*count), .maxw = fallback_maxw};
     if (preset != "floating")
-        return {.width = StackWidth::OneHalf, .maxw = fallback_maxw};
+        return {.width = defaultWidth, .maxw = fallback_maxw};
 
     auto target = window ? window->layoutTarget() : nullptr;
     if (target && target->lastFloatingSize().y > 0)
-        return {.width = StackWidth::Free, .maxw = target->lastFloatingSize().x};
+        return {.width = StackWidth::free(), .maxw = target->lastFloatingSize().x};
 
-    return {.width = StackWidth::OneHalf, .maxw = fallback_maxw};
+    return {.width = defaultWidth, .maxw = fallback_maxw};
 }
 
 bool is_window_fully_visible(Window *window, const ScrollerCore::Box &geom, Mode mode) {
@@ -173,7 +143,7 @@ Stack::Stack(PHLWINDOW cwindow, double maxw, double maxh, Mode mode)
 }
 
 Stack::Stack(double maxw, double maxh, Mode mode)
-    : width(StackWidth::OneHalf), mode(mode), height(WindowHeight::One), initialized(true), maxdim(false) {
+    : mode(mode), height(WindowHeight::One), initialized(true), maxdim(false) {
     update_width(width, maxw, maxh);
 }
 
@@ -320,23 +290,12 @@ const ScrollerCore::Box &Stack::get_saved_geom() const {
 }
 
 void Stack::set_width_free() {
-    width = StackWidth::Free;
+    width = StackWidth::free();
 }
 
 #ifdef COLORS_IPC
 std::string Stack::get_width_name() const {
-    switch (width) {
-    case StackWidth::OneThird:
-        return "OneThird";
-    case StackWidth::OneHalf:
-        return "OneHalf";
-    case StackWidth::TwoThirds:
-        return "TwoThirds";
-    case StackWidth::Free:
-        return "Free";
-    default:
-        return "";
-    }
+    return width.is_free() ? "Free" : "Visible" + std::to_string(width.visible_stacks());
 }
 
 std::string Stack::get_height_name() const {
@@ -352,13 +311,13 @@ std::string Stack::get_height_name() const {
 #endif
 
 void Stack::update_width(StackWidth cwidth, double maxw, double maxh) {
-    // Width presets apply to the stack's primary axis. In column mode that axis
+    // Width intent applies to the stack's primary axis. In column mode that axis
     // is height-like (`geom.h`); in row mode it is width-like (`geom.w`).
     if (mode == Mode::Column) {
         geom.w = maxw;
-        geom.h = maximized() ? maxh : StackInternal::preset_extent(cwidth, maxh);
+        geom.h = maximized() ? maxh : cwidth.extent(maxh);
     } else {
-        geom.w = maximized() ? maxw : StackInternal::preset_extent(cwidth, maxw);
+        geom.w = maximized() ? maxw : cwidth.extent(maxw);
         geom.h = maxh;
     }
     width = cwidth;
@@ -386,7 +345,7 @@ void Stack::restore_state(StackWidth restoredWidth,
 
 ScrollerSnapshot::StackSnapshot Stack::capture_snapshot() const {
     ScrollerSnapshot::StackSnapshot snapshot;
-    snapshot.width = static_cast<int>(width);
+    snapshot.width = width.to_snapshot();
     snapshot.fullscreened = fullscreened;
     snapshot.maximized = maxdim;
     snapshot.geom = geom;

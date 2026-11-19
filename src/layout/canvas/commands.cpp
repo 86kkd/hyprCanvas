@@ -226,16 +226,12 @@ void CanvasLayout::handleMoveWindowAcrossLanes(int workspace, Direction directio
     }
 }
 
-// Cycle the active stack width or active window height by one preset step.
-//
-// TODO(set_window_size): Replace this with an explicit visible-stack count
-// setter (n stacks on screen => primary span = workarea / n). Remove the
-// step-based cycle once `set_window_size` is wired through dispatch/lane.
-void CanvasLayout::cycle_window_size(int workspace, int step)
+// Size the active stack so `visibleStacks` stacks share the monitor workarea.
+void CanvasLayout::set_window_size(int workspace, int visibleStacks)
 {
     (void)workspace;
-    withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [step](Lane *lane) {
-        lane->resize_active_stack(step);
+    withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [visibleStacks](Lane *lane) {
+        lane->set_active_stack_visible_count(visibleStacks);
     });
     persistSnapshot();
 }

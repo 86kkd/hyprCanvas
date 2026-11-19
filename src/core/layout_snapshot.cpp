@@ -16,6 +16,23 @@ namespace {
 // ignored on read.
 constexpr int kRetiredReorderToken = 0;
 
+// Before v6 the STACK width column held the OneThird/OneHalf/TwoThirds/Free
+// enum. Two thirds has no whole visible-stack count, so it becomes a free
+// stack that keeps its stored span.
+int visible_stack_width_from_legacy(int legacyWidth) {
+    switch (legacyWidth) {
+    case 0:
+        return 3;
+    case 1:
+        return 2;
+    case 2:
+    case 4:
+        return 0;
+    default:
+        return 2;
+    }
+}
+
 template <typename T>
 bool parse_token(std::string_view token, T &out);
 
@@ -166,6 +183,7 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
                  version != kGridFormatVersion &&
                  version != kGridModeFormatVersion &&
                  version != kFullscreenFormatVersion &&
+                 version != kStableWindowKeyFormatVersion &&
                  version != kFormatVersion))
                 return std::nullopt;
             formatVersion = version;
@@ -237,6 +255,8 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
                 !parse_key_token(tokens[13], stack.activeWindowKey) ||
                 !parse_size_token(tokens[14], windowCount))
                 return std::nullopt;
+            if (formatVersion < kVisibleStackWidthFormatVersion)
+                stack.width = visible_stack_width_from_legacy(stack.width);
             stack.windows.reserve(windowCount);
             currentLane->stacks.push_back(std::move(stack));
             currentStack = &currentLane->stacks.back();

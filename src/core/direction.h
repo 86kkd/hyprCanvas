@@ -19,7 +19,6 @@ Direction opposite_direction(Direction direction);
 // Parse direction-like dispatcher arguments into a logical direction.
 std::optional<Direction> parse_direction_arg(std::string_view arg);
 
-
 // Parse setmode dispatcher arguments into a layout mode.
 std::optional<Mode> parse_mode_arg(std::string_view arg);
 

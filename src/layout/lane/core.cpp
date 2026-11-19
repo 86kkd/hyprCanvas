@@ -246,7 +246,7 @@ double Lane::stack_primary_span_for_transfer(const Stack *stack) const {
 
     // Preset-width stacks can recompute their span from the destination lane's
     // bounds. Only free-width stacks need to carry an explicit axis span.
-    if (stack->get_width() != StackWidth::Free)
+    if (!stack->get_width().is_free())
         return mode == Mode::Column ? max.h : max.w;
 
     return mode == Mode::Column ? stack->get_geom_h() : stack->get_geom_w();
@@ -270,7 +270,7 @@ Stack *Lane::create_stack_from_payload(ActiveWindowPayload payload) {
     // column mode. Keep the name axis-neutral so transfer code reads the same
     // in both orientations.
     const auto targetPrimarySpan =
-        payload.width == StackWidth::Free && payload.primarySpan > 0.0
+        payload.width.is_free() && payload.primarySpan > 0.0
             ? std::min(payload.primarySpan, mode == Mode::Column ? max.h : max.w)
             : (mode == Mode::Column ? max.h : max.w);
     return new Stack(std::move(window),
@@ -321,14 +321,14 @@ void Lane::insert_window_payload(ActiveWindowPayload payload, Direction directio
     }
     const bool singleWindowLane = stacks.size() == 1 && stacks.first()->data()->size() == 1;
     if (singleWindowLane)
-        stacks.first()->data()->update_width(StackWidth::OneHalf, max.w, max.h);
+        stacks.first()->data()->update_width(StackWidth::visible(2), max.w, max.h);
 
     auto *stack = create_stack_from_payload(std::move(payload));
     if (!stack)
         return;
     const auto compositorWindow = stack->get_active_window();
     if (singleWindowLane)
-        stack->update_width(StackWidth::OneHalf, max.w, max.h);
+        stack->update_width(StackWidth::visible(2), max.w, max.h);
     stack->set_geom_pos(max.x, max.y);
     if (!active) {
         stacks.push_back(stack);

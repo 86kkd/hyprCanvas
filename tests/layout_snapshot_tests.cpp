@@ -102,6 +102,33 @@ void test_snapshot_accepts_legacy_lane_format() {
 
     expect_eq(it->second.lanes.size(), static_cast<size_t>(1), "legacy layout snapshot keeps lanes");
     expect_eq(it->second.version, ScrollerSnapshot::kLegacyFormatVersion, "legacy snapshot keeps source format version");
+    expect_eq(it->second.lanes[0].stacks[0].width, 2, "legacy one-half width becomes two visible stacks");
+}
+
+void test_snapshot_maps_legacy_width_presets() {
+    const std::string v5 =
+        "VERSION 5\n"
+        "WORKSPACE 4 0 1 5\n"
+        "LANE 0 0 0 0 4\n"
+        "STACK 0 0 0 0 0 0 600 900 0 0 0 0 11 0\n"
+        "STACK 1 0 0 0 0 0 900 900 0 0 0 0 12 0\n"
+        "STACK 2 0 0 0 0 0 1200 900 0 0 0 0 13 0\n"
+        "STACK 4 0 0 0 0 0 700 900 0 0 0 0 14 0\n";
+    const auto parsed = ScrollerSnapshot::deserialize_repository(v5);
+    expect_true(parsed.has_value(), "layout snapshot accepts v5 width presets");
+    if (!parsed)
+        return;
+
+    const auto &stacks = parsed->at(4).lanes[0].stacks;
+    expect_eq(stacks[0].width, 3, "legacy one-third width becomes three visible stacks");
+    expect_eq(stacks[1].width, 2, "legacy one-half width becomes two visible stacks");
+    expect_eq(stacks[2].width, 0, "legacy two-thirds width becomes a free stack");
+    expect_eq(stacks[3].width, 0, "legacy free width stays free");
+    expect_near(stacks[2].geom.w, 1200.0, 1e-9, "legacy two-thirds stack keeps its stored span");
+
+    const auto reparsed = ScrollerSnapshot::deserialize_repository(ScrollerSnapshot::serialize_repository(*parsed));
+    expect_true(reparsed.has_value() && reparsed->at(4).lanes[0].stacks[0].width == 3,
+                "migrated widths survive a current-format round trip");
 }
 
 void test_snapshot_ignores_removed_grid_state() {
@@ -225,6 +252,7 @@ void test_canvas_workspace_snapshot_rejects_missing_active_line() {
 void run_layout_snapshot_tests() {
     test_snapshot_round_trip();
     test_snapshot_accepts_legacy_lane_format();
+    test_snapshot_maps_legacy_width_presets();
     test_snapshot_ignores_removed_grid_state();
     test_snapshot_preserves_mixed_window_key_versions();
     test_snapshot_rejects_invalid_version();

@@ -16,7 +16,8 @@ constexpr int kGridFormatVersion = 2;
 constexpr int kGridModeFormatVersion = 3;
 constexpr int kFullscreenFormatVersion = 4;
 constexpr int kStableWindowKeyFormatVersion = 5;
-constexpr int kFormatVersion = kStableWindowKeyFormatVersion;
+constexpr int kVisibleStackWidthFormatVersion = 6;
+constexpr int kFormatVersion = kVisibleStackWidthFormatVersion;
 
 struct WindowSnapshot {
     uintptr_t key = 0;
@@ -28,6 +29,7 @@ struct WindowSnapshot {
 };
 
 struct StackSnapshot {
+    // Visible-stack count (`workarea / n`), or 0 for a free-width stack.
     int                          width = 0;
     bool                         fullscreened = false;
     bool                         maximized = false;

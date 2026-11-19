@@ -26,7 +26,7 @@
  */
 struct ActiveWindowPayload {
     std::unique_ptr<ScrollerModel::Window> window;
-    ScrollerModel::StackWidth              width = ScrollerModel::StackWidth::OneHalf;
+    ScrollerModel::StackWidth              width = ScrollerModel::StackWidth::visible(ScrollerModel::StackWidth::kDefaultVisibleStacks);
     // When width is Free, carry the stack's primary-axis span into the next lane.
     double                  primarySpan = 0.0;
 
@@ -116,9 +116,7 @@ public:
     FocusMoveResult move_focus(Direction dir, bool focus_wrap);
 
     // Command-facing stack and window operations.
-    // TODO(set_window_size): Replace step-based preset cycling with a direct
-    // visible-stack-count setter; then delete `resize_active_stack(step)`.
-    void resize_active_stack(int step);
+    void set_active_stack_visible_count(int count);
     void resize_active_window(const Vector2D &delta);
     void set_mode(Mode m);
     void move_active_stack(Direction dir);

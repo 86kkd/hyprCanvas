@@ -107,10 +107,7 @@ public:
     // The usual call chain is:
     // keybind -> `hl.plugin.scroller.*` -> `src/plugin/dispatch/` -> one of
     // these methods -> lane/stack helpers -> relayout/focus synchronization.
-    //
-    // TODO(set_window_size): Replace `cycle_window_size(step)` with
-    // `set_window_size(visible_stack_count)` and remove the step-based API.
-    void cycle_window_size(int workspace, int step);
+    void set_window_size(int workspace, int visibleStacks);
     void move_focus(int workspace, Direction);
     void move_window(int workspace, Direction);
     void set_mode(int workspace, Mode);

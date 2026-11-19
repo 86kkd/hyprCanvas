@@ -21,12 +21,12 @@ using ScrollerModel::StackWidth;
 void Lane::add_active_window(PHLWINDOW window) {
     const bool singleWindowWorkspace = stacks.size() == 1 && stacks.first()->data()->size() == 1;
     if (singleWindowWorkspace)
-        stacks.first()->data()->update_width(StackWidth::OneHalf, max.w, max.h);
+        stacks.first()->data()->update_width(StackWidth::visible(2), max.w, max.h);
 
     active = stacks.emplace_after(active, new Stack(window, max.w, max.h, mode));
     rememberWindowStack(window, active->data());
     if (singleWindowWorkspace)
-        active->data()->update_width(StackWidth::OneHalf, max.w, max.h);
+        active->data()->update_width(StackWidth::visible(2), max.w, max.h);
     recalculate_lane_geometry();
     debugVerifyStackCache();
 }
@@ -189,29 +189,17 @@ void Lane::move_focus_end() {
     active = stacks.last();
 }
 
-// Cycle the active stack span preset along the lane's primary axis.
-//
-// TODO(set_window_size): This next/prev ladder (OneThird/OneHalf/TwoThirds) is
-// the behavior to delete. Replace it with `set_window_size(n)` that sets the
-// active stack primary span to roughly `workarea / n` so a normal display can
-// show 2 stacks and an ultrawide can show 3-4. Also decide how the new setter
-// should interact with maximized/fullscreen/expanded; the current cycler only
-// bails on maximized and can perturb other size states.
-void Lane::resize_active_stack(int step) {
+// Size the active stack so `count` stacks share the lane workarea. Maximized
+// and fullsize stacks own their span until they are restored.
+void Lane::set_active_stack_visible_count(int count) {
     if (!active)
         return;
 
-    if (active->data()->maximized())
+    auto *stack = active->data();
+    if (stack->maximized() || stack->fullscreen() || stack->expanded())
         return;
 
-    StackWidth width = active->data()->get_width();
-    if (width == StackWidth::Free) {
-        width = StackWidth::OneHalf;
-    } else {
-        int number = static_cast<int>(StackWidth::Number);
-        width = static_cast<StackWidth>((number + static_cast<int>(width) + step) % number);
-    }
-    active->data()->update_width(width, max.w, max.h);
+    stack->update_width(StackWidth::visible(count), max.w, max.h);
     recalculate_lane_geometry();
 }
 

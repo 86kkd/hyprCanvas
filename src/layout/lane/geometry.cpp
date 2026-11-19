@@ -237,7 +237,7 @@ void Lane::recalculate_lane_geometry() {
 #ifdef COLORS_IPC
     static auto activeBorderData = CConfigValue<Config::IComplexConfigValue>("general:col.active_border");
     if (const auto activeWindow = active->data()->get_active_window()) {
-        if (active->data()->get_width() == StackWidth::Free) {
+        if (active->data()->get_width().is_free()) {
             activeWindow->m_realBorderColor = scroller::plugin_config::freeColumnBorder();
         } else if (auto* activeColor = dynamic_cast<Config::CGradientValueData*>(activeBorderData.ptr())) {
             activeWindow->m_realBorderColor = *activeColor;

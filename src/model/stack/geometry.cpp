@@ -496,10 +496,10 @@ void Stack::resize_active_window(const ScrollerCore::Box &bounds, const Vector2D
                 return;
         }
     }
-    width = StackWidth::Free;
+    width = StackWidth::free();
 
     // Resizing by drag always puts the stack into free-width mode because the
-    // result no longer matches the predefined fractional width presets.
+    // result no longer matches a visible-stack share.
     if (mode == Mode::Column)
         geom.h += stackDelta;
     else

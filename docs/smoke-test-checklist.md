@@ -16,7 +16,7 @@ Use this checklist after changing `src/layout/canvas/*`, `src/layout/lane/*`, or
 3. Run `scroller:movewindow l/r` inside the same row and confirm window order changes without losing geometry or leaving blank space.
 4. Switch to `column` mode, add at least three windows to one stack, and confirm `scroller:movefocus u/d` moves inside the stack correctly.
 5. In `column` mode, use `move_window` up/down to join a single-window stack into its neighbor and to split a window back out of a multi-window stack; confirm the moved window keeps focus and no window disappears.
-6. In `row` mode, run `scroller:cyclesize` and confirm all visible columns remain on-screen.
+6. In `row` mode, run `hl.plugin.scroller.set_window_size(3)` and then `set_window_size(2)`; confirm the active column takes a third, then a half, of the workarea and visible columns remain on-screen.
 7. Toggle `scroller:togglefullscreen` in `row` mode, then move focus left/right and confirm the layout restores cleanly after toggling back.
 8. Toggle `scroller:togglefullscreen` in `column` mode and confirm expanded-window behavior still allows focus movement and relayout after exit.
 9. Create or enter an empty ephemeral lane via directional focus and confirm it is cleaned up once focus returns to a non-empty lane.

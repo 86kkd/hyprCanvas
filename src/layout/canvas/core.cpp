@@ -66,18 +66,6 @@ Mode restored_mode_or_default(int value, Mode fallback) {
     }
 }
 
-ScrollerModel::StackWidth restored_width_or_default(int value) {
-    switch (static_cast<ScrollerModel::StackWidth>(value)) {
-    case ScrollerModel::StackWidth::OneThird:
-    case ScrollerModel::StackWidth::OneHalf:
-    case ScrollerModel::StackWidth::TwoThirds:
-    case ScrollerModel::StackWidth::Free:
-        return static_cast<ScrollerModel::StackWidth>(value);
-    default:
-        return ScrollerModel::StackWidth::OneHalf;
-    }
-}
-
 ScrollerModel::WindowHeight restored_height_or_default(int value) {
     switch (static_cast<ScrollerModel::WindowHeight>(value)) {
     case ScrollerModel::WindowHeight::OneThird:
@@ -580,7 +568,7 @@ bool CanvasLayout::restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snaps
                 continue;
             }
 
-            stack->restore_state(restored_width_or_default(stackSnapshot.width),
+            stack->restore_state(ScrollerModel::StackWidth::from_snapshot(stackSnapshot.width),
                                  stackSnapshot.geom,
                                  stackSnapshot.memGeom,
                                  stackSnapshot.fullscreened,

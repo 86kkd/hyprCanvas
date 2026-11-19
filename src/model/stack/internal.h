@@ -5,7 +5,7 @@
 namespace ScrollerModel::StackInternal {
 
 struct StackWidthPreset {
-    StackWidth width = StackWidth::OneHalf;
+    StackWidth width = StackWidth::visible(StackWidth::kDefaultVisibleStacks);
     double     maxw = 0.0;
 };
 
@@ -21,7 +21,6 @@ Vector2D compose_window_size(const ScrollerCore::Box &geom, Mode mode, double bo
                              const Vector2D &cross_gap, double local_size,
                              double local_gap0, double local_gap1);
 
-double preset_extent(StackWidth width, double max);
 StackWidthPreset parse_stack_width_preset(PHLWINDOW window, double fallback_maxw);
 
 bool is_window_fully_visible(Window *window, const ScrollerCore::Box &geom, Mode mode);
