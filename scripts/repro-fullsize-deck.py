@@ -94,14 +94,14 @@ with (run / 'hyprland.log').open('w') as log:
             lua('hl.plugin.scroller.'+expr)
             time.sleep(.3)
             print(expr, json.loads(ctl('activewindow','-j')).get('class'), [(c['class'],c['at'],c['size']) for c in json.loads(ctl('clients','-j'))],flush=True)
-        for mode,axis,span in [('row',1,900),('column',0,1200)]:
+        for mode,back,axis,span in [('row','l',1,900),('column','u',0,1200)]:
             launch('card-0','#aa2222')
             command('set_mode("'+mode+'")')
             count=1
             for target_count in [2,3,5]:
                 while count<target_count:
                     launch('card-'+str(count),'#2222aa')
-                    command('admit_window()')
+                    command('move_window("'+back+'")')
                     count+=1
                 # Save actual ordinary geometry to check fullsize round trips.
                 before={c['class']:c['size'] for c in json.loads(ctl('clients','-j'))}

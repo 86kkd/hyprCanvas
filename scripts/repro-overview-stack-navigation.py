@@ -100,7 +100,7 @@ with (run / 'hyprland.log').open('w') as log:
             for index in range(3):
                 launch('card-'+str(index),'#2222aa')
                 if index:
-                    command('admit_window()')
+                    command('move_window("'+back+'")')
             launch('neighbor-after','#22aa22')
             # Enter/re-enter the stack through overview, then leave on the first
             # orthogonal direction. Every sibling must route to the neighbor.

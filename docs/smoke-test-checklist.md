@@ -15,7 +15,7 @@ Use this checklist after changing `src/layout/canvas/*`, `src/layout/lane/*`, or
 2. Run `scroller:movefocus l/r` across the row and confirm focus changes stay inside the lane until the edge.
 3. Run `scroller:movewindow l/r` inside the same row and confirm window order changes without losing geometry or leaving blank space.
 4. Switch to `column` mode, add at least three windows to one stack, and confirm `scroller:movefocus u/d` moves inside the stack correctly.
-5. In `column` mode, run `scroller:admitwindow` and `scroller:expelwindow` and confirm the moved window keeps focus and no window disappears.
+5. In `column` mode, use `move_window` up/down to join a single-window stack into its neighbor and to split a window back out of a multi-window stack; confirm the moved window keeps focus and no window disappears.
 6. In `row` mode, run `scroller:cyclesize` and `scroller:fitsize visible` and confirm all visible columns remain on-screen.
 7. Toggle `scroller:togglefullscreen` in `row` mode, then move focus left/right and confirm the layout restores cleanly after toggling back.
 8. Toggle `scroller:togglefullscreen` in `column` mode and confirm expanded-window behavior still allows focus movement and relayout after exit.
@@ -110,7 +110,7 @@ Automated isolated regression: `python3 scripts/repro-fullsize-insertion.py`.
   to the left of the fullsize target. Repeat rightward from the left neighbor.
 - The target must keep its single window and fullsize geometry. Toggle fullsize
   off and confirm its original size is restored.
-- Repeat in column mode with up/down, and with the legacy admit command.
+- Repeat in column mode with up/down.
 - After disabling fullsize on the target, ordinary adjacent-stack insertion
   must still merge the incoming window into that stack.
 - Cross-lane/monitor insertion next to an expanded target must preserve its

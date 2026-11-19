@@ -230,9 +230,11 @@ TODO(canvas-workspace-model)
 
 ### 建议完成判定
 
-- [ ] 公共 admit/expel Lua/命令/Canvas/Lane/Grid 入口已删除
-- [ ] `Stack::admit_window` 仍保留给 `move_window` 内部路径
-- [ ] README Admit/Expel 说明与绑定示例已删除或改写为 `move_window`
+- [x] 公共 admit/expel Lua/命令/Canvas/Lane/Grid 入口已删除
+- [x] `Stack::admit_window` 仍保留给 `move_window` 内部路径
+- [x] README Admit/Expel 说明与绑定示例已删除或改写为 `move_window`
+
+> 已完成：repro 脚本中的 `admit_window()` / `scroller:admitwindow` 已改写为 stack 轴 `move_window`。
 - [ ] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 
 ---

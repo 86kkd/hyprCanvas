@@ -117,8 +117,8 @@ with (run / 'hyprland.log').open('w') as log:
             incoming=client('incoming');target=client('full-target')
             check(target['at'][axis]+target['size'][axis]<=incoming['at'][axis]+3,'incoming crosses to forward side '+mode)
             check(target['size'][axis]==expanded,'target remains fullsize after forward insertion '+mode)
-            command('admit_window()')
-            check(client('incoming')['at'][axis]<client('full-target')['at'][axis],'legacy admit keeps fullsize membership separate '+mode)
+            command('move_window("'+back+'")')
+            check(client('incoming')['at'][axis]<client('full-target')['at'][axis],'move_window back past fullsize keeps membership separate '+mode)
             # A normal target should still accept the incoming window.
             focus('full-target');command('toggle_fullscreen()')
             focus('incoming');command('move_window("'+forward+'")')

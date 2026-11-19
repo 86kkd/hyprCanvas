@@ -150,7 +150,7 @@ private:
  * Recommended implementation reading order:
  * - `stack_core.cpp` for presets, local-axis helpers, and construction rules
  * - `stack_geometry.cpp` for relayout and viewport-adjustment behavior
- * - `stack_membership.cpp` for focus, admit/expel, and ordering changes
+ * - `stack_membership.cpp` for focus, membership transfer, and ordering changes
  */
 class Stack {
 public:
@@ -239,8 +239,6 @@ public:
 
     // Insert a model window whose ownership has been transferred to this stack.
     // Internal membership helper used by move_window / lane transfers.
-    // TODO(remove-admit-expel-window): Do NOT delete this with the public
-    // admit_window command; only the Lua/dispatch/Lane::*left/right wrappers go.
     void admit_window(std::unique_ptr<Window> window);
     // Restore a previously extracted active window next to the current active one.
     void restore_window(std::unique_ptr<Window> window, bool insertBeforeActive);
@@ -263,7 +261,7 @@ public:
     // Update stack width from a predefined mode and current monitor bounds.
     void update_width(StackWidth cwidth, double maxw, double maxh);
     // Resize a window range (all/visible/active/to ends) to fill available height.
-    // Used internally by admit/relayout as FitSize::All. The public Lua
+    // Used internally by move_window/relayout as FitSize::All. The public Lua
     // fit_size command is separately marked TODO(remove-fit-size-command);
     // do not delete this helper until those internal call sites are rewritten.
     void fit_size(FitSize fitsize, const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox);

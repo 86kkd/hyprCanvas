@@ -18,7 +18,7 @@ namespace {
 // on the current monitor workarea (span ~= workarea / n). Typical monitors
 // want n=2; ultrawides may want n=3 or 4. After the new command lands, delete
 // `cycle_size` / `dispatch_cyclesize` entirely so the old 1/3·1/2·2/3 ladder
-// cannot keep interacting with fullscreen / admit / expel paths.
+// cannot keep interacting with fullscreen / stack transfer paths.
 void dispatch_cyclesize(std::string arg) {
     int step = 0;
     if (arg == "+1" || arg == "1" || arg == "next") {
@@ -142,29 +142,6 @@ void dispatch_alignwindow(std::string arg) {
         action.layout->align_window(action.workspace, *direction);
 }
 
-// admitwindow: split active stack and move focused window to the previous stack.
-//
-// TODO(remove-admit-expel-window): Delete this public command. Daily stacking
-// changes are covered by move_window; the only unique admit case (multi-window
-// stack joining the previous stack) is intentionally dropped. Keep
-// Stack::admit_window as an internal membership helper used by move_window.
-void dispatch_admitwindow(std::string arg) {
-    (void)arg;
-    if (const auto action = workspaceLayoutForAction())
-        action.layout->admit_window_left(action.workspace);
-}
-
-// expelwindow: remove focused window from current stack into a new one right
-// after it.
-//
-// TODO(remove-admit-expel-window): Delete this public command. Multi-window
-// split-to-new-stack is already handled by move_window along the stack axis.
-void dispatch_expelwindow(std::string arg) {
-    (void)arg;
-    if (const auto action = workspaceLayoutForAction())
-        action.layout->expel_window_right(action.workspace);
-}
-
 // setmode row|col: switch between row mode and column mode.
 void dispatch_setmode(std::string arg) {
     withParsedModeArgOrWarn("dispatch_setmode", arg, [&](Mode mode) {
@@ -181,7 +158,7 @@ void dispatch_setmode(std::string arg) {
 // fit_size mutates real stack spans so a chosen range fills the workarea.
 // Remove Lua `fit_size` / dispatch / CanvasLayout::fit_size / Lane::fit_size
 // command path. Keep or inline the internal `Stack::fit_size(FitSize::All, …)`
-// helpers still used by admit/expel/relayout until those call sites are
+// helpers still used by move_window/relayout until those call sites are
 // rewritten.
 void dispatch_fitsize(std::string arg) {
     const auto fitSize = parsedFitSizeArg(arg);
@@ -281,18 +258,6 @@ int lua_align_window(lua_State* state) {
     return 0;
 }
 
-// TODO(remove-admit-expel-window): Remove this Lua binding with the command.
-int lua_admit_window(lua_State* state) {
-    dispatch_admitwindow(luaStringArg(state));
-    return 0;
-}
-
-// TODO(remove-admit-expel-window): Remove this Lua binding with the command.
-int lua_expel_window(lua_State* state) {
-    dispatch_expelwindow(luaStringArg(state));
-    return 0;
-}
-
 int lua_set_mode(lua_State* state) {
     dispatch_setmode(luaStringArg(state));
     return 0;
@@ -331,9 +296,6 @@ void registerLayoutLuaFunctions() {
     registerLuaFunction("move_window", lua_move_window);
     // TODO(remove-align-window): Drop this registration.
     registerLuaFunction("align_window", lua_align_window);
-    // TODO(remove-admit-expel-window): Drop these registrations.
-    registerLuaFunction("admit_window", lua_admit_window);
-    registerLuaFunction("expel_window", lua_expel_window);
     registerLuaFunction("set_mode", lua_set_mode);
     // TODO(remove-fit-size-command): Drop this registration.
     registerLuaFunction("fit_size", lua_fit_size);

@@ -274,28 +274,6 @@ void CanvasLayout::align_window(int workspace, Direction direction) {
     persistSnapshot();
 }
 
-// Move the active window into the previous stack.
-//
-// TODO(remove-admit-expel-window): Delete with the public admit_window command.
-void CanvasLayout::admit_window_left(int workspace) {
-    (void)workspace;
-    withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [](Lane *lane) {
-        lane->admit_window_left();
-    });
-    persistSnapshot();
-}
-
-// Split the active window into a new stack to the right.
-//
-// TODO(remove-admit-expel-window): Delete with the public expel_window command.
-void CanvasLayout::expel_window_right(int workspace) {
-    (void)workspace;
-    withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [](Lane *lane) {
-        lane->expel_window_right();
-    });
-    persistSnapshot();
-}
-
 // Change the active lane traversal mode.
 void CanvasLayout::set_mode(int workspace, Mode mode) {
     (void)workspace;

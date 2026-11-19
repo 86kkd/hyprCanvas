@@ -174,7 +174,6 @@ following functions under `hl.plugin.scroller` instead:
 | `move_window(direction)` | Move the active window in the requested direction. |
 | `cycle_size(step)` | Cycle the active stack size with `next` or `prev`. |
 | `align_window(direction)` | Align the active stack or window. |
-| `admit_window()` / `expel_window()` | Move a window into or out of an adjacent stack. |
 | `set_mode(mode)` | Select `row` or `col` mode. |
 | `fit_size(scope)` | Fit `active`, `visible`, `all`, `toend`, or `tobeg`. |
 | `toggle_fullscreen()` | Toggle scroller-managed fullscreen expansion. |
@@ -260,14 +259,14 @@ In *row* mode it aligns the active column to the center of the monitor. In
 position.
 
 
-## Admit/Expel
+## Building and Splitting Stacks
 
-You can create columns of windows using `admitwindow`. It takes the active
-window and moves it to the column left of its current one, right under the
-active window in that column.
+`move_window` along the lane's stack axis (left/right in *row* mode, up/down in
+*column* mode) handles stack membership:
 
-To expel any window from its current column and position it in a new column to
-its right, use `expelwindow`.
+- a single-window stack joins the neighboring stack in that direction;
+- the active window of a multi-window stack is split out into a new stack on
+  that side.
 
 
 ## Fitting the Screen
@@ -418,10 +417,6 @@ bind = $mainMod, bracketright, scroller:setmode, col
 # Sizing keys
 bind = $mainMod, equal, scroller:cyclesize, next
 bind = $mainMod, minus, scroller:cyclesize, prev
-
-# Admit/Expel
-bind = $mainMod, I, scroller:admitwindow,
-bind = $mainMod, O, scroller:expelwindow,
 
 # Center submap
 # will switch to a submap called center

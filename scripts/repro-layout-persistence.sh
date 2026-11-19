@@ -360,7 +360,7 @@ wait_for_window_title layout-C || die "layout-C did not appear"
 sleep 1
 
 focus_title layout-C
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:admitwindow >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.move_window("l")' >/dev/null
 sleep 0.4
 hyprctl -i "$NESTED_INSTANCE" dispatch scroller:createlane r >/dev/null
 sleep 0.4
