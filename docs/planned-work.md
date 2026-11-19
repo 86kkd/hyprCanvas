@@ -1,6 +1,6 @@
-# Planned Cleanups
+# Planned Work
 
-集中记录当前已在代码中标注、但尚未落地的清理项，方便以后按条目查询和解决。
+集中记录当前已在代码中标注、但尚未落地的计划项：公开 API 清理、功能落地（如拓扑邻居索引）、以及目标模型对齐（如 Canvas Workspace）。按 `TODO(...)` 检索与执行。
 
 代码里统一用这些标记检索：
 
@@ -13,12 +13,14 @@ TODO(remove-create-lane-command)
 TODO(remove-admit-expel-window)
 TODO(remove-scrollergrid)
 TODO(topology-neighbor-index)
+TODO(canvas-workspace-model)
 ```
 
 相关决策背景也可对照：
 
 - [`architecture-cn.md`](./architecture-cn.md) / [`architecture.md`](./architecture.md)
 - [`topology-neighbor-index.md`](./topology-neighbor-index.md)（Feature：拓扑邻居索引；先瘦身并删 scrollergrid）
+- 下文 [§9](#9-todocanvas-workspace-model目标所有权层级canvas-workspace)（Canvas Workspace 目标模型）
 - README 中的 Lua commands 表（清理后需同步删文档示例）
 
 ---
@@ -346,6 +348,56 @@ TODO(topology-neighbor-index)
 
 ---
 
+## 9. `TODO(canvas-workspace-model)`：目标所有权层级（Canvas Workspace）
+
+### 目标模型
+
+在 **不替换** Hyprland workspace 的前提下，把 hyprscroller 的跨屏场景正式抽象为：
+
+```text
+Canvas Workspace          ← hyprscroller 抽象：一整套多屏桌面
+  └─ Hyprland workspace × N(= monitor 数)   ← 每屏一块真实桌面
+        └─ Lane → Stack → window
+```
+
+含义：
+
+- **Canvas Workspace**：插件侧「场景」——一次切换应对齐整套多屏桌面；只做索引与切换策略，**不是**窗口归属的权威来源。
+- **Hyprland workspace × N**：每个 monitor 挂且仅挂一个 member workspace；可见性 / 焦点 / `window→m_workspace` 仍由合成器决定。
+- **Lane → Stack → window**：继续挂在**单个** Hyprland workspace 对应的 `CanvasLayout` 上；单屏排窗与寻路不跨过合成器 workspace。
+
+### 与现状的关系
+
+| 概念 | 现状 | 目标角色 |
+|---|---|---|
+| `CanvasWorkspaceRepository` / overview canvas | 已用 `{monitorId, workspaceId}` members 分组，并有 `make_members_exclusive` | 升格为正式 **Canvas Workspace** 模型，而不只是 overview 旁路 |
+| `CanvasLayout` | 每个 Hyprland workspace 一个 tiled 实例，拥有 Lane 列表 | **保持**：单屏布局器；命名上勿与「Canvas Workspace」混称 |
+| `TODO(topology-neighbor-index)` | 单 workspace 内简化 `move_focus` / `move_window` | 仍在 **Lane/Stack** 层；跨屏切场景走 Canvas Workspace |
+
+### 必须守住的约束
+
+- **N = 当前 monitor 数** 是运行时不变量；插拔屏要重建或补齐 members。
+- **普通 member workspace 互斥**：同一编号 workspace 不得同时属于两个 Canvas Workspace（沿用 / 强化 `make_members_exclusive`）。
+- **special workspace 单独规则**：可「存在但不显示」，不得与普通 member 对等默认绑进每个 canvas。
+- **禁止** `Canvas Workspace → Lane`（跳过 Hyprland workspace）；合成器不认该归属。
+- **禁止** 把 Canvas Workspace 当成窗口权威归属；单屏命令仍落到「当前 monitor 上的那个 member workspace」。
+
+### 建议落地范围（文档优先，代码随后）
+
+1. 在架构文档中固定上述层级与命名（区分 Canvas Workspace vs `CanvasLayout`）。
+2. 梳理 overview / `ensureCurrentVisibleCanvas` / 跨屏 handoff，使「切 Canvas Workspace」语义与 member×monitor 对齐。
+3. 需要公开切换 API 时，再单独加命令；本 TODO 先锁定模型，不强制本轮加 Lua。
+
+### 建议完成判定
+
+- [ ] `architecture.md` / `architecture-cn.md` 写明 Canvas Workspace → Hyprland workspace×N → Lane → Stack
+- [ ] 代码与文档中「Canvas Workspace」与 `CanvasLayout` 角色不再混用
+- [ ] Canvas Workspace members 与 monitor 数 / 互斥约束有明确实现或测试覆盖
+- [ ] special workspace 不误当作普通 member 默认并入每个 canvas
+- [ ] 单屏 `move_focus` / `move_window` 仍以当前 member workspace 的 `CanvasLayout` 为入口（可与拓扑邻居索引共存）
+
+---
+
 ## 推荐处理顺序
 
 1. **`remove-focus-lane`** — 无内部生产依赖、无 ctest 引用，可先整条删  
@@ -353,7 +405,8 @@ TODO(topology-neighbor-index)
 3. **`remove-align-window`** / **`remove-create-lane-command`** / **`remove-fit-size-command`** — 继续瘦身公开命令  
 4. **`set_window_size` + 删除 `cycle_size`** — 尺寸语义替换  
 5. **`remove-scrollergrid`** — 删除第二种布局及 grid 测试/脚本（可与命令瘦身并行，但勿再往 grid 加功能）  
-6. **`topology-neighbor-index`** — 在 scroller 上落地邻居索引，简化 `move_focus` / `move_window`
+6. **`topology-neighbor-index`** — 在 scroller 上落地邻居索引，简化 `move_focus` / `move_window`  
+7. **`canvas-workspace-model`** — 文档与 overview/canvas 仓库对齐目标层级（可与 6 并行规划；改跨屏切换语义时再动代码）
 
 ## 验证建议
 

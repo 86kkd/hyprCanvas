@@ -157,7 +157,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     // TODO(remove-scrollergrid): Delete this second tiled algorithm. Routing
     // simplification keeps lane/stack and uses a topology neighbor index; it
     // does not keep scrollergrid as a parallel layout product. See
-    // docs/topology-neighbor-index.md and docs/planned-cleanups.md.
+    // docs/topology-neighbor-index.md and docs/planned-work.md.
     spdlog::info("pluginInit: registering tiled algorithm scrollergrid");
     HyprlandAPI::addTiledAlgo(
         PHANDLE,

@@ -8,7 +8,7 @@ Hyprland 的事件或快捷键，是如何最终驱动 hyprscroller 移动窗口
 
 相关决策：
 
-- 命令清理清单：[`planned-cleanups.md`](./planned-cleanups.md)
+- 计划工作清单：[`planned-work.md`](./planned-work.md)
 - Feature：拓扑邻居索引：[`topology-neighbor-index.md`](./topology-neighbor-index.md)
 
 ## 运行时一览
@@ -115,7 +115,7 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 [`src/layout/grid/`](../src/layout/grid/)。
 它**不是**长期并存方案：目标是删除该算法，并在 scroller 的 lane/stack 上用
 **拓扑邻居索引** 简化寻路。见 [`topology-neighbor-index.md`](./topology-neighbor-index.md)
-与 planned-cleanups 中的 `TODO(remove-scrollergrid)`。
+与 [`planned-work.md`](./planned-work.md) 中的 `TODO(remove-scrollergrid)`。
 阅读时仍可把它当现状代码，但不要按「第二种正式布局」扩展功能。
 
 ## 主流程

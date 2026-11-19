@@ -2,7 +2,7 @@
 
 指令向功能计划。目标：**简化 scroller 的 `move_focus` / `move_window` 寻路**，不新增第二种布局。
 
-配套清理清单：[`planned-cleanups.md`](./planned-cleanups.md)  
+配套计划清单：[`planned-work.md`](./planned-work.md)  
 运行时地图：[`architecture-cn.md`](./architecture-cn.md)
 
 ## 1. 功能定义
@@ -21,9 +21,9 @@
 
 ## 2. 先决条件（按序完成）
 
-做索引实现前，先完成这些清理（细节在 planned-cleanups）：
+做索引实现前，先完成这些清理（细节在 planned-work）：
 
-1. 按 planned-cleanups 瘦身公开命令：删 `focus_lane`、`create_lane`、`admit_window`、`expel_window`、`align_window`、`fit_size` 公共命令；`cycle_size` 换成 `set_window_size`
+1. 按 planned-work 瘦身公开命令：删 `focus_lane`、`create_lane`、`admit_window`、`expel_window`、`align_window`、`fit_size` 公共命令；`cycle_size` 换成 `set_window_size`
 2. 删除 `scrollergrid`（`TODO(remove-scrollergrid)`）：取消注册、删除 `src/layout/grid/`、清掉 dispatch 并列分支与 grid 测试/脚本
 3. 确认仓库内不再有「第二种正式布局」文档表述
 
@@ -73,7 +73,7 @@
 ## 6. 工作顺序（执行清单）
 
 ```text
-1. planned-cleanups：公开命令瘦身
+1. planned-work：公开命令瘦身
 2. TODO(remove-scrollergrid)：删除第二种布局
 3. TODO(topology-neighbor-index)：实现本 feature（§3）
 4. 文档与测试收尾（§4）

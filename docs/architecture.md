@@ -10,7 +10,7 @@ A Chinese version lives in [`architecture-cn.md`](./architecture-cn.md).
 
 Related decisions:
 
-- Command cleanup tracker: [`planned-cleanups.md`](./planned-cleanups.md)
+- Planned work tracker: [`planned-work.md`](./planned-work.md)
 - Feature plan: topology neighbor index: [`topology-neighbor-index.md`](./topology-neighbor-index.md)
 
 ## Runtime At A Glance
@@ -129,7 +129,7 @@ truth for the real client.
 product: the plan is to remove it and simplify scroller routing with a
 **topology neighbor index** on lane/stack instead. See
 [`topology-neighbor-index.md`](./topology-neighbor-index.md) and
-`TODO(remove-scrollergrid)` in [`planned-cleanups.md`](./planned-cleanups.md).
+`TODO(remove-scrollergrid)` in [`planned-work.md`](./planned-work.md).
 Treat existing grid code as legacy; do not extend it as a second official layout.
 
 ## Main Flows
