@@ -116,6 +116,10 @@ private:
     Memory mem;
 };
 
+// Width every sized stack follows: the `set_window_size` count once chosen,
+// otherwise `column_default_width`.
+StackWidth global_stack_width();
+
 /**
  * @brief Ordered vertical group of windows sharing one horizontal slot.
  *
@@ -235,6 +239,9 @@ public:
 
     // Apply a width intent against the current monitor bounds.
     void update_width(StackWidth cwidth, double maxw, double maxh);
+    // Adopt a new width intent. Fullsize and maximized stacks keep their
+    // temporary span and only change the span they restore to.
+    void apply_width(StackWidth cwidth, double maxw, double maxh);
     // Scale every window proportionally so together they fill the stack span.
     void fit_windows_to_span(const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox);
     // Resize width and optional active height if height delta is valid.

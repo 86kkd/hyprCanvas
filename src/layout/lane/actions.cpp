@@ -21,12 +21,12 @@ using ScrollerModel::StackWidth;
 void Lane::add_active_window(PHLWINDOW window) {
     const bool singleWindowWorkspace = stacks.size() == 1 && stacks.first()->data()->size() == 1;
     if (singleWindowWorkspace)
-        stacks.first()->data()->update_width(StackWidth::visible(2), max.w, max.h);
+        stacks.first()->data()->update_width(ScrollerModel::global_stack_width(), max.w, max.h);
 
     active = stacks.emplace_after(active, new Stack(window, max.w, max.h, mode));
     rememberWindowStack(window, active->data());
     if (singleWindowWorkspace)
-        active->data()->update_width(StackWidth::visible(2), max.w, max.h);
+        active->data()->update_width(ScrollerModel::global_stack_width(), max.w, max.h);
     recalculate_lane_geometry();
     debugVerifyStackCache();
 }
@@ -115,18 +115,10 @@ void Lane::focus_position(size_t stackIndex, std::optional<size_t> windowIndex) 
     recalculate_lane_geometry();
 }
 
-// Size the active stack so `count` stacks share the lane workarea. Maximized
-// and fullsize stacks own their span until they are restored.
-void Lane::set_active_stack_visible_count(int count) {
-    if (!active)
-        return;
-
-    auto *stack = active->data();
-    if (stack->maximized() || stack->fullscreen() || stack->expanded())
-        return;
-
-    stack->update_width(StackWidth::visible(count), max.w, max.h);
-    recalculate_lane_geometry();
+// Give every stack the same width intent; the caller relayouts.
+void Lane::apply_stack_width(StackWidth width) {
+    for (auto stack = stacks.first(); stack != nullptr; stack = stack->next())
+        stack->data()->apply_width(width, max.w, max.h);
 }
 
 // Resize the active window inside the current stack when resizing is allowed.

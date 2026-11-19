@@ -55,6 +55,13 @@ class StackWidth {
     int visibleStacks;
 };
 
+// Session-wide visible-stack count chosen by `set_window_size`. Unset until the
+// first call, so `column_default_width` seeds stacks before then.
+inline std::optional<int> &visible_stacks_override() {
+    static std::optional<int> value;
+    return value;
+}
+
 // Parse a visible-stack count such as "3"; out-of-range or non-numeric
 // input yields nothing.
 inline std::optional<int> parse_visible_stack_count(std::string_view arg) {

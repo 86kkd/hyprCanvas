@@ -24,6 +24,7 @@
 #include "../../core/overview_snapshot.h"
 #include "../../core/types.h"
 #include "core/intrusive_list.h"
+#include "model/stack/width.h"
 #include "handoff_state.h"
 #include "topology_route.h"
 
@@ -109,6 +110,8 @@ public:
     // keybind -> `hl.plugin.scroller.*` -> `src/plugin/dispatch/` -> one of
     // these methods -> lane/stack helpers -> relayout/focus synchronization.
     void set_window_size(int workspace, int visibleStacks);
+    // Give every stack on this canvas the same width intent and relayout.
+    void apply_stack_width(ScrollerModel::StackWidth width);
     void move_focus(int workspace, Direction);
     void move_window(int workspace, Direction);
     void set_mode(int workspace, Mode);

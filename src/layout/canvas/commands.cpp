@@ -183,13 +183,28 @@ void CanvasLayout::applyLocalWindowMove(Lane *lane, CanvasLayoutInternal::LocalM
     focusManagedWindow(lane->get_active_window(), false, context);
 }
 
-// Size the active stack so `visibleStacks` stacks share the monitor workarea.
+// Make `visibleStacks` the session-wide stack count: every stack on every
+// canvas spans `workarea / visibleStacks`, and new stacks follow it too.
 void CanvasLayout::set_window_size(int workspace, int visibleStacks)
 {
     (void)workspace;
-    withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [visibleStacks](Lane *lane) {
-        lane->set_active_stack_visible_count(visibleStacks);
-    });
+    const auto width = ScrollerModel::StackWidth::visible(visibleStacks);
+    ScrollerModel::visible_stacks_override() = width.visible_stacks();
+
+    syncActiveStateFromWorkspaceFocus();
+    for (const auto &workspaceRef : ScrollerCore::HyprlandRuntime::workspaces()) {
+        const auto member = workspaceRef.lock();
+        auto *layout = member ? CanvasLayoutInternal::get_canvas_for_workspace(ScrollerCore::HyprlandRuntime::workspaceId(member)) : nullptr;
+        if (layout)
+            layout->apply_stack_width(width);
+    }
+}
+
+void CanvasLayout::apply_stack_width(ScrollerModel::StackWidth width)
+{
+    for (auto lane = lanes.first(); lane != nullptr; lane = lane->next())
+        lane->data()->apply_stack_width(width);
+    relayoutVisibleCanvas();
     persistSnapshot();
 }
 

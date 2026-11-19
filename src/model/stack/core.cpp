@@ -76,11 +76,9 @@ Vector2D compose_window_size(const ScrollerCore::Box &geom, Mode mode, double bo
 StackWidthPreset parse_stack_width_preset(PHLWINDOW window, double fallback_maxw) {
     // The setting is a visible-stack count, or "floating" to seed the stack
     // from the window's last known floating size when possible.
-    const auto defaultWidth = StackWidth::visible(StackWidth::kDefaultVisibleStacks);
+    const auto defaultWidth = global_stack_width();
     const std::string preset = scroller::plugin_config::columnDefaultWidth();
-    if (const auto count = parse_visible_stack_count(preset))
-        return {.width = StackWidth::visible(*count), .maxw = fallback_maxw};
-    if (preset != "floating")
+    if (visible_stacks_override() || preset != "floating")
         return {.width = defaultWidth, .maxw = fallback_maxw};
 
     auto target = window ? window->layoutTarget() : nullptr;
@@ -127,6 +125,14 @@ void sync_window_target_geometry(PHLWINDOW window) {
 } // namespace ScrollerModel::StackInternal
 
 namespace ScrollerModel {
+
+StackWidth global_stack_width() {
+    if (const auto count = visible_stacks_override())
+        return StackWidth::visible(*count);
+    if (const auto count = parse_visible_stack_count(scroller::plugin_config::columnDefaultWidth()))
+        return StackWidth::visible(*count);
+    return StackWidth::visible(StackWidth::kDefaultVisibleStacks);
+}
 
 Stack::Stack(PHLWINDOW cwindow, double maxw, double maxh, Mode mode)
     : mode(mode), height(WindowHeight::One), initialized(false), maxdim(false) {
@@ -321,6 +327,19 @@ void Stack::update_width(StackWidth cwidth, double maxw, double maxh) {
         geom.h = maxh;
     }
     width = cwidth;
+}
+
+void Stack::apply_width(StackWidth cwidth, double maxw, double maxh) {
+    if (!expanded() && !maximized()) {
+        update_width(cwidth, maxw, maxh);
+        return;
+    }
+
+    width = cwidth;
+    if (mode == Mode::Column)
+        mem.geom.h = cwidth.extent(maxh);
+    else
+        mem.geom.w = cwidth.extent(maxw);
 }
 
 void Stack::append_restored_window(std::unique_ptr<Window> window) {

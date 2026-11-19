@@ -336,14 +336,14 @@ void Lane::insert_window_payload(ActiveWindowPayload payload, Direction directio
     }
     const bool singleWindowLane = stacks.size() == 1 && stacks.first()->data()->size() == 1;
     if (singleWindowLane)
-        stacks.first()->data()->update_width(StackWidth::visible(2), max.w, max.h);
+        stacks.first()->data()->update_width(ScrollerModel::global_stack_width(), max.w, max.h);
 
     auto *stack = create_stack_from_payload(std::move(payload));
     if (!stack)
         return;
     const auto compositorWindow = stack->get_active_window();
     if (singleWindowLane)
-        stack->update_width(StackWidth::visible(2), max.w, max.h);
+        stack->update_width(ScrollerModel::global_stack_width(), max.w, max.h);
     stack->set_geom_pos(max.x, max.y);
     if (!active) {
         stacks.push_back(stack);

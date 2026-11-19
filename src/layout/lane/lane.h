@@ -123,7 +123,7 @@ public:
     void focus_position(size_t stackIndex, std::optional<size_t> windowIndex);
 
     // Command-facing stack and window operations.
-    void set_active_stack_visible_count(int count);
+    void apply_stack_width(ScrollerModel::StackWidth width);
     void resize_active_window(const Vector2D &delta);
     void set_mode(Mode m);
     void move_active_stack(Direction dir);

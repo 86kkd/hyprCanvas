@@ -172,7 +172,7 @@ following functions under `hl.plugin.scroller` instead:
 | `move_focus(direction)` | Move focus inside the layout, or move the overview selection. |
 | `focus_monitor(direction)` | Move monitor focus, or select another canvas in overview. |
 | `move_window(direction)` | Move the active window in the requested direction. |
-| `set_window_size(n)` | Size the active stack so `n` stacks (1–8) share the monitor workarea. |
+| `set_window_size(n)` | Size every stack so `n` stacks (1–8) share the monitor workarea. |
 | `set_mode(mode)` | Select `row` or `col` mode. |
 | `toggle_fullscreen()` | Toggle scroller-managed fullscreen expansion. |
 | `toggle_overview(action)` / `cancel_overview()` | Open, accept, or cancel overview. |
@@ -197,10 +197,10 @@ following functions under `hl.plugin.scroller` instead:
 *Hyprscroller* works in one of two modes that can be changed at any moment.
 
 1. *row* mode: it is the default. It creates new windows in a new column.
-   `set_window_size` affects the width of the active column.
+   `set_window_size` sets the width of every column.
 
 2. *column* mode: It creates new windows in the current column, right below the
-   active window. `set_window_size` affects the height of the active column.
+   active window. `set_window_size` sets the height of every column.
 
 
 ## Window/Column Focus and Movement
@@ -221,14 +221,18 @@ in a direction or to the beginning or end or the row.
 
 ## Resizing
 
-`set_window_size(n)` sizes the active stack to `workarea / n` along the lane
-axis, so `n` is how many stacks fit on the monitor at once: width in *row*
-mode, height in *column* mode. `n` ranges from 1 to 8; a typical monitor uses
-2, an ultrawide 3 or 4. The command is ignored while the active stack is
-maximized or expanded with `toggle_fullscreen`.
+`set_window_size(n)` is a session-wide setting: every stack in every lane, on
+every workspace, is resized to `workarea / n` along the lane axis, and stacks
+created afterwards use the same size. `n` is how many stacks fit on the
+monitor at once: width in *row* mode, height in *column* mode. `n` ranges from
+1 to 8; a typical monitor uses 2, an ultrawide 3 or 4. Maximized stacks and
+stacks expanded with `toggle_fullscreen` keep their current span and return to
+`workarea / n` when restored. A lane holding a single window still fills the
+whole workarea.
 Using `resizewindow`, you can still modify the width or height of any window
 freely; that stack then keeps its free size until `set_window_size` is called
-again.
+again. The chosen `n` lasts until Hyprland restarts; `column_default_width`
+applies before the first call.
 
 
 ## Building and Splitting Stacks
@@ -299,6 +303,8 @@ as the name. Again, see the example configuration.
 1. `column_default_width`: the visible-stack count new stacks start with,
 using the same `workarea / n` rule as `set_window_size`. Possible values are
 `1` to `8` (default `2`), or `floating` (uses the window's last floating size).
+Once `set_window_size` has been called, its count replaces this option for the
+rest of the session.
 The old `onehalf` / `onethird` / `twothirds` / `maximized` names are no longer
 recognized and fall back to `2`.
 
