@@ -115,6 +115,7 @@ public:
     void move_window(int workspace, Direction);
     // TODO(remove-align-window): Delete this API with the align command path.
     void align_window(int workspace, Direction);
+    // TODO(remove-admit-expel-window): Delete these public APIs with the commands.
     void admit_window_left(int workspace);
     void expel_window_right(int workspace);
     void set_mode(int workspace, Mode);
@@ -122,7 +123,9 @@ public:
     // Internal Stack::fit_size helpers used by admit/relayout are separate.
     void fit_size(int workspace, FitSize);
     void toggle_fullscreen(int workspace);
+    // TODO(remove-create-lane-command): Delete this public API with the command.
     void create_lane(int workspace, Direction);
+    // TODO(remove-focus-lane): Delete this public API with the command.
     void focus_lane(int workspace, Direction);
 
     // Mark helpers: lightweight named bookmarks for focused windows.

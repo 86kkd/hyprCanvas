@@ -129,6 +129,8 @@ public:
     void move_active_stack(Direction dir);
     void move_active_window_to_adjacent_stack(Direction dir);
     void move_active_window_to_new_stack(Direction dir);
+    // TODO(remove-admit-expel-window): Delete with the public admit/expel commands.
+    // move_window already covers the intended daily stacking changes.
     void admit_window_left();
     void expel_window_right();
     Vector2D predict_window_size() const;

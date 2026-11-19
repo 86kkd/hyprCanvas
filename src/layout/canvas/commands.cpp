@@ -324,6 +324,8 @@ void CanvasLayout::align_window(int workspace, Direction direction) {
 }
 
 // Move the active window into the previous stack.
+//
+// TODO(remove-admit-expel-window): Delete with the public admit_window command.
 void CanvasLayout::admit_window_left(int workspace) {
     (void)workspace;
     withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [](Lane *lane) {
@@ -333,6 +335,8 @@ void CanvasLayout::admit_window_left(int workspace) {
 }
 
 // Split the active window into a new stack to the right.
+//
+// TODO(remove-admit-expel-window): Delete with the public expel_window command.
 void CanvasLayout::expel_window_right(int workspace) {
     (void)workspace;
     withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [](Lane *lane) {
@@ -374,6 +378,9 @@ void CanvasLayout::toggle_fullscreen(int workspace) {
 }
 
 // Move the active stack into a new persistent neighboring lane.
+//
+// TODO(remove-create-lane-command): Delete with the public create_lane command.
+// Not covered by automated tests; redundant with move_focus/move_window flows.
 void CanvasLayout::create_lane(int workspace, Direction direction) {
     (void)workspace;
     withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [&](Lane *lane) {
@@ -397,6 +404,9 @@ void CanvasLayout::create_lane(int workspace, Direction direction) {
 }
 
 // Change the active lane without moving any window data.
+//
+// TODO(remove-focus-lane): Delete with the public focus_lane command. Unused by
+// automated tests; move_focus already switches adjacent lanes.
 void CanvasLayout::focus_lane(int workspace, Direction direction) {
     (void)workspace;
     if (!activeLane || lanes.size() < 2)

@@ -170,6 +170,11 @@ void dispatch_alignwindow(std::string arg) {
 }
 
 // admitwindow: split active stack and move focused window to the previous stack.
+//
+// TODO(remove-admit-expel-window): Delete this public command. Daily stacking
+// changes are covered by move_window; the only unique admit case (multi-window
+// stack joining the previous stack) is intentionally dropped. Keep
+// Stack::admit_window as an internal membership helper used by move_window.
 void dispatch_admitwindow(std::string arg) {
     (void)arg;
     const auto action = workspaceLayoutForAction();
@@ -185,6 +190,9 @@ void dispatch_admitwindow(std::string arg) {
 
 // expelwindow: remove focused window from current stack into a new one right
 // after it.
+//
+// TODO(remove-admit-expel-window): Delete this public command. Multi-window
+// split-to-new-stack is already handled by move_window along the stack axis.
 void dispatch_expelwindow(std::string arg) {
     (void)arg;
     const auto action = workspaceLayoutForAction();
@@ -254,6 +262,12 @@ void dispatch_togglefullscreen(std::string arg) {
 }
 
 // createlane <dir>: move the active stack into a new adjacent lane.
+//
+// TODO(remove-create-lane-command): Delete this public command. It is not used
+// by automated tests; only a manual hyprland-testing.md example references it.
+// Daily lane creation is already covered by move_focus (ephemeral empty lane)
+// and move_window. Before deleting GridLayout::create_lane, rewrite
+// GridLayout::expel_window_right so it no longer calls through this API.
 void dispatch_createlane(std::string arg) {
     const auto direction = parsedDirectionArg(arg);
     if (!direction)
@@ -271,6 +285,10 @@ void dispatch_createlane(std::string arg) {
 }
 
 // focuslane <dir>: switch the active lane inside the current canvas.
+//
+// TODO(remove-focus-lane): Delete this public command and implementation. It is
+// unused by automated tests and is a weaker subset of move_focus adjacent-lane
+// routing (no mode-axis awareness, no ephemeral lane, no monitor handoff).
 void dispatch_focuslane(std::string arg) {
     const auto direction = parsedDirectionArg(arg);
     if (!direction)
@@ -354,11 +372,13 @@ int lua_align_window(lua_State* state) {
     return 0;
 }
 
+// TODO(remove-admit-expel-window): Remove this Lua binding with the command.
 int lua_admit_window(lua_State* state) {
     dispatch_admitwindow(luaStringArg(state));
     return 0;
 }
 
+// TODO(remove-admit-expel-window): Remove this Lua binding with the command.
 int lua_expel_window(lua_State* state) {
     dispatch_expelwindow(luaStringArg(state));
     return 0;
@@ -380,11 +400,13 @@ int lua_toggle_fullscreen(lua_State* state) {
     return 0;
 }
 
+// TODO(remove-create-lane-command): Remove this Lua binding with the command.
 int lua_create_lane(lua_State* state) {
     dispatch_createlane(luaStringArg(state));
     return 0;
 }
 
+// TODO(remove-focus-lane): Remove this Lua binding with the command.
 int lua_focus_lane(lua_State* state) {
     dispatch_focuslane(luaStringArg(state));
     return 0;
@@ -406,13 +428,16 @@ void registerLayoutLuaFunctions() {
     registerLuaFunction("move_window", lua_move_window);
     // TODO(remove-align-window): Drop this registration.
     registerLuaFunction("align_window", lua_align_window);
+    // TODO(remove-admit-expel-window): Drop these registrations.
     registerLuaFunction("admit_window", lua_admit_window);
     registerLuaFunction("expel_window", lua_expel_window);
     registerLuaFunction("set_mode", lua_set_mode);
     // TODO(remove-fit-size-command): Drop this registration.
     registerLuaFunction("fit_size", lua_fit_size);
     registerLuaFunction("toggle_fullscreen", lua_toggle_fullscreen);
+    // TODO(remove-create-lane-command): Drop this registration.
     registerLuaFunction("create_lane", lua_create_lane);
+    // TODO(remove-focus-lane): Drop this registration.
     registerLuaFunction("focus_lane", lua_focus_lane);
 }
 

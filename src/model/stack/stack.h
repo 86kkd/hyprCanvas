@@ -238,6 +238,9 @@ public:
     FocusMoveResult move_focus(Direction direction, bool focus_wrap);
 
     // Insert a model window whose ownership has been transferred to this stack.
+    // Internal membership helper used by move_window / lane transfers.
+    // TODO(remove-admit-expel-window): Do NOT delete this with the public
+    // admit_window command; only the Lua/dispatch/Lane::*left/right wrappers go.
     void admit_window(std::unique_ptr<Window> window);
     // Restore a previously extracted active window next to the current active one.
     void restore_window(std::unique_ptr<Window> window, bool insertBeforeActive);

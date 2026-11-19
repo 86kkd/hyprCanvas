@@ -626,15 +626,19 @@ void GridLayout::align_window(int workspace, Direction direction) {
     persistSnapshot();
 }
 
+// TODO(remove-admit-expel-window): Delete; already a thin move_window wrapper.
 void GridLayout::admit_window_left(int workspace) {
     const auto monitor = resolve_monitor();
     const auto direction = current_profile(monitor).mode == Mode::Column ? Direction::Up : Direction::Left;
     move_window(workspace, direction);
 }
 
+// TODO(remove-admit-expel-window): Delete with the public expel_window command.
 void GridLayout::expel_window_right(int workspace) {
     const auto monitor = resolve_monitor();
     const auto direction = current_profile(monitor).mode == Mode::Column ? Direction::Down : Direction::Right;
+    // TODO(remove-create-lane-command): Inline move_active_window_to_page here
+    // instead of calling create_lane, then delete GridLayout::create_lane.
     create_lane(workspace, direction);
 }
 
@@ -690,6 +694,7 @@ void GridLayout::toggle_fullscreen(int workspace) {
     persistSnapshot();
 }
 
+// TODO(remove-create-lane-command): Delete after expel_window_right is inlined.
 void GridLayout::create_lane(int workspace, Direction direction) {
     (void)workspace;
     ensure_workspace_runtime();
@@ -705,6 +710,7 @@ void GridLayout::create_lane(int workspace, Direction direction) {
     focus_active_window("grid_create_lane");
 }
 
+// TODO(remove-focus-lane): Delete with the public focus_lane command.
 void GridLayout::focus_lane(int workspace, Direction direction) {
     (void)workspace;
     ensure_workspace_runtime();

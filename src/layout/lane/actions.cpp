@@ -418,6 +418,9 @@ void Lane::move_active_window_to_new_stack(Direction dir) {
 }
 
 // Move the active window into the previous stack.
+//
+// TODO(remove-admit-expel-window): Delete with the public admit_window command.
+// Prefer move_window; keep Stack::admit_window for internal membership transfers.
 void Lane::admit_window_left() {
     if (!active)
         return;
@@ -450,6 +453,9 @@ void Lane::admit_window_left() {
 }
 
 // Split the active window into a new stack to the right.
+//
+// TODO(remove-admit-expel-window): Delete with the public expel_window command.
+// Multi-window split is already handled by move_window -> move_active_window_to_new_stack.
 void Lane::expel_window_right() {
     if (active->data()->maximized() ||
         active->data()->fullscreen() ||

@@ -36,13 +36,19 @@ public:
     void cycle_window_size(int workspace, int step);
     // TODO(remove-align-window): Delete with the shared align_window command.
     void align_window(int workspace, Direction direction);
+    // TODO(remove-admit-expel-window): Delete with the public admit/expel commands.
+    // admit_window_left already forwards to move_window; expel_window_right still
+    // routes through create_lane and should disappear with that cleanup.
     void admit_window_left(int workspace);
     void expel_window_right(int workspace);
     void set_mode(int workspace, Mode mode);
     // TODO(remove-fit-size-command): Delete with the public fit_size command.
     void fit_size(int workspace, FitSize fitSize);
     void toggle_fullscreen(int workspace);
+    // TODO(remove-create-lane-command): Delete after expel_window_right no
+    // longer routes through this method.
     void create_lane(int workspace, Direction direction);
+    // TODO(remove-focus-lane): Delete with the public focus_lane command.
     void focus_lane(int workspace, Direction direction);
     void focus_window(PHLWINDOW window);
     PHLWINDOW preferred_focus_window(PHLMONITOR monitor, WORKSPACEID workspaceId, Direction direction, PHLWINDOW sourceWindow);
