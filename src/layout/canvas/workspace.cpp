@@ -242,7 +242,7 @@ void CanvasLayout::syncHiddenSpecialWorkspaceCanvases()
 // Recalculate this canvas only when the requested monitor is the visible one.
 void CanvasLayout::recalculateMonitor(const int &monitor_id)
 {
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     if (!workspace)
         return;
 

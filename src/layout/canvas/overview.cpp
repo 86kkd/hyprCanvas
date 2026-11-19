@@ -15,7 +15,7 @@ void CanvasLayout::prepareForOverviewSnapshot() {
     ensureWorkspaceRuntime();
     prepareForActionContext();
 
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     if (!workspace)
         return;
 
@@ -32,7 +32,7 @@ void CanvasLayout::prepareForOverviewSnapshot() {
 CanvasOverviewSnapshot CanvasLayout::buildOverviewSnapshot() const {
     CanvasOverviewSnapshot snapshot;
 
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     if (!workspace)
         return snapshot;
 

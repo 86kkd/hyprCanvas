@@ -130,10 +130,11 @@ private:
     bool restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snapshot);
     // Disconnect listeners and drop all per-workspace model state.
     void resetRuntimeState();
-    // Ensure workspace-bound listeners are attached for the current canvas workspace.
+    // Ensure workspace-bound listeners are attached for this layout's workspace.
     void ensureWorkspaceRuntime();
-    // Resolve the workspace that owns this canvas instance.
-    PHLWORKSPACE getCanvasWorkspace() const;
+    // Resolve the single Hyprland workspace this layout instance tiles. This is
+    // one member of a Canvas Workspace, not the Canvas Workspace itself.
+    PHLWORKSPACE getLayoutWorkspace() const;
     // Return the currently active lane, defaulting to the first lane when needed.
     Lane *getActiveLane();
     // Point the canvas at a new active lane.

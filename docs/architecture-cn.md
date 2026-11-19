@@ -44,6 +44,29 @@ Hyprland 的事件或快捷键，是如何最终驱动 hyprscroller 移动窗口
    [`src/model/stack/membership.cpp`](../src/model/stack/membership.cpp)、
    [`src/model/stack/geometry.cpp`](../src/model/stack/geometry.cpp)
 
+## 所有权层级
+
+```text
+Canvas Workspace              一整套多屏桌面（插件侧分组）
+  └─ Hyprland workspace × N   每屏一个 member，N = 显示器数
+        └─ CanvasLayout       该工作区上的 `scroller` 实例
+              └─ Lane → Stack → window
+```
+
+- **Canvas Workspace**（`CanvasWorkspaceRepository`、`CanvasWorkspaceRecord`、
+  overview 中的 canvas 卡片）把每屏一个普通 Hyprland workspace 编成一组，
+  让整套桌面一起切换。它只负责索引与切换策略，从不拥有窗口。
+- member 互斥：一个普通工作区最多属于一个 Canvas Workspace（`make_members_exclusive`）。
+  每个已连接显示器恰好一个 member（`fill_monitor_members`）；已断开显示器的
+  member 会保留，等它重新接入。
+- special workspace 是覆盖层，即使正在某屏打开，也不会被记成 member（`visible_members`）。
+- **Hyprland workspace** 仍是可见性、焦点与窗口归属的权威来源。
+- **`CanvasLayout`** 只属于一个 Hyprland workspace（`CanvasLayout::getLayoutWorkspace()`），
+  拥有该工作区的 lane。名字里虽有 canvas，但它不是 Canvas Workspace；
+  Canvas Workspace 与 lane 之间没有直接关联。
+- `move_focus`、`move_window` 等单屏命令从当前显示器上 member 工作区的
+  `CanvasLayout` 进入；跨屏时交给另一块屏上 member 的 `CanvasLayout`。
+
 ## 核心概念
 
 默认 `scroller` 布局主要有四类运行时对象。
@@ -65,7 +88,7 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 
 ### CanvasLayout
 
-`CanvasLayout` 是单个工作区 / canvas 的顶层控制器。
+`CanvasLayout` 是单个 Hyprland workspace 的顶层控制器。
 对外定义见 [`src/layout/canvas/layout.h`](../src/layout/canvas/layout.h)。
 
 可以把它理解成 Hyprland 与插件内部布局模型之间的桥梁。

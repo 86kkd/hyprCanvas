@@ -2,7 +2,10 @@
 
 集中记录当前已在代码中标注、但尚未落地的计划项：公开 API 清理、功能落地（如拓扑邻居索引）、以及目标模型对齐（如 Canvas Workspace）。按 `TODO(...)` 检索与执行。
 
-代码里统一用这些标记检索：
+> 状态：下列各项均已落地，代码中的 `TODO(...)` 标记已随实现移除；本文保留为决策记录。
+> 唯一未勾选的是 §3 的「overview 空白预览问题单独跟踪」，它不属于本轮代码改动。
+
+代码里曾用这些标记检索：
 
 ```text
 TODO(set_window_size)
@@ -59,7 +62,7 @@ TODO(canvas-workspace-model)
 - [x] 默认宽度配置与新语义对齐
 - [x] grid 侧不再残留旧 cycle API
 - [x] README / 架构文档中的旧命令说明已更新
-- [ ] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
+- [x] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 
 ---
 
@@ -93,7 +96,7 @@ TODO(canvas-workspace-model)
 - [x] 对外命令与内部 align API 已全部删除
 - [x] 无残留 `Reorder::Lazy` 仅服务于 align 的死路径（若有，一并清理）
 - [x] 文档示例已去掉 `align_window` / `alignwindow`
-- [ ] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
+- [x] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 
 ---
 
@@ -143,7 +146,7 @@ TODO(canvas-workspace-model)
 - [x] admit/relayout 等内部调用已有明确去留方案
 - [x] README 中 fitsize 说明与 submap 示例已更新
 - [ ] overview 空白预览问题单独跟踪，不与本项捆绑
-- [ ] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
+- [x] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 
 ---
 
@@ -185,7 +188,7 @@ TODO(canvas-workspace-model)
 - [x] `GridLayout::expel_window_right` 不再依赖 `create_lane`（随 scrollergrid 一并删除）
 - [x] `GridLayout::focus_lane` / `create_lane` 已删除（随 scrollergrid 一并删除）
 - [x] README 与 hyprland-testing 示例已去掉这两条命令
-- [ ] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
+- [x] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 
 ---
 
@@ -235,7 +238,7 @@ TODO(canvas-workspace-model)
 - [x] README Admit/Expel 说明与绑定示例已删除或改写为 `move_window`
 
 > 已完成：repro 脚本中的 `admit_window()` / `scroller:admitwindow` 已改写为 stack 轴 `move_window`。
-- [ ] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
+- [x] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 
 ---
 
@@ -303,11 +306,11 @@ TODO(canvas-workspace-model)
 
 ### 6.4 建议完成判定（测试侧）
 
-- [ ] `ctest --test-dir ./Debug --output-on-failure` 全绿
-- [ ] `core_logic_tests` 中 fit_size helper 测试已按 helper 去留更新
-- [ ] `grid_logic_tests` 已随 scrollergrid 删除（或确认不再构建）
-- [ ] 相关 repro 脚本不再依赖 createlane / fitsize / scrollergrid
-- [ ] smoke-test / hyprland-testing / README 不再推荐已删命令（含 admit/expel / scrollergrid）
+- [x] `ctest --test-dir ./Debug --output-on-failure` 全绿
+- [x] `core_logic_tests` 中 fit_size helper 测试已按 helper 去留更新
+- [x] `grid_logic_tests` 已随 scrollergrid 删除（或确认不再构建）
+- [x] 相关 repro 脚本不再依赖 createlane / fitsize / scrollergrid
+- [x] smoke-test / hyprland-testing / README 不再推荐已删命令（含 admit/expel / scrollergrid）
 
 ---
 
@@ -396,11 +399,11 @@ Canvas Workspace          ← hyprscroller 抽象：一整套多屏桌面
 
 ### 建议完成判定
 
-- [ ] `architecture.md` / `architecture-cn.md` 写明 Canvas Workspace → Hyprland workspace×N → Lane → Stack
-- [ ] 代码与文档中「Canvas Workspace」与 `CanvasLayout` 角色不再混用
+- [x] `architecture.md` / `architecture-cn.md` 写明 Canvas Workspace → Hyprland workspace×N → Lane → Stack
+- [x] 代码与文档中「Canvas Workspace」与 `CanvasLayout` 角色不再混用
 - [x] Canvas Workspace members 与 monitor 数 / 互斥约束有明确实现或测试覆盖
 - [x] special workspace 不误当作普通 member 默认并入每个 canvas
-- [ ] 单屏 `move_focus` / `move_window` 仍以当前 member workspace 的 `CanvasLayout` 为入口（可与拓扑邻居索引共存）
+- [x] 单屏 `move_focus` / `move_window` 仍以当前 member workspace 的 `CanvasLayout` 为入口（可与拓扑邻居索引共存）
 
 ---
 

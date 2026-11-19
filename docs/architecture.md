@@ -50,6 +50,35 @@ this order:
    [`src/model/stack/membership.cpp`](../src/model/stack/membership.cpp), and
    [`src/model/stack/geometry.cpp`](../src/model/stack/geometry.cpp)
 
+## Ownership Hierarchy
+
+```text
+Canvas Workspace              one whole multi-monitor desktop (plugin-side grouping)
+  └─ Hyprland workspace × N   one member per monitor, N = monitor count
+        └─ CanvasLayout       the `scroller` instance of that workspace
+              └─ Lane → Stack → window
+```
+
+- A **Canvas Workspace** (`CanvasWorkspaceRepository`, `CanvasWorkspaceRecord`,
+  the canvas cards in overview) groups one ordinary Hyprland workspace per
+  monitor so a whole desktop is switched at once. It is an index and a
+  switching policy, never the owner of windows.
+- Members are exclusive: an ordinary workspace belongs to at most one Canvas
+  Workspace (`make_members_exclusive`). Every connected monitor has exactly one
+  member (`fill_monitor_members`); members of a disconnected monitor are kept
+  for when it returns.
+- A special workspace is an overlay. It is never recorded as a member
+  (`visible_members`), even while it is open on a monitor.
+- The **Hyprland workspace** stays authoritative for visibility, focus, and
+  window ownership.
+- A **`CanvasLayout`** belongs to exactly one Hyprland workspace
+  (`CanvasLayout::getLayoutWorkspace()`) and owns that workspace's lanes.
+  Despite its name it is not a Canvas Workspace, and nothing links a Canvas
+  Workspace directly to lanes.
+- Single-monitor commands such as `move_focus` and `move_window` enter through
+  the `CanvasLayout` of the member workspace on the current monitor. Crossing a
+  monitor hands off to the `CanvasLayout` of the member on the other monitor.
+
 ## Core Concepts
 
 There are four main runtime objects for the default `scroller` layout.
@@ -72,7 +101,7 @@ It does not contain layout policy itself.
 
 ### CanvasLayout
 
-`CanvasLayout` is the top-level controller for one workspace/canvas instance.
+`CanvasLayout` is the top-level controller for one Hyprland workspace.
 Its public definition is in
 [`src/layout/canvas/layout.h`](../src/layout/canvas/layout.h).
 

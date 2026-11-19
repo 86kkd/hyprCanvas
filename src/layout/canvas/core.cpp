@@ -138,7 +138,7 @@ void CanvasLayout::ensureWorkspaceRuntime() {
         });
     }
 
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     if (!workspace) {
         m_workspaceActiveCallback = nullptr;
         workspaceRuntimeId = WORKSPACE_INVALID;
@@ -154,7 +154,7 @@ void CanvasLayout::ensureWorkspaceRuntime() {
         // Special workspaces can disappear without their hidden canvas ticking.
         // When the active state flips, resync hidden-canvas bookkeeping first,
         // then relayout if the visibility transition changed the lane state.
-        const auto workspace = getCanvasWorkspace();
+        const auto workspace = getLayoutWorkspace();
         if (!workspace)
             return;
         syncHiddenSpecialWorkspaceCanvases();
@@ -184,7 +184,7 @@ CanvasLayoutInternal::CanvasBounds CanvasLayoutInternal::compute_canvas_bounds(P
     };
 }
 
-PHLWORKSPACE CanvasLayout::getCanvasWorkspace() const {
+PHLWORKSPACE CanvasLayout::getLayoutWorkspace() const {
     const auto algorithm = m_parent.lock();
     const auto space = algorithm ? algorithm->space() : nullptr;
     return space ? space->workspace() : nullptr;
@@ -432,7 +432,7 @@ Lane *CanvasLayout::getLaneForWindow(PHLWINDOW window) {
 
 // Resolve the monitor currently displaying this canvas.
 PHLMONITOR CanvasLayout::getVisibleCanvasMonitor(PHLMONITOR fallbackMonitor) const {
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     if (!workspace)
         return fallbackMonitor;
 
@@ -447,14 +447,14 @@ void CanvasLayout::prepareForActionContext() {
     ensureWorkspaceRuntime();
 
     syncHiddenSpecialWorkspaceCanvases();
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     const auto monitor = getVisibleCanvasMonitor();
     if (syncSpecialWorkspaceVisibilityState(monitor) && workspace && monitor)
         relayoutCanvas(monitor, !ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace));
 }
 
 std::optional<ScrollerSnapshot::CanvasSnapshot> CanvasLayout::captureSnapshot() const {
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     if (!workspace)
         return std::nullopt;
 
@@ -489,7 +489,7 @@ void CanvasLayout::persistSnapshot() {
     if (restoringSnapshot)
         return;
 
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     if (!workspace)
         return;
 
@@ -519,7 +519,7 @@ void CanvasLayout::persistCurrentSnapshot() {
 }
 
 void CanvasLayout::clearPersistedSnapshot() {
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     if (!workspace)
         return;
 
@@ -527,7 +527,7 @@ void CanvasLayout::clearPersistedSnapshot() {
 }
 
 bool CanvasLayout::restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snapshot) {
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     if (!workspace || snapshot.workspaceId != ScrollerCore::HyprlandRuntime::workspaceId(workspace))
         return false;
 
@@ -658,7 +658,7 @@ bool CanvasLayout::maybeRestoreWorkspaceSnapshot() {
         return false;
 
     snapshotRestoreAttempted = true;
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     if (!workspace || !lanes.empty())
         return false;
 
@@ -672,7 +672,7 @@ bool CanvasLayout::maybeRestoreWorkspaceSnapshot() {
 
 // Relayout the canvas on the monitor currently showing it.
 void CanvasLayout::relayoutVisibleCanvas(PHLMONITOR fallbackMonitor) {
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     const auto monitor = getVisibleCanvasMonitor(fallbackMonitor);
     if (workspace && monitor)
         relayoutCanvas(monitor, !ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace));
@@ -716,7 +716,7 @@ bool CanvasLayout::dropEmptyEphemeralLane(ListNode<Lane *> *laneNode, Lane *pref
 
 // Choose the lane that should become active after a lane was removed.
 Lane *CanvasLayout::resolveActiveLaneAfterRemoval(ListNode<Lane *> *laneNode, PHLWINDOW removedWindow) {
-    const auto workspaceHandle = getCanvasWorkspace();
+    const auto workspaceHandle = getLayoutWorkspace();
     if (workspaceHandle) {
         const auto focusedWindow = workspaceHandle->getLastFocusedWindow();
         if (focusedWindow && focusedWindow != removedWindow) {
@@ -738,7 +738,7 @@ Lane *CanvasLayout::resolveActiveLaneAfterRemoval(ListNode<Lane *> *laneNode, PH
 
 // Recalculate every lane inside this canvas against one visible monitor.
 void CanvasLayout::relayoutCanvas(PHLMONITOR monitor, bool honor_fullscreen, bool preserve_restored_geometry) {
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     if (!workspace || !monitor || lanes.empty())
         return;
 
@@ -907,7 +907,7 @@ void CanvasLayout::recalculate(Layout::eRecalculateReason reason)
 {
     ensureWorkspaceRuntime();
 
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     if (!workspace)
         return;
 

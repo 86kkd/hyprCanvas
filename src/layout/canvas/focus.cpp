@@ -83,7 +83,7 @@ void CanvasLayout::onWindowFocusChange(PHLWINDOW window)
 
 bool CanvasLayout::syncSpecialWorkspaceVisibilityState(PHLMONITOR visibleMonitor)
 {
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     const auto currentLane = activeLane ? activeLane->data() : nullptr;
     if (!workspace) {
         specialEphemeralLaneRestorePending = false;
@@ -160,11 +160,11 @@ bool CanvasLayout::adoptFocusedLane(PHLWINDOW focusedWindow, PHLMONITOR fallback
     return true;
 }
 
-// Pull remembered focus state from the canvas workspace and mirror it into the
+// Pull remembered focus state from this layout's workspace and mirror it into the
 // plugin's active lane/window state.
 void CanvasLayout::syncActiveStateFromWorkspaceFocus()
 {
-    const auto workspace = getCanvasWorkspace();
+    const auto workspace = getLayoutWorkspace();
     if (!workspace)
         return;
 
@@ -234,7 +234,7 @@ void CanvasLayout::activateCrossMonitorFocusTarget(CanvasLayout *targetLayout, L
     targetLayout->setActiveLane(targetLane);
     targetLane->focus_window(targetWindow);
 
-    const auto targetWorkspace = targetLayout->getCanvasWorkspace();
+    const auto targetWorkspace = targetLayout->getLayoutWorkspace();
     auto targetMonitor = targetWorkspace ? CanvasLayoutInternal::visible_monitor_for_workspace(targetWorkspace) : fallbackMonitor;
     if (targetMonitor)
         targetLayout->relayoutCanvas(targetMonitor, targetWorkspace && !ScrollerCore::HyprlandRuntime::isSpecialWorkspace(targetWorkspace));
