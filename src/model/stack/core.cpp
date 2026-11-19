@@ -75,6 +75,10 @@ Vector2D compose_window_size(const ScrollerCore::Box &geom, Mode mode, double bo
 
 // Convert width presets such as one-half or two-thirds into a concrete span on
 // the active primary axis.
+//
+// TODO(set_window_size): Replace this fixed 1/3·1/2·2/3 table with a helper
+// driven by visible-stack count (extent = max / n). Keep Free as the escape
+// hatch for non-preset geometry.
 double preset_extent(StackWidth width, double max) {
     switch (width) {
     case StackWidth::OneThird:
@@ -94,6 +98,9 @@ StackWidthPreset parse_stack_width_preset(PHLWINDOW window, double fallback_maxw
     // The "floating" preset means "seed the stack from the window's last known
     // floating size when possible". Every other preset maps directly to one of
     // the proportional width enums.
+    //
+    // TODO(set_window_size): `plugin:scroller:column_default_width` should move
+    // off onehalf/onethird/twothirds names toward a visible-stack count default.
     const std::string preset = scroller::plugin_config::columnDefaultWidth();
     if (preset == "onehalf")
         return {.width = StackWidth::OneHalf, .maxw = fallback_maxw};

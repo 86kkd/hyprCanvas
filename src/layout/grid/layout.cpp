@@ -594,6 +594,9 @@ void GridLayout::move_window(int workspace, Direction direction) {
     focus_active_window("grid_move_window");
 }
 
+// TODO(set_window_size): Grid currently shares the cycle_size command surface.
+// When scroller switches to set_window_size(n), update or remove this path so
+// the old next/prev preset ladder does not linger for scrollergrid either.
 void GridLayout::cycle_window_size(int workspace, int step) {
     (void)workspace;
     ensure_workspace_runtime();
@@ -608,6 +611,7 @@ void GridLayout::cycle_window_size(int workspace, int step) {
     persistSnapshot();
 }
 
+// TODO(remove-align-window): Delete with the shared align_window command.
 void GridLayout::align_window(int workspace, Direction direction) {
     (void)workspace;
     ensure_workspace_runtime();
@@ -646,6 +650,7 @@ void GridLayout::set_mode(int workspace, Mode mode) {
     persistSnapshot();
 }
 
+// TODO(remove-fit-size-command): Delete with the public fit_size command.
 void GridLayout::fit_size(int workspace, FitSize fitSize) {
     (void)workspace;
     ensure_workspace_runtime();

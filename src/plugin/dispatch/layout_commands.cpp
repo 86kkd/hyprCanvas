@@ -12,6 +12,13 @@ namespace dispatchers::detail {
 namespace {
 
 // cyclesize(+1|-1): change active stack width/height step.
+//
+// TODO(set_window_size): Replace this next/prev preset cycler with
+// `set_window_size(n)`, where `n` is how many stacks should fit side-by-side
+// on the current monitor workarea (span ~= workarea / n). Typical monitors
+// want n=2; ultrawides may want n=3 or 4. After the new command lands, delete
+// `cycle_size` / `dispatch_cyclesize` entirely so the old 1/3·1/2·2/3 ladder
+// cannot keep interacting with fullscreen / admit / expel paths.
 void dispatch_cyclesize(std::string arg) {
     int step = 0;
     if (arg == "+1" || arg == "1" || arg == "next") {
@@ -141,6 +148,11 @@ void dispatch_movewindow(std::string arg) {
 }
 
 // alignwindow <dir>: align active window/stack against lane/stack geometry.
+//
+// TODO(remove-align-window): Delete this command surface entirely. Manual
+// left/right/center alignment is no longer part of the intended workflow; drop
+// Lua `align_window`, canvas/grid `align_window`, `Lane::align_stack`, and
+// `Stack::align_window` together so nothing keeps a Lazy-align side path.
 void dispatch_alignwindow(std::string arg) {
     const auto direction = parsedDirectionArg(arg);
     if (!direction)
@@ -203,6 +215,14 @@ void dispatch_setmode(std::string arg) {
 
 // fitsize <active|visible|all|toend|tobeg>: resize visible windows so they
 // fit requested range.
+//
+// TODO(remove-fit-size-command): Delete the public `fit_size` command. This is
+// NOT overview: overview is a read-only snapshot/navigation layer, while
+// fit_size mutates real stack spans so a chosen range fills the workarea.
+// Remove Lua `fit_size` / dispatch / CanvasLayout::fit_size / Lane::fit_size
+// command path. Keep or inline the internal `Stack::fit_size(FitSize::All, …)`
+// helpers still used by admit/expel/relayout until those call sites are
+// rewritten.
 void dispatch_fitsize(std::string arg) {
     const auto fitSize = parsedFitSizeArg(arg);
     if (!fitSize)
@@ -285,6 +305,8 @@ int lua_move_focus(lua_State* state) {
     return 0;
 }
 
+// TODO(set_window_size): Swap this Lua binding for `set_window_size` and remove
+// `hl.plugin.scroller.cycle_size` once callers have migrated.
 int lua_cycle_size(lua_State* state) {
     dispatch_cyclesize(luaStringArg(state));
     return 0;
@@ -326,6 +348,7 @@ int lua_move_window(lua_State* state) {
     return 0;
 }
 
+// TODO(remove-align-window): Remove this Lua binding with the command.
 int lua_align_window(lua_State* state) {
     dispatch_alignwindow(luaStringArg(state));
     return 0;
@@ -346,6 +369,7 @@ int lua_set_mode(lua_State* state) {
     return 0;
 }
 
+// TODO(remove-fit-size-command): Remove this Lua binding with the public command.
 int lua_fit_size(lua_State* state) {
     dispatch_fitsize(luaStringArg(state));
     return 0;
@@ -374,15 +398,18 @@ void registerLuaFunction(const char* name, PLUGIN_LUA_FN function) {
 } // namespace
 
 void registerLayoutLuaFunctions() {
+    // TODO(set_window_size): Register `set_window_size` here and drop `cycle_size`.
     registerLuaFunction("cycle_size", lua_cycle_size);
     registerLuaFunction("move_focus", lua_move_focus);
     registerLuaFunction("focus_monitor", lua_focus_monitor);
     registerLuaFunction("switch_workspace", lua_switch_workspace);
     registerLuaFunction("move_window", lua_move_window);
+    // TODO(remove-align-window): Drop this registration.
     registerLuaFunction("align_window", lua_align_window);
     registerLuaFunction("admit_window", lua_admit_window);
     registerLuaFunction("expel_window", lua_expel_window);
     registerLuaFunction("set_mode", lua_set_mode);
+    // TODO(remove-fit-size-command): Drop this registration.
     registerLuaFunction("fit_size", lua_fit_size);
     registerLuaFunction("toggle_fullscreen", lua_toggle_fullscreen);
     registerLuaFunction("create_lane", lua_create_lane);

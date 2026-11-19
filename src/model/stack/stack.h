@@ -37,6 +37,10 @@ struct WindowGeometryEntry {
     bool beforeActive = false;
 };
 
+// TODO(set_window_size): The OneThird/OneHalf/TwoThirds cycle ladder should go
+// away. Prefer an explicit visible-stack count (n => span = workarea / n), and
+// keep Free only for pointer-drag / carried geometry. Creation defaults and
+// `column_default_width` will need to follow the same model.
 enum class StackWidth {
     // Predefined proportional width presets used when creating or cycling stacks.
     OneThird = 0,
@@ -240,6 +244,7 @@ public:
     // Remove the active model window and transfer ownership to the caller as a unique owner.
     std::unique_ptr<Window> expel_active(double gap);
     // Move active window toward viewport edges/center inside the current stack.
+    // TODO(remove-align-window): Delete with the align_window command path.
     void align_window(Direction direction, double gap);
 
     // Width and height mode inspection + mutation.
@@ -255,6 +260,9 @@ public:
     // Update stack width from a predefined mode and current monitor bounds.
     void update_width(StackWidth cwidth, double maxw, double maxh);
     // Resize a window range (all/visible/active/to ends) to fill available height.
+    // Used internally by admit/relayout as FitSize::All. The public Lua
+    // fit_size command is separately marked TODO(remove-fit-size-command);
+    // do not delete this helper until those internal call sites are rewritten.
     void fit_size(FitSize fitsize, const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox);
     // Resize width and optional active height if height delta is valid.
     void resize_active_window(const ScrollerCore::Box &bounds, const Vector2D &gap_x, double gap, const Vector2D &delta);

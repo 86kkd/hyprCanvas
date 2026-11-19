@@ -103,17 +103,23 @@ public:
     // Build a read-only snapshot of the current logical lane/stack window geometry.
     CanvasOverviewSnapshot buildOverviewSnapshot() const;
 
-    // New dispatchers: command-facing control surface from Hyprland config.
+    // Command-facing control surface from Hyprland config / Lua.
     // The usual call chain is:
-    // Hyprland keybind -> `src/dispatchers.cpp` -> one of these methods ->
-    // lane/stack helpers -> relayout/focus synchronization.
+    // keybind -> `hl.plugin.scroller.*` -> `src/plugin/dispatch/` -> one of
+    // these methods -> lane/stack helpers -> relayout/focus synchronization.
+    //
+    // TODO(set_window_size): Replace `cycle_window_size(step)` with
+    // `set_window_size(visible_stack_count)` and remove the step-based API.
     void cycle_window_size(int workspace, int step);
     void move_focus(int workspace, Direction);
     void move_window(int workspace, Direction);
+    // TODO(remove-align-window): Delete this API with the align command path.
     void align_window(int workspace, Direction);
     void admit_window_left(int workspace);
     void expel_window_right(int workspace);
     void set_mode(int workspace, Mode);
+    // TODO(remove-fit-size-command): Delete the public fit_size command API.
+    // Internal Stack::fit_size helpers used by admit/relayout are separate.
     void fit_size(int workspace, FitSize);
     void toggle_fullscreen(int workspace);
     void create_lane(int workspace, Direction);

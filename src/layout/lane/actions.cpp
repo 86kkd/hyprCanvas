@@ -195,6 +195,13 @@ void Lane::move_focus_end() {
 }
 
 // Cycle the active stack span preset along the lane's primary axis.
+//
+// TODO(set_window_size): This next/prev ladder (OneThird/OneHalf/TwoThirds) is
+// the behavior to delete. Replace it with `set_window_size(n)` that sets the
+// active stack primary span to roughly `workarea / n` so a normal display can
+// show 2 stacks and an ultrawide can show 3-4. Also decide how the new setter
+// should interact with maximized/fullscreen/expanded; the current cycler only
+// bails on maximized and can perturb other size states.
 void Lane::resize_active_stack(int step) {
     if (!active)
         return;
@@ -241,6 +248,8 @@ void Lane::set_mode(Mode m) {
 }
 
 // Align the active stack or active window against the current lane viewport.
+//
+// TODO(remove-align-window): Delete this Lazy-align path with align_window.
 void Lane::align_stack(Direction dir) {
     if (!active)
         return;
@@ -467,6 +476,9 @@ void Lane::expel_window_right() {
 }
 
 // Fit stack sizes to the requested visible range along the lane's primary axis.
+//
+// TODO(remove-fit-size-command): Delete this lane command helper with the
+// public fit_size API. This is geometry mutation, not overview navigation.
 void Lane::fit_size(FitSize fitsize) {
     const auto visibleStart = mode == Mode::Column ? max.y : max.x;
     const auto visibleEnd = mode == Mode::Column ? max.y + max.h : max.x + max.w;

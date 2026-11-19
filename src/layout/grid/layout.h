@@ -31,11 +31,15 @@ public:
 
     void move_focus(int workspace, Direction direction);
     void move_window(int workspace, Direction direction);
+    // TODO(set_window_size): Mirror the scroller replacement: drop step cycling
+    // for an explicit visible-stack/item count setter, then delete this API.
     void cycle_window_size(int workspace, int step);
+    // TODO(remove-align-window): Delete with the shared align_window command.
     void align_window(int workspace, Direction direction);
     void admit_window_left(int workspace);
     void expel_window_right(int workspace);
     void set_mode(int workspace, Mode mode);
+    // TODO(remove-fit-size-command): Delete with the public fit_size command.
     void fit_size(int workspace, FitSize fitSize);
     void toggle_fullscreen(int workspace);
     void create_lane(int workspace, Direction direction);

@@ -7,6 +7,11 @@
 
 namespace ScrollerCore {
 
+// TODO(remove-fit-size-command): The public fit_size command should go away.
+// These helpers are still used internally (e.g. Stack/Lane FitSize::All during
+// admit/relayout). They are unrelated to overview, which never mutates real
+// lane/stack geometry while open.
+
 // Resolve the inclusive node range affected by a fit-size command.
 template <typename T, typename IsVisibleFn>
 std::pair<ListNode<T> *, ListNode<T> *> select_fit_size_range(FitSize fitsize,

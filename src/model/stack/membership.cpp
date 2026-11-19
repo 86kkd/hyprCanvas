@@ -232,6 +232,7 @@ std::unique_ptr<Window> Stack::expel_active(double /*gap*/) {
     return window;
 }
 
+// TODO(remove-align-window): Delete with Lane::align_stack / align_window.
 void Stack::align_window(Direction direction, double /*gap*/) {
     if (!active)
         return;

@@ -119,9 +119,12 @@ public:
     FocusMoveResult move_focus(Direction dir, bool focus_wrap);
 
     // Command-facing stack and window operations.
+    // TODO(set_window_size): Replace step-based preset cycling with a direct
+    // visible-stack-count setter; then delete `resize_active_stack(step)`.
     void resize_active_stack(int step);
     void resize_active_window(const Vector2D &delta);
     void set_mode(Mode m);
+    // TODO(remove-align-window): Delete with the align_window command path.
     void align_stack(Direction dir);
     void move_active_stack(Direction dir);
     void move_active_window_to_adjacent_stack(Direction dir);
@@ -133,6 +136,7 @@ public:
     void set_fullscreen_active_window();
     void toggle_fullscreen_active_window();
     void toggle_maximize_active_stack();
+    // TODO(remove-fit-size-command): Delete with the public fit_size command.
     void fit_size(FitSize fitsize);
     void recalculate_lane_geometry();
     void commit_restored_geometry();

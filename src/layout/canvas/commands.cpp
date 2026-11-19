@@ -276,6 +276,10 @@ void CanvasLayout::handleMoveWindowAcrossLanes(int workspace, Direction directio
 }
 
 // Cycle the active stack width or active window height by one preset step.
+//
+// TODO(set_window_size): Replace this with an explicit visible-stack count
+// setter (n stacks on screen => primary span = workarea / n). Remove the
+// step-based cycle once `set_window_size` is wired through dispatch/lane.
 void CanvasLayout::cycle_window_size(int workspace, int step)
 {
     (void)workspace;
@@ -308,6 +312,9 @@ void CanvasLayout::move_window(int workspace, Direction direction) {
 }
 
 // Align the active stack/window inside the current lane viewport.
+//
+// TODO(remove-align-window): Delete this entrypoint once the Lua/dispatch
+// align_window command is removed.
 void CanvasLayout::align_window(int workspace, Direction direction) {
     (void)workspace;
     withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [direction](Lane *lane) {
@@ -345,6 +352,9 @@ void CanvasLayout::set_mode(int workspace, Mode mode) {
 }
 
 // Resize the requested visible range so it fills the current lane viewport.
+//
+// TODO(remove-fit-size-command): Delete this public command path. Unlike
+// overview (read-only navigation over a snapshot), this mutates real geometry.
 void CanvasLayout::fit_size(int workspace, FitSize fitsize) {
     (void)workspace;
     withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [fitsize](Lane *lane) {
