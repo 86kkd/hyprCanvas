@@ -174,7 +174,6 @@ following functions under `hl.plugin.scroller` instead:
 | `move_window(direction)` | Move the active window in the requested direction. |
 | `cycle_size(step)` | Cycle the active stack size with `next` or `prev`. |
 | `set_mode(mode)` | Select `row` or `col` mode. |
-| `fit_size(scope)` | Fit `active`, `visible`, `all`, `toend`, or `tobeg`. |
 | `toggle_fullscreen()` | Toggle scroller-managed fullscreen expansion. |
 | `toggle_overview(action)` / `cancel_overview()` | Open, accept, or cancel overview. |
 | `marks_add(name)` / `marks_delete(name)` | Add or delete a mark. |
@@ -198,13 +197,10 @@ following functions under `hl.plugin.scroller` instead:
 *Hyprscroller* works in one of two modes that can be changed at any moment.
 
 1. *row* mode: it is the default. It creates new windows in a new column.
-   `cyclesize` affects the width of the active column. `fitsize` fits the
-   selected columns to the width of the monitor.
+   `cyclesize` affects the width of the active column.
 
 2. *column* mode: It creates new windows in the current column, right below the
    active window. `cyclesize` affects the height of the active window.
-   `fitsize` fits the selected windows in the column to the height of the
-   monitor.
 
 
 ## Window/Column Focus and Movement
@@ -242,31 +238,6 @@ any window freely.
 - a single-window stack joins the neighboring stack in that direction;
 - the active window of a multi-window stack is split out into a new stack on
   that side.
-
-
-## Fitting the Screen
-
-When you have a ultra-wide monitor, one in a vertical position, or the default
-column widths or window heights don't fit your workflow, you can use manual
-resizing, but it is sometimes slow and tricky.
-
-`scroller:fitsize` works in two different ways, depending on the active mode.
-
-It allows you to re-fit the columns (*row* mode) or windows (*column* mode) you
-want to the screen extents. It accepts an argument related to the
-columns/windows it will try to fit. The new width/height of each column/window
-will be proportional to its previous width or height, relative to the other
-columns or windows affected.
-
-1. `active`: It is similar to maximize, it will fit the active column/window.
-2. `visible`: All the currently fully or partially visible columns/windows will
-   be resized to fit the screen.
-3. `all`: All the columns in the row or windows in the column will be resized
-   to fit.
-4. `toend`: All the columns or windows from the focused one to the end of the
-   row/column will be affected.
-5. `tobeg` or `tobeginning`: All the columns/windows from the focused one to
-   the beginning of the row/column will now fit the screen.
 
 
 ## Overview
@@ -403,27 +374,6 @@ binde = , right, resizeactive, 100 0
 binde = , left, resizeactive, -100 0
 binde = , up, resizeactive, 0 -100
 binde = , down, resizeactive, 0 100
-# use reset to go back to the global submap
-bind = , escape, submap, reset
-# will reset the submap, meaning end the current one and return to the global one
-submap = reset
-
-# Fit size submap
-# will switch to a submap called fitsize
-bind = $mainMod, W, submap, fitsize
-# will start a submap called "fitsize"
-submap = fitsize
-# sets binds for fitting columns/windows in the screen
-bind = , W, scroller:fitsize, visible
-bind = , W, submap, reset
-bind = , right, scroller:fitsize, toend
-bind = , right, submap, reset
-bind = , left, scroller:fitsize, tobeg
-bind = , left, submap, reset
-bind = , up, scroller:fitsize, active
-bind = , up, submap, reset
-bind = , down, scroller:fitsize, all
-bind = , down, submap, reset
 # use reset to go back to the global submap
 bind = , escape, submap, reset
 # will reset the submap, meaning end the current one and return to the global one

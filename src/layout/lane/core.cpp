@@ -235,7 +235,7 @@ ActiveWindowPayload Lane::extract_active_window_payload() {
         return payload;
     }
 
-    stack->fit_size(FitSize::All, calculate_gap_x(active), gap, max);
+    stack->fit_windows_to_span(calculate_gap_x(active), gap, max);
     debugVerifyStackCache();
     return payload;
 }

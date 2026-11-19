@@ -17,7 +17,7 @@
 
 #include "model/stack/logic.h"
 #include "model/stack/pointer.h"
-#include "core/fit_size.h"
+#include "core/span_scale.h"
 #include "core/layout_math.h"
 #include "core/layout_profile.h"
 #include "core/monitor_geometry_runtime.h"
@@ -321,21 +321,11 @@ void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const 
                   newPos);
 }
 
-void Stack::fit_size(FitSize fitsize, const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox) {
-    // Fit-size acts on a contiguous range of windows. The helpers decide which
-    // range should be scaled (all / visible / before / after active), then
-    // normalize that range so the chosen windows exactly fill the stack span.
-    const auto [from, to] = ScrollerCore::select_fit_size_range(
-        fitsize,
-        windows.first(),
-        windows.last(),
-        active,
-        [&](ListNode<Window *> *node) {
-            return node && StackInternal::is_window_intersect_viewport(node->data(), geom, mode);
-        });
-    if (!ScrollerCore::normalize_fit_size_range(
+void Stack::fit_windows_to_span(const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox) {
+    auto *from = windows.first();
+    if (!ScrollerCore::scale_range_to_span(
             from,
-            to,
+            windows.last(),
             StackInternal::stack_local_span(geom, mode),
             [](ListNode<Window *> *node) {
                 return node->data()->get_geom_h();

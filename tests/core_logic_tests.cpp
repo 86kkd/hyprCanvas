@@ -6,7 +6,7 @@
 #include <vector>
 
 #include "core/direction.h"
-#include "core/fit_size.h"
+#include "core/span_scale.h"
 #include "core/interval.h"
 #include "core/layout_math.h"
 #include "core/layout_profile.h"
@@ -30,9 +30,8 @@ struct FakeOwner {
     }
 };
 
-struct FakeFitItem {
+struct FakeSpanItem {
     double span = 0.0;
-    bool   visible = false;
 };
 
 void expect_reserved_workarea(std::string_view label,
@@ -84,13 +83,6 @@ void test_parse_helpers() {
 
     expect_true(!ScrollerCore::parse_direction_arg("sideways").has_value(),
                 "parse_direction_arg rejects invalid input");
-
-    const auto toBeginning = ScrollerCore::parse_fit_size_arg("tobeginning");
-    expect_true(toBeginning.has_value() && *toBeginning == FitSize::ToBeg,
-                "parse_fit_size_arg handles tobeginning");
-
-    expect_true(!ScrollerCore::parse_fit_size_arg("largest").has_value(),
-                "parse_fit_size_arg rejects invalid input");
 
     const auto rowMode = ScrollerCore::parse_mode_arg("row");
     expect_true(rowMode.has_value() && *rowMode == Mode::Row,
@@ -331,71 +323,49 @@ void test_owner_index() {
                 "owner index clear removes every cached key");
 }
 
-void test_fit_size_helpers() {
-    FakeFitItem itemA{.span = 10.0, .visible = false};
-    FakeFitItem itemB{.span = 20.0, .visible = true};
-    FakeFitItem itemC{.span = 30.0, .visible = true};
-    FakeFitItem itemD{.span = 40.0, .visible = false};
-    List<FakeFitItem *> items;
+void test_span_scale_helper() {
+    FakeSpanItem itemA{.span = 10.0};
+    FakeSpanItem itemB{.span = 20.0};
+    FakeSpanItem itemC{.span = 30.0};
+    FakeSpanItem itemD{.span = 40.0};
+    List<FakeSpanItem *> items;
     items.push_back(&itemA);
     items.push_back(&itemB);
     items.push_back(&itemC);
     items.push_back(&itemD);
 
-    auto *active = items.first()->next()->next();
-    const auto isVisible = [](ListNode<FakeFitItem *> *node) {
-        return node && node->data() && node->data()->visible;
-    };
-
-    const auto [activeFrom, activeTo] = ScrollerCore::select_fit_size_range(
-        FitSize::Active, items.first(), items.last(), active, isVisible);
-    expect_true(activeFrom == active && activeTo == active,
-                "fit-size helper selects only the active node for active mode");
-
-    const auto [visibleFrom, visibleTo] = ScrollerCore::select_fit_size_range(
-        FitSize::Visible, items.first(), items.last(), active, isVisible);
-    expect_true(visibleFrom == items.first()->next(),
-                "fit-size helper finds the first visible node");
-    expect_true(visibleTo == items.last()->prev(),
-                "fit-size helper finds the last visible node");
-
-    const auto [toBegFrom, toBegTo] = ScrollerCore::select_fit_size_range(
-        FitSize::ToBeg, items.first(), items.last(), active, isVisible);
-    expect_true(toBegFrom == items.first() && toBegTo == active,
-                "fit-size helper keeps the head-to-active range");
-
-    const auto normalized = ScrollerCore::normalize_fit_size_range(
-        visibleFrom,
-        visibleTo,
+    const auto normalized = ScrollerCore::scale_range_to_span(
+        items.first()->next(),
+        items.last()->prev(),
         100.0,
-        [](ListNode<FakeFitItem *> *node) {
+        [](ListNode<FakeSpanItem *> *node) {
             return node->data()->span;
         },
-        [](ListNode<FakeFitItem *> *node, double scaledSpan) {
+        [](ListNode<FakeSpanItem *> *node, double scaledSpan) {
             node->data()->span = scaledSpan;
         });
-    expect_true(normalized, "fit-size helper normalizes non-empty ranges");
+    expect_true(normalized, "span scale helper normalizes non-empty ranges");
     expect_near(itemB.span, 40.0, 1e-9,
-                "fit-size helper preserves proportional span for the first visible node");
+                "span scale helper preserves proportional span for the first node");
     expect_near(itemC.span, 60.0, 1e-9,
-                "fit-size helper preserves proportional span for the second visible node");
+                "span scale helper preserves proportional span for the second node");
 
-    FakeFitItem zeroA{.span = 0.0, .visible = true};
-    FakeFitItem zeroB{.span = 0.0, .visible = true};
-    List<FakeFitItem *> zeros;
+    FakeSpanItem zeroA{.span = 0.0};
+    FakeSpanItem zeroB{.span = 0.0};
+    List<FakeSpanItem *> zeros;
     zeros.push_back(&zeroA);
     zeros.push_back(&zeroB);
-    expect_true(!ScrollerCore::normalize_fit_size_range(
+    expect_true(!ScrollerCore::scale_range_to_span(
                     zeros.first(),
                     zeros.last(),
                     80.0,
-                    [](ListNode<FakeFitItem *> *node) {
+                    [](ListNode<FakeSpanItem *> *node) {
                         return node->data()->span;
                     },
-                    [](ListNode<FakeFitItem *> *node, double scaledSpan) {
+                    [](ListNode<FakeSpanItem *> *node, double scaledSpan) {
                         node->data()->span = scaledSpan;
                     }),
-                "fit-size helper rejects zero-total ranges");
+                "span scale helper rejects zero-total ranges");
 }
 
 void test_list_move_only() {
@@ -607,7 +577,7 @@ void run_core_logic_tests() {
     test_monitor_geometry();
     test_workarea_pager();
     test_owner_index();
-    test_fit_size_helpers();
+    test_span_scale_helper();
     test_list_move_only();
     test_stack_logic();
     test_stack_deck();

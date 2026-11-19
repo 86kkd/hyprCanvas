@@ -75,20 +75,6 @@ std::optional<Direction> parse_direction_arg(std::string_view arg) {
     return std::nullopt;
 }
 
-std::optional<FitSize> parse_fit_size_arg(std::string_view arg) {
-    if (arg == "active")
-        return FitSize::Active;
-    if (arg == "visible")
-        return FitSize::Visible;
-    if (arg == "all")
-        return FitSize::All;
-    if (arg == "toend")
-        return FitSize::ToEnd;
-    if (arg == "tobeg" || arg == "tobeginning")
-        return FitSize::ToBeg;
-    return std::nullopt;
-}
-
 std::optional<Mode> parse_mode_arg(std::string_view arg) {
     if (arg == "r" || arg == "row")
         return Mode::Row;

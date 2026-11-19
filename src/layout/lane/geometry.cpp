@@ -253,7 +253,7 @@ void Lane::recalculate_lane_geometry() {
         stack->set_geom_pos(max.x, max.y);
         stack->set_geom_w(max.w);
         stack->set_geom_h(max.h);
-        stack->fit_size(FitSize::All, calculate_gap_x(active), gap, max);
+        stack->fit_windows_to_span(calculate_gap_x(active), gap, max);
         stack->recalculate_stack_geometry(calculate_gap_x(active), gap, max);
         spdlog::debug("lane_recalc_single: active_window={} stacks={}",
                       logging::active_window_ptr(stack),

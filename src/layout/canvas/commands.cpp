@@ -272,18 +272,6 @@ void CanvasLayout::set_mode(int workspace, Mode mode) {
     persistSnapshot();
 }
 
-// Resize the requested visible range so it fills the current lane viewport.
-//
-// TODO(remove-fit-size-command): Delete this public command path. Unlike
-// overview (read-only navigation over a snapshot), this mutates real geometry.
-void CanvasLayout::fit_size(int workspace, FitSize fitsize) {
-    (void)workspace;
-    withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [fitsize](Lane *lane) {
-        lane->fit_size(fitsize);
-    });
-    persistSnapshot();
-}
-
 // Toggle scroller-managed fullscreen/expanded behavior.
 void CanvasLayout::toggle_fullscreen(int workspace) {
     (void)workspace;

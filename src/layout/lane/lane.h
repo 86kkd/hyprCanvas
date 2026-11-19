@@ -129,8 +129,6 @@ public:
     void set_fullscreen_active_window();
     void toggle_fullscreen_active_window();
     void toggle_maximize_active_stack();
-    // TODO(remove-fit-size-command): Delete with the public fit_size command.
-    void fit_size(FitSize fitsize);
     void recalculate_lane_geometry();
     void commit_restored_geometry();
     void append_restored_stack(ScrollerModel::Stack *stack);

@@ -249,11 +249,8 @@ public:
 
     // Update stack width from a predefined mode and current monitor bounds.
     void update_width(StackWidth cwidth, double maxw, double maxh);
-    // Resize a window range (all/visible/active/to ends) to fill available height.
-    // Used internally by move_window/relayout as FitSize::All. The public Lua
-    // fit_size command is separately marked TODO(remove-fit-size-command);
-    // do not delete this helper until those internal call sites are rewritten.
-    void fit_size(FitSize fitsize, const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox);
+    // Scale every window proportionally so together they fill the stack span.
+    void fit_windows_to_span(const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox);
     // Resize width and optional active height if height delta is valid.
     void resize_active_window(const ScrollerCore::Box &bounds, const Vector2D &gap_x, double gap, const Vector2D &delta);
     // Append a window model without applying insert heuristics. Used only when rebuilding snapshots.

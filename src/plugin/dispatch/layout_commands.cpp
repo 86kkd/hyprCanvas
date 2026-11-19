@@ -135,25 +135,6 @@ void dispatch_setmode(std::string arg) {
     });
 }
 
-// fitsize <active|visible|all|toend|tobeg>: resize visible windows so they
-// fit requested range.
-//
-// TODO(remove-fit-size-command): Delete the public `fit_size` command. This is
-// NOT overview: overview is a read-only snapshot/navigation layer, while
-// fit_size mutates real stack spans so a chosen range fills the workarea.
-// Remove Lua `fit_size` / dispatch / CanvasLayout::fit_size / Lane::fit_size
-// command path. Keep or inline the internal `Stack::fit_size(FitSize::All, …)`
-// helpers still used by move_window/relayout until those call sites are
-// rewritten.
-void dispatch_fitsize(std::string arg) {
-    const auto fitSize = parsedFitSizeArg(arg);
-    if (!fitSize)
-        return;
-
-    if (const auto action = workspaceLayoutForAction())
-        action.layout->fit_size(action.workspace, *fitSize);
-}
-
 // togglefullscreen: expand the active scroller window to the monitor bounds.
 void dispatch_togglefullscreen(std::string arg) {
     (void)arg;
@@ -227,12 +208,6 @@ int lua_set_mode(lua_State* state) {
     return 0;
 }
 
-// TODO(remove-fit-size-command): Remove this Lua binding with the public command.
-int lua_fit_size(lua_State* state) {
-    dispatch_fitsize(luaStringArg(state));
-    return 0;
-}
-
 int lua_toggle_fullscreen(lua_State* state) {
     dispatch_togglefullscreen(luaStringArg(state));
     return 0;
@@ -253,8 +228,6 @@ void registerLayoutLuaFunctions() {
     registerLuaFunction("switch_workspace", lua_switch_workspace);
     registerLuaFunction("move_window", lua_move_window);
     registerLuaFunction("set_mode", lua_set_mode);
-    // TODO(remove-fit-size-command): Drop this registration.
-    registerLuaFunction("fit_size", lua_fit_size);
     registerLuaFunction("toggle_fullscreen", lua_toggle_fullscreen);
 }
 

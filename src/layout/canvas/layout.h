@@ -114,9 +114,6 @@ public:
     void move_focus(int workspace, Direction);
     void move_window(int workspace, Direction);
     void set_mode(int workspace, Mode);
-    // TODO(remove-fit-size-command): Delete the public fit_size command API.
-    // Internal Stack::fit_size helpers used by move_window/relayout are separate.
-    void fit_size(int workspace, FitSize);
     void toggle_fullscreen(int workspace);
 
     // Mark helpers: lightweight named bookmarks for focused windows.

@@ -171,20 +171,10 @@ inline std::optional<Mode> parsedModeArg(const std::string& arg) {
     return ScrollerCore::parse_mode_arg(firstDispatchArg(arg));
 }
 
-inline std::optional<FitSize> parsedFitSizeArg(const std::string& arg) {
-    return ScrollerCore::parse_fit_size_arg(firstDispatchArg(arg));
-}
-
 template <typename Fn>
 inline void withParsedDirectionArg(const std::string& arg, Fn&& fn) {
     if (const auto direction = parsedDirectionArg(arg))
         fn(*direction);
-}
-
-template <typename Fn>
-inline void withParsedFitSizeArg(const std::string& arg, Fn&& fn) {
-    if (const auto fitSize = parsedFitSizeArg(arg))
-        fn(*fitSize);
 }
 
 template <typename Fn>

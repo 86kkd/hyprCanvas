@@ -139,9 +139,9 @@ TODO(canvas-workspace-model)
 
 ### 建议完成判定
 
-- [ ] 公共 `fit_size` Lua/命令/Canvas/Lane/Grid 入口已删除
-- [ ] admit/relayout 等内部调用已有明确去留方案
-- [ ] README 中 fitsize 说明与 submap 示例已更新
+- [x] 公共 `fit_size` Lua/命令/Canvas/Lane/Grid 入口已删除
+- [x] admit/relayout 等内部调用已有明确去留方案
+- [x] README 中 fitsize 说明与 submap 示例已更新
 - [ ] overview 空白预览问题单独跟踪，不与本项捆绑
 - [ ] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 

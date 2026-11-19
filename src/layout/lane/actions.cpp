@@ -11,7 +11,6 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/output/Monitor.hpp>
 
-#include "../../core/fit_size.h"
 #include "../../core/interval.h"
 #include "../../core/layout_profile.h"
 
@@ -317,7 +316,7 @@ void Lane::move_active_window_to_adjacent_stack(Direction dir) {
     rememberWindowStack(movedWindow, active->data());
 
     if (targetWindowCountBefore == 1)
-        active->data()->fit_size(FitSize::All, calculate_gap_x(active), gap, max);
+        active->data()->fit_windows_to_span(calculate_gap_x(active), gap, max);
     recalculate_lane_geometry();
     debugVerifyStackCache();
 }
@@ -362,46 +361,4 @@ void Lane::move_active_window_to_new_stack(Direction dir) {
     rememberWindowStack(movedWindow, stack);
     recalculate_lane_geometry();
     debugVerifyStackCache();
-}
-
-// Fit stack sizes to the requested visible range along the lane's primary axis.
-//
-// TODO(remove-fit-size-command): Delete this lane command helper with the
-// public fit_size API. This is geometry mutation, not overview navigation.
-void Lane::fit_size(FitSize fitsize) {
-    const auto visibleStart = mode == Mode::Column ? max.y : max.x;
-    const auto visibleEnd = mode == Mode::Column ? max.y + max.h : max.x + max.w;
-    const auto [from, to] = ScrollerCore::select_fit_size_range(
-        fitsize,
-        stacks.first(),
-        stacks.last(),
-        active,
-        [&](ListNode<Stack *> *node) {
-            auto *stack = node ? node->data() : nullptr;
-            if (!stack)
-                return false;
-
-            const auto spanStart = mode == Mode::Column ? stack->get_geom_y() : stack->get_geom_x();
-            const auto spanEnd = spanStart + (mode == Mode::Column ? stack->get_geom_h() : stack->get_geom_w());
-            return ScrollerCore::Interval::intersects(spanStart, spanEnd, visibleStart, visibleEnd);
-        });
-    if (!ScrollerCore::normalize_fit_size_range(
-            from,
-            to,
-            mode == Mode::Column ? max.h : max.w,
-            [&](ListNode<Stack *> *node) {
-                return mode == Mode::Column ? node->data()->get_geom_h() : node->data()->get_geom_w();
-            },
-            [&](ListNode<Stack *> *node, double scaledSpan) {
-                auto *stack = node->data();
-                stack->set_width_free();
-                if (mode == Mode::Column)
-                    stack->set_geom_h(scaledSpan);
-                else
-                    stack->set_geom_w(scaledSpan);
-            }))
-        return;
-
-    from->data()->set_geom_pos(max.x, max.y);
-    adjust_stacks(from);
 }

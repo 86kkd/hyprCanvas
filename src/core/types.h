@@ -8,7 +8,6 @@ using WORKSPACEID = int64_t;
 inline constexpr WORKSPACEID WORKSPACE_INVALID = -1;
 
 enum class Direction { Left, Right, Up, Down, Begin, End, Center };
-enum class FitSize { Active, Visible, All, ToEnd, ToBeg };
 enum class Mode { Row, Column };
 enum class FocusMoveResult { Moved, NoOp, CrossMonitor };
 
