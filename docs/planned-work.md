@@ -398,8 +398,8 @@ Canvas Workspace          ← hyprscroller 抽象：一整套多屏桌面
 
 - [ ] `architecture.md` / `architecture-cn.md` 写明 Canvas Workspace → Hyprland workspace×N → Lane → Stack
 - [ ] 代码与文档中「Canvas Workspace」与 `CanvasLayout` 角色不再混用
-- [ ] Canvas Workspace members 与 monitor 数 / 互斥约束有明确实现或测试覆盖
-- [ ] special workspace 不误当作普通 member 默认并入每个 canvas
+- [x] Canvas Workspace members 与 monitor 数 / 互斥约束有明确实现或测试覆盖
+- [x] special workspace 不误当作普通 member 默认并入每个 canvas
 - [ ] 单屏 `move_focus` / `move_window` 仍以当前 member workspace 的 `CanvasLayout` 为入口（可与拓扑邻居索引共存）
 
 ---

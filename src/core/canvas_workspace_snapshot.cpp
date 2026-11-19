@@ -11,6 +11,49 @@
 
 namespace ScrollerCanvasSnapshot {
 
+std::vector<MonitorMemberSnapshot> visible_members(std::vector<MonitorWorkspace> monitors) {
+    std::sort(monitors.begin(), monitors.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.monitorId < rhs.monitorId;
+    });
+    std::vector<MonitorMemberSnapshot> members;
+    members.reserve(monitors.size());
+    for (const auto& monitor : monitors)
+        members.push_back({.monitorId = monitor.monitorId, .workspaceId = monitor.workspaceId, .special = false});
+    return members;
+}
+
+bool fill_monitor_members(CanvasWorkspaceSnapshot& canvas, const std::vector<int>& monitorIds, int nextWorkspaceId) {
+    for (const auto& member : canvas.members)
+        nextWorkspaceId = std::max(nextWorkspaceId, member.workspaceId + 1);
+
+    const auto connected = [&](int monitorId) {
+        return std::find(monitorIds.begin(), monitorIds.end(), monitorId) != monitorIds.end();
+    };
+    std::unordered_set<int> covered;
+    std::vector<MonitorMemberSnapshot> members;
+    members.reserve(canvas.members.size() + monitorIds.size());
+    for (const auto& member : canvas.members) {
+        if (connected(member.monitorId) && (member.special || covered.contains(member.monitorId)))
+            continue;
+        covered.insert(member.monitorId);
+        members.push_back(member);
+    }
+    for (const auto monitorId : monitorIds) {
+        if (covered.insert(monitorId).second)
+            members.push_back({.monitorId = monitorId, .workspaceId = nextWorkspaceId++, .special = false});
+    }
+
+    std::sort(members.begin(), members.end(), [](const auto& lhs, const auto& rhs) {
+        return lhs.monitorId < rhs.monitorId;
+    });
+    const bool changed = members.size() != canvas.members.size() ||
+        !std::equal(members.begin(), members.end(), canvas.members.begin(), [](const auto& lhs, const auto& rhs) {
+            return lhs.monitorId == rhs.monitorId && lhs.workspaceId == rhs.workspaceId && lhs.special == rhs.special;
+        });
+    canvas.members = std::move(members);
+    return changed;
+}
+
 bool make_members_exclusive(RepositorySnapshot& snapshot, int preferredCanvasId, int nextWorkspaceId) {
     for (const auto& canvas : snapshot.canvases)
         for (const auto& member : canvas.members)

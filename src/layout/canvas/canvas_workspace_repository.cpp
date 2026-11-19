@@ -252,22 +252,22 @@ std::vector<CanvasWorkspaceMember> CanvasWorkspaceRepository::currentVisibleMemb
     if (!g_pCompositor)
         return members;
 
+    std::vector<ScrollerCanvasSnapshot::MonitorWorkspace> monitors;
     for (const auto& monitor : ScrollerCore::HyprlandRuntime::monitors()) {
         if (!monitor)
             continue;
-
-        const auto workspaceId = CanvasLayoutInternal::preferred_workspace_id(monitor, ScrollerCore::HyprlandRuntime::activeWorkspaceId(monitor));
-        const auto workspace = ScrollerCore::HyprlandRuntime::workspaceById(workspaceId);
-        members.push_back({
+        monitors.push_back({
             .monitorId = static_cast<int>(monitor->m_id),
-            .workspaceId = workspaceId,
-            .special = workspace ? ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace) : false,
+            .workspaceId = static_cast<int>(ScrollerCore::HyprlandRuntime::activeWorkspaceId(monitor)),
         });
     }
 
-    std::sort(members.begin(), members.end(), [](const auto& lhs, const auto& rhs) {
-        return lhs.monitorId < rhs.monitorId;
-    });
+    for (const auto& member : ScrollerCanvasSnapshot::visible_members(std::move(monitors)))
+        members.push_back({
+            .monitorId = member.monitorId,
+            .workspaceId = member.workspaceId,
+            .special = member.special,
+        });
     return members;
 }
 
@@ -373,38 +373,17 @@ void CanvasWorkspaceRepository::markActive(int canvasId) {
 
 void CanvasWorkspaceRepository::ensureCanvasHasVisibleMembers(int canvasId) {
     initialize();
-    auto records = canvases();
-    auto* canvas = find_canvas(records, canvasId);
-    if (!canvas)
-        return;
-
-    auto nextWorkspace = next_workspace_id(snapshot_);
-    bool changed = false;
-    for (const auto& visibleMember : currentVisibleMembers()) {
-        const auto exists = std::any_of(canvas->members.begin(), canvas->members.end(), [&](const auto& member) {
-            return member.monitorId == visibleMember.monitorId;
-        });
-        if (exists)
-            continue;
-
-        canvas->members.push_back({
-            .monitorId = visibleMember.monitorId,
-            .workspaceId = nextWorkspace++,
-            .special = false,
-        });
-        changed = true;
-    }
-
-    if (!changed)
-        return;
-
-    std::sort(canvas->members.begin(), canvas->members.end(), [](const auto& lhs, const auto& rhs) {
-        return lhs.monitorId < rhs.monitorId;
+    const auto canvas = std::find_if(snapshot_.canvases.begin(), snapshot_.canvases.end(), [&](const auto& candidate) {
+        return candidate.canvasId == canvasId;
     });
-    snapshot_.canvases.clear();
-    snapshot_.canvases.reserve(records.size());
-    for (const auto& record : records)
-        snapshot_.canvases.push_back(to_snapshot(record));
+    if (canvas == snapshot_.canvases.end())
+        return;
+
+    std::vector<int> monitorIds;
+    for (const auto& member : currentVisibleMembers())
+        monitorIds.push_back(member.monitorId);
+    if (!ScrollerCanvasSnapshot::fill_monitor_members(*canvas, monitorIds, static_cast<int>(next_workspace_id(snapshot_))))
+        return;
     flushToDisk();
 }
 

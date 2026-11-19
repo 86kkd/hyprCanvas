@@ -240,6 +240,46 @@ void test_legacy_canvas_members_become_exclusive() {
     expect_eq(repository.canvases[0].members[0].workspaceId, 23, "older canvas cannot retain shared member");
 }
 
+void test_canvas_members_follow_monitors() {
+    using namespace ScrollerCanvasSnapshot;
+
+    const auto visible = visible_members({{.monitorId = 2, .workspaceId = 12}, {.monitorId = 0, .workspaceId = 3}});
+    expect_eq(visible.size(), static_cast<size_t>(2), "visible members hold one entry per monitor");
+    expect_eq(visible[0].monitorId, 0, "visible members are ordered by monitor");
+    expect_true(!visible[0].special && !visible[1].special, "visible members are never special workspaces");
+
+    CanvasWorkspaceSnapshot canvas{
+        .canvasId = 1,
+        .members = {
+            {.monitorId = 0, .workspaceId = 3, .special = false},
+            {.monitorId = 0, .workspaceId = 4, .special = false},
+            {.monitorId = 1, .workspaceId = -98, .special = true},
+            {.monitorId = 5, .workspaceId = 9, .special = false},
+        },
+    };
+    expect_true(fill_monitor_members(canvas, {0, 1, 2}, 20), "monitor members are normalized");
+    expect_eq(canvas.members.size(), static_cast<size_t>(4), "each connected monitor gets one member, disconnected ones stay");
+    expect_eq(canvas.members[0].workspaceId, 3, "the first member of a monitor wins over duplicates");
+    expect_true(canvas.members[1].monitorId == 1 && !canvas.members[1].special && canvas.members[1].workspaceId == 20,
+                "a special member is replaced by a fresh ordinary workspace");
+    expect_true(canvas.members[2].monitorId == 2 && canvas.members[2].workspaceId == 21,
+                "a missing monitor receives the next fresh workspace");
+    expect_true(canvas.members[3].monitorId == 5 && canvas.members[3].workspaceId == 9,
+                "a disconnected monitor keeps its member for later");
+    expect_true(!fill_monitor_members(canvas, {0, 1, 2}, 20), "monitor member normalization is idempotent");
+}
+
+void test_special_members_are_not_exclusive_pages() {
+    using namespace ScrollerCanvasSnapshot;
+    RepositorySnapshot repository;
+    repository.canvases = {
+        {0, 0, 0, {{0, 1, false}, {1, -98, true}}},
+        {1, 1, 0, {{0, 5, false}, {1, -98, true}}},
+    };
+    expect_true(!make_members_exclusive(repository, 0, 10), "legacy special members are not reassigned as pages");
+    expect_eq(repository.canvases[1].members[1].workspaceId, -98, "a shared special member keeps its workspace");
+}
+
 void test_canvas_workspace_snapshot_rejects_missing_active_line() {
     const auto parsed = ScrollerCanvasSnapshot::deserialize_repository(
         "VERSION 1\n"
@@ -259,5 +299,7 @@ void run_layout_snapshot_tests() {
     test_snapshot_rejects_malformed_stack_line();
     test_canvas_workspace_snapshot_round_trip();
     test_legacy_canvas_members_become_exclusive();
+    test_canvas_members_follow_monitors();
+    test_special_members_are_not_exclusive_pages();
     test_canvas_workspace_snapshot_rejects_missing_active_line();
 }
