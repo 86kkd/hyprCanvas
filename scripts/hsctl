@@ -6,6 +6,9 @@
 #   ./scripts/hsctl move d
 #   ./scripts/hsctl size 3
 #   ./scripts/hsctl mode col
+#   ./scripts/hsctl overview
+#   ./scripts/hsctl overview accept
+#   ./scripts/hsctl overview cancel
 #   ./scripts/hsctl kitty
 #   ./scripts/hsctl clients
 #
@@ -33,7 +36,9 @@ Commands:
   size  <1-8>             hl.plugin.scroller.set_window_size
   mode  <row|col>         hl.plugin.scroller.set_mode
   fullscreen              hl.plugin.scroller.toggle_fullscreen
-  overview [accept|cancel]
+  overview                open overview, or accept if already open
+  overview accept         accept selection and leave overview
+  overview cancel         leave overview without accepting
   exec  <cmd...>          dispatch exec in the nested instance
   kitty|foot|alacritty    shorthand for exec <term>
   clients|monitors|activeworkspace|activewindow|workspaces
@@ -151,10 +156,13 @@ case "$cmd" in
     fullscreen)
         scroller toggle_fullscreen
         ;;
-    overview)
+    overview|ov)
         case "${1:-}" in
-            ""|accept|confirm|enter)
+            "")
                 scroller toggle_overview
+                ;;
+            accept|confirm|enter)
+                scroller toggle_overview "$1"
                 ;;
             cancel|abort|close)
                 scroller cancel_overview
