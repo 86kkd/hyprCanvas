@@ -398,7 +398,6 @@ hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_window("r")'
 hyprctl -i <instance-signature> eval 'hl.plugin.scroller.set_mode("row")'
 hyprctl -i <instance-signature> eval 'hl.plugin.scroller.set_mode("col")'
 hyprctl -i <instance-signature> eval 'hl.plugin.scroller.toggle_fullscreen()'
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.create_lane("r")'
 ```
 
 推荐测试组合：

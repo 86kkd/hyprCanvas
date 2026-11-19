@@ -44,27 +44,6 @@ Lane::Lane(PHLMONITOR monitor, Mode laneMode)
         update_sizes(monitor);
 }
 
-Lane::Lane(Stack *stack)
-    : ephemeral(false), gap(0), reorder(Reorder::Auto), mode(Mode::Row), active(nullptr) {
-    // This constructor is primarily used when a whole stack is transferred into
-    // a fresh lane. Derive mode/sizes from the stack's active window so the new
-    // lane starts in a monitor-consistent coordinate space.
-    const auto window = stack ? stack->get_active_window() : nullptr;
-    const auto monitor = window ? ScrollerCore::HyprlandRuntime::monitorById(window->monitorID()) : nullptr;
-    if (monitor) {
-        mode = ScrollerCore::default_mode_for_monitor(monitor);
-        update_sizes(monitor);
-    }
-
-    if (!stack)
-        return;
-
-    stacks.push_back(stack);
-    active = stacks.first();
-    rememberStackWindows(stack);
-    debugVerifyStackCache();
-}
-
 Lane::~Lane() {
     for (auto col = stacks.first(); col != nullptr; col = col->next()) {
         delete col->data();
@@ -225,22 +204,6 @@ ActiveWindowRestorePlan Lane::capture_active_window_restore_plan(Direction direc
     plan.restoreIntoCurrentStack = true;
     plan.insertBeforeCurrent = stack->active_at_edge(ScrollerCore::stack_item_backward_direction(mode));
     return plan;
-}
-
-Stack *Lane::extract_active_stack() {
-    if (!active)
-        return nullptr;
-
-    // Whole-stack extraction is simpler than window-payload extraction because
-    // the stack remains structurally intact; we only need to detach it from the
-    // lane list and repair the active pointer/cache.
-    auto node = active;
-    auto stack = node->data();
-    forgetStackWindows(stack);
-    active = node != stacks.last() ? node->next() : node->prev();
-    stacks.erase(node);
-    debugVerifyStackCache();
-    return stack;
 }
 
 ActiveWindowPayload Lane::extract_active_window_payload() {

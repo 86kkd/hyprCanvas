@@ -181,10 +181,10 @@ TODO(canvas-workspace-model)
 ### 建议完成判定
 
 - [x] 公共 Lua/dispatch/Canvas `focus_lane` 已删除
-- [ ] 公共 Lua/dispatch/Canvas `create_lane` 已删除
-- [ ] `GridLayout::expel_window_right` 不再依赖 `create_lane`
-- [ ] `GridLayout::focus_lane` / `create_lane` 已删除或仅保留真正需要的内部实现
-- [ ] README 与 hyprland-testing 示例已去掉这两条命令
+- [x] 公共 Lua/dispatch/Canvas `create_lane` 已删除
+- [x] `GridLayout::expel_window_right` 不再依赖 `create_lane`（随 scrollergrid 一并删除）
+- [x] `GridLayout::focus_lane` / `create_lane` 已删除（随 scrollergrid 一并删除）
+- [x] README 与 hyprland-testing 示例已去掉这两条命令
 - [ ] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 
 ---

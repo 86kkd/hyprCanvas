@@ -176,21 +176,6 @@ void dispatch_togglefullscreen(std::string arg) {
         action.layout->toggle_fullscreen(action.workspace);
 }
 
-// createlane <dir>: move the active stack into a new adjacent lane.
-//
-// TODO(remove-create-lane-command): Delete this public command. It is not used
-// by automated tests; only a manual hyprland-testing.md example references it.
-// Daily lane creation is already covered by move_focus (ephemeral empty lane)
-// and move_window.
-void dispatch_createlane(std::string arg) {
-    const auto direction = parsedDirectionArg(arg);
-    if (!direction)
-        return;
-
-    if (const auto action = workspaceLayoutForAction())
-        action.layout->create_lane(action.workspace, *direction);
-}
-
 } // namespace
 
 namespace {
@@ -274,12 +259,6 @@ int lua_toggle_fullscreen(lua_State* state) {
     return 0;
 }
 
-// TODO(remove-create-lane-command): Remove this Lua binding with the command.
-int lua_create_lane(lua_State* state) {
-    dispatch_createlane(luaStringArg(state));
-    return 0;
-}
-
 void registerLuaFunction(const char* name, PLUGIN_LUA_FN function) {
     if (!HyprlandAPI::addLuaFunction(PHANDLE, "scroller", name, function))
         spdlog::warn("failed to register Lua function hl.plugin.scroller.{}", name);
@@ -300,8 +279,6 @@ void registerLayoutLuaFunctions() {
     // TODO(remove-fit-size-command): Drop this registration.
     registerLuaFunction("fit_size", lua_fit_size);
     registerLuaFunction("toggle_fullscreen", lua_toggle_fullscreen);
-    // TODO(remove-create-lane-command): Drop this registration.
-    registerLuaFunction("create_lane", lua_create_lane);
 }
 
 } // namespace dispatchers::detail

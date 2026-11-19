@@ -305,29 +305,3 @@ void CanvasLayout::toggle_fullscreen(int workspace) {
     });
     persistSnapshot();
 }
-
-// Move the active stack into a new persistent neighboring lane.
-//
-// TODO(remove-create-lane-command): Delete with the public create_lane command.
-// Not covered by automated tests; redundant with move_focus/move_window flows.
-void CanvasLayout::create_lane(int workspace, Direction direction) {
-    (void)workspace;
-    withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [&](Lane *lane) {
-        if (!activeLane)
-            return;
-
-        auto stack = lane->extract_active_stack();
-        if (!stack)
-            return;
-
-        auto currentLaneNode = activeLane;
-        auto newLane = new Lane(stack);
-        auto newLaneNode = insertLaneNode(newLane, direction, currentLaneNode);
-
-        rememberLaneWindows(newLane);
-        activeLane = newLaneNode;
-        finishLaneTransfer(currentLaneNode, nullptr, false, true);
-        debugVerifyLaneCache();
-    });
-    persistSnapshot();
-}

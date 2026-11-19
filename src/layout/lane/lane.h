@@ -66,7 +66,6 @@ class Lane {
 public:
     Lane(PHLWINDOW window);
     Lane(PHLMONITOR monitor, Mode mode);
-    Lane(ScrollerModel::Stack *stack);
     ~Lane();
 
     // Structural and state queries.
@@ -96,7 +95,6 @@ public:
     // Window/stack membership changes.
     void add_active_window(PHLWINDOW window);
     ActiveWindowRestorePlan capture_active_window_restore_plan(Direction direction) const;
-    ScrollerModel::Stack *extract_active_stack();
     // Remove the active window and transfer ownership of its model payload to the caller.
     ActiveWindowPayload extract_active_window_payload();
     // Consume a previously extracted payload and transfer ownership into this lane.

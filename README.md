@@ -177,7 +177,6 @@ following functions under `hl.plugin.scroller` instead:
 | `set_mode(mode)` | Select `row` or `col` mode. |
 | `fit_size(scope)` | Fit `active`, `visible`, `all`, `toend`, or `tobeg`. |
 | `toggle_fullscreen()` | Toggle scroller-managed fullscreen expansion. |
-| `create_lane(direction)` | Move the active stack into a new lane. |
 | `toggle_overview(action)` / `cancel_overview()` | Open, accept, or cancel overview. |
 | `marks_add(name)` / `marks_delete(name)` | Add or delete a mark. |
 | `marks_visit(name)` / `marks_reset()` | Visit a mark or clear all marks. |

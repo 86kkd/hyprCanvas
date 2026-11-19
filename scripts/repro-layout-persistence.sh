@@ -362,11 +362,11 @@ sleep 1
 focus_title layout-C
 hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.move_window("l")' >/dev/null
 sleep 0.4
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:createlane r >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.move_window("d")' >/dev/null
 sleep 0.4
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:movefocus u >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.move_focus("u")' >/dev/null
 sleep 0.4
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:setmode col >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.set_mode("col")' >/dev/null
 sleep 0.8
 
 capture_clients "$RUN_DIR/before-clients.json"

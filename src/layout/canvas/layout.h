@@ -120,8 +120,6 @@ public:
     // Internal Stack::fit_size helpers used by move_window/relayout are separate.
     void fit_size(int workspace, FitSize);
     void toggle_fullscreen(int workspace);
-    // TODO(remove-create-lane-command): Delete this public API with the command.
-    void create_lane(int workspace, Direction);
 
     // Mark helpers: lightweight named bookmarks for focused windows.
     void marks_add(const std::string &name);

@@ -280,17 +280,17 @@ done
 wait_for_nested_client_count 5 || die "timed out waiting for five nested terminals"
 
 sleep 1
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:setmode row >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.set_mode("row")' >/dev/null
 sleep 0.3
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:createlane r >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.move_window("d")' >/dev/null
 sleep 0.3
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:movefocus l >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.move_focus("l")' >/dev/null
 sleep 0.3
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:toggleoverview >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.toggle_overview()' >/dev/null
 sleep "$OVERVIEW_HOLD_SECONDS"
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:movefocus d >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.move_focus("d")' >/dev/null
 sleep 0.3
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:toggleoverview accept >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.toggle_overview("accept")' >/dev/null
 sleep 0.5
 
 jq -n \
