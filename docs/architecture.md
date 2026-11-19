@@ -8,6 +8,11 @@ hyprscroller?
 
 A Chinese version lives in [`architecture-cn.md`](./architecture-cn.md).
 
+Related decisions:
+
+- Command cleanup tracker: [`planned-cleanups.md`](./planned-cleanups.md)
+- Feature plan: topology neighbor index: [`topology-neighbor-index.md`](./topology-neighbor-index.md)
+
 ## Runtime At A Glance
 
 Most of the project can be understood as one pipeline:
@@ -117,13 +122,15 @@ The actual Hyprland window object still comes from Hyprland. Hyprscroller keeps
 lightweight bookkeeping around it, but the compositor remains the source of
 truth for the real client.
 
-### GridLayout
+### GridLayout (planned removal)
 
-`scrollergrid` is a second tiled algorithm registered by the same plugin. It
-lives under [`src/layout/grid/`](../src/layout/grid/) and shares some command
-entrypoints with `scroller`, but it is not the PaperWM-like lane/stack model
-described above. Read `CanvasLayout` first unless you are specifically working
-on grid mode.
+`scrollergrid` is currently a second tiled algorithm under
+[`src/layout/grid/`](../src/layout/grid/). It is **not** a long-term parallel
+product: the plan is to remove it and simplify scroller routing with a
+**topology neighbor index** on lane/stack instead. See
+[`topology-neighbor-index.md`](./topology-neighbor-index.md) and
+`TODO(remove-scrollergrid)` in [`planned-cleanups.md`](./planned-cleanups.md).
+Treat existing grid code as legacy; do not extend it as a second official layout.
 
 ## Main Flows
 

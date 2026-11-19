@@ -11,11 +11,14 @@ TODO(remove-fit-size-command)
 TODO(remove-focus-lane)
 TODO(remove-create-lane-command)
 TODO(remove-admit-expel-window)
+TODO(remove-scrollergrid)
+TODO(topology-neighbor-index)
 ```
 
 相关决策背景也可对照：
 
 - [`architecture-cn.md`](./architecture-cn.md) / [`architecture.md`](./architecture.md)
+- [`topology-neighbor-index.md`](./topology-neighbor-index.md)（Feature：拓扑邻居索引；先瘦身并删 scrollergrid）
 - README 中的 Lua commands 表（清理后需同步删文档示例）
 
 ---
@@ -246,7 +249,8 @@ TODO(remove-admit-expel-window)
 | `align_window` 公开命令 | 否 | 否（无 `align_window`/`align_stack`） | 无 scroller 侧测试改动 |
 | `cycle_size` 公开命令 | 否 | 否 | 无 scroller 侧测试改动 |
 | `fit_size` 公开命令 | 否 | **有 helper** | 见下 |
-| grid resize/align 模型 | 否（非 Lua） | **有** | 见下 |
+| `scrollergrid` / `GridModel` | **有** [`tests/grid_logic_tests.cpp`](../tests/grid_logic_tests.cpp) | 整模块 | 随 `TODO(remove-scrollergrid)` 删除测试 |
+| grid resize/align 模型 | 否（非 Lua） | **有**（同上） | 随 scrollergrid 删除，不再单独迁移 |
 
 #### 必须处理的测试
 
@@ -279,7 +283,7 @@ TODO(remove-admit-expel-window)
 |---|---|---|
 | [`scripts/repro-overview-accept-lane.sh`](../scripts/repro-overview-accept-lane.sh) | `scroller:createlane` | 改为 `move_focus` / `move_window` 等价路径，或删除该步骤 |
 | [`scripts/repro-layout-persistence.sh`](../scripts/repro-layout-persistence.sh) | `scroller:createlane` | 同上 |
-| [`scripts/repro-grid-real-coverage.sh`](../scripts/repro-grid-real-coverage.sh) | `scroller:fitsize` | 删除 fitsize 步骤，或改成仍保留的布局验证（如 fullscreen / `set_window_size`） |
+| [`scripts/repro-grid-real-coverage.sh`](../scripts/repro-grid-real-coverage.sh) | `scrollergrid` / `fitsize` 等 | 随删除 scrollergrid **整脚本删除或改写为 scroller 场景** |
 
 说明：这些脚本里不少仍是旧 `dispatch scroller:...` 写法；清理时一并迁到 `hl.plugin.scroller.*`，避免 0.57 上假绿/假红。  
 目前未发现 repro 脚本直接调用 `admitwindow` / `expelwindow`；删除时仍应全库再搜一遍。
@@ -296,20 +300,60 @@ TODO(remove-admit-expel-window)
 
 - [ ] `ctest --test-dir ./Debug --output-on-failure` 全绿
 - [ ] `core_logic_tests` 中 fit_size helper 测试已按 helper 去留更新
-- [ ] `grid_logic_tests` 中 resize/align 断言已按新语义更新或删除
-- [ ] 三个 repro 脚本不再调用 `createlane` / `fitsize`（或已改为替代路径）
-- [ ] smoke-test / hyprland-testing / README 不再推荐已删命令（含 admit/expel）
+- [ ] `grid_logic_tests` 已随 scrollergrid 删除（或确认不再构建）
+- [ ] 相关 repro 脚本不再依赖 createlane / fitsize / scrollergrid
+- [ ] smoke-test / hyprland-testing / README 不再推荐已删命令（含 admit/expel / scrollergrid）
+
+---
+
+## 7. `TODO(remove-scrollergrid)`：删除第二种布局算法
+
+### 目标
+
+删除 `scrollergrid`。它不是寻路简化方案，而是平行的格子布局产品；与「只改 move_focus/move_window 表达、保留 lane/stack」的目标不符。
+
+功能计划见 [`topology-neighbor-index.md`](./topology-neighbor-index.md)。
+
+### 删除范围
+
+- `PLUGIN_INIT` 中 `HyprlandAPI::addTiledAlgo(..., "scrollergrid", ...)`
+- [`src/layout/grid/`](../src/layout/grid/)（`GridLayout` / `GridModel` 等）
+- dispatch 里对 `GridLayout` 的并列分支（`workspaceGridLayoutForAction` 等）
+- overview / snapshot / persist 中仅服务 grid 的路径（若有）
+- [`tests/grid_logic_tests.cpp`](../tests/grid_logic_tests.cpp)
+- [`scripts/repro-grid-real-coverage.sh`](../scripts/repro-grid-real-coverage.sh) 及文档中的 scrollergrid 说明
+
+### 建议完成判定
+
+- [ ] 无法再 `layout = scrollergrid` 加载该算法
+- [ ] 仓库无 `ScrollerGrid::` / `src/layout/grid` 生产路径
+- [ ] ctest 不再编译/运行 grid 专用测试
+- [ ] README / architecture / smoke-test 不再把 scrollergrid 写成并存布局
+
+---
+
+## 8. `TODO(topology-neighbor-index)`：用拓扑邻居索引简化寻路
+
+完整指令向功能计划见 [`topology-neighbor-index.md`](./topology-neighbor-index.md)。
+
+摘要：在 **保留 lane/stack** 的前提下，把 `move_focus` / `move_window` 的「下一步去哪」收成只读派生索引 + 纯函数路由；删除 scrollergrid，不引入格子布局。
+
+### 建议完成判定
+
+- [ ] 按 feature 文档 §3–§4 完成实现与验收
+- [ ] `move_focus` 与 `move_window` 共用同一邻居/路由决策出口
+- [ ] 不再依赖 `GridModel` / `scrollergrid`
 
 ---
 
 ## 推荐处理顺序
 
 1. **`remove-focus-lane`** — 无内部生产依赖、无 ctest 引用，可先整条删  
-2. **`remove-admit-expel-window`** — 无 ctest 引用；保留 `Stack::admit_window`；grid admit 已是空壳  
-3. **`remove-align-window`** — 公开路径无 ctest 引用；顺带处理 grid `align_active` 测试  
-4. **`remove-create-lane-command`** — 先改写/删除 grid `expel_window_right`，再删公开 API；更新 createlane repro 脚本  
-5. **`remove-fit-size-command`** — 先删公共命令与 fitsize 脚本/文档；helper 测试视 helper 去留再改  
-6. **`set_window_size` + 删除 `cycle_size`** — 改 grid resize 测试与 smoke-test cyclesize 项；改动面最大，建议单独做
+2. **`remove-admit-expel-window`** — 无 ctest 引用；保留 `Stack::admit_window`  
+3. **`remove-align-window`** / **`remove-create-lane-command`** / **`remove-fit-size-command`** — 继续瘦身公开命令  
+4. **`set_window_size` + 删除 `cycle_size`** — 尺寸语义替换  
+5. **`remove-scrollergrid`** — 删除第二种布局及 grid 测试/脚本（可与命令瘦身并行，但勿再往 grid 加功能）  
+6. **`topology-neighbor-index`** — 在 scroller 上落地邻居索引，简化 `move_focus` / `move_window`
 
 ## 验证建议
 

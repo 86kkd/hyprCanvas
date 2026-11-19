@@ -6,6 +6,11 @@ Hyprland 的事件或快捷键，是如何最终驱动 hyprscroller 移动窗口
 
 英文版见 [`architecture.md`](./architecture.md)。
 
+相关决策：
+
+- 命令清理清单：[`planned-cleanups.md`](./planned-cleanups.md)
+- Feature：拓扑邻居索引：[`topology-neighbor-index.md`](./topology-neighbor-index.md)
+
 ## 运行时一览
 
 整个项目大致可以理解成一条流水线：
@@ -104,12 +109,14 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 真正的 Hyprland 窗口对象仍然来自 Hyprland。Hyprscroller 只做轻量簿记，
 合成器才是真实客户端的权威来源。
 
-### GridLayout
+### GridLayout（计划删除）
 
-`scrollergrid` 是同一插件注册的第二种平铺算法，代码在
+`scrollergrid` 目前仍是同一插件注册的第二种平铺算法，代码在
 [`src/layout/grid/`](../src/layout/grid/)。
-它与 `scroller` 共用部分命令入口，但并不是上面的 PaperWM 式 lane/stack 模型。
-除非你专门在做 grid 模式，否则先读 `CanvasLayout`。
+它**不是**长期并存方案：目标是删除该算法，并在 scroller 的 lane/stack 上用
+**拓扑邻居索引** 简化寻路。见 [`topology-neighbor-index.md`](./topology-neighbor-index.md)
+与 planned-cleanups 中的 `TODO(remove-scrollergrid)`。
+阅读时仍可把它当现状代码，但不要按「第二种正式布局」扩展功能。
 
 ## 主流程
 
