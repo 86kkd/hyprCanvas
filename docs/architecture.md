@@ -3,8 +3,10 @@
 This document is the newcomer-oriented map of the codebase. It is meant to
 answer one question first:
 
-How does a Hyprland event or dispatcher end up moving windows inside
+How does a Hyprland event or keybinding end up moving windows inside
 hyprscroller?
+
+A Chinese version lives in [`architecture-cn.md`](./architecture-cn.md).
 
 ## Runtime At A Glance
 
@@ -13,14 +15,16 @@ Most of the project can be understood as one pipeline:
 1. Hyprland loads the plugin through `PLUGIN_INIT` in
    [`src/plugin/entry.cpp`](../src/plugin/entry.cpp).
 2. `PLUGIN_INIT` registers:
-   - config values
-   - custom dispatchers such as `scroller:movefocus`
-   - `CanvasLayout` as the tiled layout algorithm named `scroller`
+   - config values under `plugin:scroller:*`
+   - Lua commands under `hl.plugin.scroller.*` such as `move_focus`
+   - `CanvasLayout` as the tiled algorithm named `scroller`
+   - `ScrollerGrid::GridLayout` as the tiled algorithm named `scrollergrid`
+   - overview renderer hooks plus focus/deck pointer helpers
 3. Hyprland later calls either:
-   - dispatcher functions in [`src/dispatchers.cpp`](../src/dispatchers.cpp)
+   - Lua functions in [`src/plugin/dispatch/`](../src/plugin/dispatch/)
      when the user presses a keybinding
-   - tiled-algorithm callbacks on `CanvasLayout` when windows are created,
-     removed, moved, or relaid out
+   - tiled-algorithm callbacks on `CanvasLayout` or `GridLayout` when windows
+     are created, removed, moved, or relaid out
 4. `CanvasLayout` routes that request to its current `Lane`.
 5. Each `Lane` routes the operation to one or more `Stack` objects.
 6. `Stack` updates window membership, active selection, and geometry.
@@ -29,7 +33,8 @@ If you only want the shortest reading path through the project, follow files in
 this order:
 
 1. [`src/plugin/entry.cpp`](../src/plugin/entry.cpp)
-2. [`src/dispatchers.cpp`](../src/dispatchers.cpp)
+2. [`src/plugin/dispatch/registration.cpp`](../src/plugin/dispatch/registration.cpp)
+   and [`src/plugin/dispatch/layout_commands.cpp`](../src/plugin/dispatch/layout_commands.cpp)
 3. [`src/layout/canvas/layout.h`](../src/layout/canvas/layout.h)
 4. [`src/layout/canvas/core.cpp`](../src/layout/canvas/core.cpp)
 5. [`src/layout/canvas/focus.cpp`](../src/layout/canvas/focus.cpp)
@@ -37,13 +42,13 @@ this order:
 7. [`src/layout/lane/core.cpp`](../src/layout/lane/core.cpp),
    [`src/layout/lane/actions.cpp`](../src/layout/lane/actions.cpp), and
    [`src/layout/lane/geometry.cpp`](../src/layout/lane/geometry.cpp)
-8. [`src/model/stack_core.cpp`](../src/model/stack_core.cpp),
-   [`src/model/stack_membership.cpp`](../src/model/stack_membership.cpp), and
-   [`src/model/stack_geometry.cpp`](../src/model/stack_geometry.cpp)
+8. [`src/model/stack/core.cpp`](../src/model/stack/core.cpp),
+   [`src/model/stack/membership.cpp`](../src/model/stack/membership.cpp), and
+   [`src/model/stack/geometry.cpp`](../src/model/stack/geometry.cpp)
 
 ## Core Concepts
 
-There are four main runtime objects.
+There are four main runtime objects for the default `scroller` layout.
 
 ### Plugin
 
@@ -52,10 +57,12 @@ The plugin is the Hyprland-facing shell around the project. It lives mostly in
 
 Its job is to:
 
+- initialize logging and layout/canvas repositories
 - register config values
-- register custom dispatchers
-- register `CanvasLayout` as the `scroller` tiled algorithm
-- initialize logging and overview renderer hooks
+- register Lua commands via `dispatchers::addLuaFunctions()`
+- register `CanvasLayout` / `GridLayout` as tiled algorithms
+- initialize overview renderer hooks, focus-pointer sync, and deck-pointer
+  hit testing
 
 It does not contain layout policy itself.
 
@@ -72,7 +79,7 @@ model.
 
 - owning the ordered list of `Lane` objects in one workspace
 - translating Hyprland callbacks into model operations
-- exposing dispatcher-facing commands such as `move_focus` and `move_window`
+- exposing command-facing methods such as `move_focus` and `move_window`
 - coordinating cross-lane and cross-monitor handoff
 - keeping caches and active-lane state synchronized with Hyprland focus
 
@@ -110,19 +117,34 @@ The actual Hyprland window object still comes from Hyprland. Hyprscroller keeps
 lightweight bookkeeping around it, but the compositor remains the source of
 truth for the real client.
 
+### GridLayout
+
+`scrollergrid` is a second tiled algorithm registered by the same plugin. It
+lives under [`src/layout/grid/`](../src/layout/grid/) and shares some command
+entrypoints with `scroller`, but it is not the PaperWM-like lane/stack model
+described above. Read `CanvasLayout` first unless you are specifically working
+on grid mode.
+
 ## Main Flows
 
 ### Startup
 
 Startup begins in [`src/plugin/entry.cpp`](../src/plugin/entry.cpp).
 
-Read `PLUGIN_INIT` first. It does three important things in order:
+Read `PLUGIN_INIT` first. It does these things in order:
 
 1. sets up logging
-2. registers config values and dispatchers
-3. registers `CanvasLayout` as the tiled algorithm for `layout = scroller`
+2. initializes layout and canvas repositories
+3. registers config values
+4. registers Lua commands under `hl.plugin.scroller.*`
+5. registers the `scroller` and `scrollergrid` tiled algorithms
+6. initializes overview renderer hooks plus focus/deck pointer helpers
 
-After that, Hyprland is free to call the plugin through dispatcher invocations
+Config registration happens before tiled-algorithm registration on purpose:
+Hyprland may create layout instances as soon as the algorithms are available,
+and those instances may already need plugin config values.
+
+After that, Hyprland is free to call the plugin through Lua command invocations
 or tiled-layout callbacks.
 
 ### New Tiled Window
@@ -143,11 +165,11 @@ The main implementation lives in
 
 ### Focus Movement
 
-Directional focus starts in a dispatcher:
+Directional focus starts in a Lua command:
 
-1. Hyprland runs `scroller:movefocus`.
-2. [`src/dispatchers.cpp`](../src/dispatchers.cpp) parses the direction and
-   resolves the active `CanvasLayout`.
+1. A keybinding calls `hl.plugin.scroller.move_focus("l")` or similar.
+2. [`src/plugin/dispatch/layout_commands.cpp`](../src/plugin/dispatch/layout_commands.cpp)
+   parses the direction and resolves the active `CanvasLayout`.
 3. `CanvasLayout::move_focus` decides whether the request is:
    - a local move inside the current lane
    - a move to an adjacent lane
@@ -163,8 +185,8 @@ The main implementation lives in
 
 Directional window movement starts similarly:
 
-1. Hyprland runs `scroller:movewindow`.
-2. The dispatcher resolves the active `CanvasLayout`.
+1. A keybinding calls `hl.plugin.scroller.move_window(...)`.
+2. The Lua command resolves the active `CanvasLayout`.
 3. `CanvasLayout::move_window` chooses whether the window stays:
    - in the same stack
    - in the same lane but a different stack
@@ -183,10 +205,10 @@ Overview is a separate read-only navigation layer.
 
 Its logic is split into:
 
-- overview session/model code under [`src/overview`](../src/overview)
+- overview session/model/scene/render code under
+  [`src/overview`](../src/overview)
 - snapshot building inside `CanvasLayout`
-- overview-specific tests in
-  [`tests/overview_logic_tests.cpp`](../tests/overview_logic_tests.cpp)
+- overview-specific tests under [`tests/`](../tests/)
 
 The important thing to remember is that overview does not mutate the real lane
 or stack geometry while it is open. It navigates a logical snapshot.
@@ -197,18 +219,23 @@ or stack geometry while it is open. It navigates a logical snapshot.
 
 Plugin ABI entrypoints and one-time registration.
 
-### `src/dispatchers.cpp`
+### `src/plugin/dispatch`
 
-String argument parsing and routing from Hyprland commands into strongly typed
-`CanvasLayout` methods.
+String/Lua argument parsing and routing from `hl.plugin.scroller.*` into
+strongly typed layout methods.
+
+- `registration.cpp`: bootstrap that calls the two registration groups
+- `layout_commands.cpp`: layout commands such as `move_focus` and `move_window`
+- `overview_mark_commands.cpp`: overview and marks commands
+- `shared.h`: shared helpers for resolving the active workspace/layout
 
 ### `src/layout/canvas`
 
-Workspace-level control plane.
+Workspace-level control plane for `scroller`.
 
 - `core.cpp`: target callbacks, workspace ownership, lane cache, lifecycle
 - `focus.cpp`: focus routing and cross-monitor focus handoff
-- `commands.cpp`: dispatcher-facing mutating commands such as movewindow
+- `commands.cpp`: command-facing mutating operations such as movewindow
 - `dispatch_logic.cpp` and `route_logic.cpp`: pure logic helpers that keep
   decision-heavy code unit-testable
 
@@ -220,13 +247,26 @@ Lane-level behavior.
 - `actions.cpp`: stack/window movement and transfer actions
 - `geometry.cpp`: lane-local geometry work
 
-### `src/model`
+### `src/layout/grid`
 
-Local data structures.
+Optional `scrollergrid` tiled algorithm.
 
-- `stack_core.cpp`: stack construction and control flow helpers
-- `stack_membership.cpp`: add/remove/restore/extract window membership logic
-- `stack_geometry.cpp`: sizing, fitting, and placement behavior
+### `src/model/stack`
+
+Local stack data structures.
+
+- `core.cpp`: stack construction and control flow helpers
+- `membership.cpp`: add/remove/restore/extract window membership logic
+- `geometry.cpp`: sizing, fitting, and placement behavior
+
+### `src/overview`
+
+Overview session, model, navigation, scene, and render hooks.
+
+### `src/core`
+
+Shared geometry helpers, snapshots, direction parsing, marks storage, and
+Hyprland runtime adapters.
 
 ## Tests
 
@@ -237,8 +277,16 @@ worth keeping stable across refactors.
   covers shared helpers and low-level logic.
 - [`tests/layout_logic_tests.cpp`](../tests/layout_logic_tests.cpp)
   covers layout routing and handoff decision helpers.
-- [`tests/overview_logic_tests.cpp`](../tests/overview_logic_tests.cpp)
-  covers the overview model and selection logic.
+- [`tests/layout_snapshot_tests.cpp`](../tests/layout_snapshot_tests.cpp)
+  covers layout snapshot behavior.
+- [`tests/grid_logic_tests.cpp`](../tests/grid_logic_tests.cpp)
+  covers grid-layout helpers.
+- overview coverage is split across
+  [`tests/overview_logic_tests.cpp`](../tests/overview_logic_tests.cpp),
+  [`tests/overview_model_tests.cpp`](../tests/overview_model_tests.cpp),
+  [`tests/overview_scene_tests.cpp`](../tests/overview_scene_tests.cpp),
+  [`tests/overview_session_logic_tests.cpp`](../tests/overview_session_logic_tests.cpp),
+  and [`tests/overview_session_effects_tests.cpp`](../tests/overview_session_effects_tests.cpp).
 
 When you change real stateful behavior in `CanvasLayout`, `Lane`, or `Stack`,
 the automated tests are necessary but not sufficient. Pair them with the manual
@@ -253,15 +301,22 @@ If you are new to the project, use this order:
 
 1. Read this file once without opening code.
 2. Open [`src/plugin/entry.cpp`](../src/plugin/entry.cpp) and find `PLUGIN_INIT`.
-3. Open [`src/dispatchers.cpp`](../src/dispatchers.cpp) and trace one command,
-   such as `dispatch_movefocus`.
+3. Open [`src/plugin/dispatch/layout_commands.cpp`](../src/plugin/dispatch/layout_commands.cpp)
+   and trace one command, such as `dispatch_movefocus` / `lua_move_focus`.
 4. Open [`src/layout/canvas/layout.h`](../src/layout/canvas/layout.h) and read
    the public methods on `CanvasLayout`.
 5. Trace one lifecycle end to end:
    - new window: `newTarget -> onWindowCreatedTiling`
-   - focus: `dispatch_movefocus -> move_focus`
-   - move window: `dispatch_movewindow -> move_window`
+   - focus: `hl.plugin.scroller.move_focus -> dispatch_movefocus -> move_focus`
+   - move window: `hl.plugin.scroller.move_window -> dispatch_movewindow -> move_window`
 6. Only then dive into lane and stack code.
 
 That order keeps the mental model top-down. If you start at `Stack` first, the
 local code will make sense, but the overall runtime picture usually will not.
+
+## Hyprland 0.57 Note
+
+Hyprland 0.57 no longer registers plugin dispatchers. Keybindings must call
+Lua functions under `hl.plugin.scroller`, not the older `scroller:movefocus`
+dispatcher style. Plugin config values such as `plugin:scroller:focus_wrap`
+are still registered separately through `addConfigValueV2`.
