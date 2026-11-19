@@ -1,7 +1,6 @@
 #pragma once
 
 void run_core_logic_tests();
-void run_grid_logic_tests();
 void run_layout_snapshot_tests();
 void run_layout_logic_tests();
 void run_overview_logic_tests();

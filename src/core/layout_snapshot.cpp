@@ -131,18 +131,6 @@ std::string serialize_repository(const RepositorySnapshot &snapshots) {
                 }
             }
         }
-        out << "GRID " << (canvas.grid.enabled ? 1 : 0) << ' '
-            << canvas.grid.activeItemIndex << ' '
-            << canvas.grid.viewportColumn << ' '
-            << canvas.grid.viewportRow << ' '
-            << canvas.grid.items.size() << ' '
-            << canvas.grid.mode << ' '
-            << canvas.grid.fullscreenKey << '\n';
-        for (const auto &item : canvas.grid.items) {
-            out << "GRIDITEM " << item.key << ' '
-                << item.column << ' ' << item.row << ' '
-                << item.columnSpan << ' ' << item.rowSpan << '\n';
-        }
     }
 
     return out.str();
@@ -266,43 +254,13 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
             continue;
         }
 
-        if (tokens[0] == "GRID") {
+        // Older files may still carry state from the removed scrollergrid
+        // layout. Accept those lines so lane state from the same file restores.
+        if (tokens[0] == "GRID" || tokens[0] == "GRIDITEM") {
             if (!currentCanvas || formatVersion < kGridFormatVersion)
                 return std::nullopt;
-
-            size_t itemCount = 0;
-            if ((tokens.size() != 6 && tokens.size() != 7 && tokens.size() != 8) ||
-                !parse_bool_token(tokens[1], currentCanvas->grid.enabled) ||
-                !parse_token(tokens[2], currentCanvas->grid.activeItemIndex) ||
-                !parse_token(tokens[3], currentCanvas->grid.viewportColumn) ||
-                !parse_token(tokens[4], currentCanvas->grid.viewportRow) ||
-                !parse_size_token(tokens[5], itemCount))
-                return std::nullopt;
-            if (tokens.size() == 7 && !parse_token(tokens[6], currentCanvas->grid.mode))
-                return std::nullopt;
-            if (tokens.size() == 8 &&
-                (!parse_token(tokens[6], currentCanvas->grid.mode) ||
-                 !parse_key_token(tokens[7], currentCanvas->grid.fullscreenKey)))
-                return std::nullopt;
-            currentCanvas->grid.items.reserve(itemCount);
             currentLane = nullptr;
             currentStack = nullptr;
-            continue;
-        }
-
-        if (tokens[0] == "GRIDITEM") {
-            if (!currentCanvas || formatVersion < kGridFormatVersion)
-                return std::nullopt;
-
-            GridItemSnapshot item;
-            if (tokens.size() != 6 ||
-                !parse_key_token(tokens[1], item.key) ||
-                !parse_token(tokens[2], item.column) ||
-                !parse_token(tokens[3], item.row) ||
-                !parse_token(tokens[4], item.columnSpan) ||
-                !parse_token(tokens[5], item.rowSpan))
-                return std::nullopt;
-            currentCanvas->grid.items.push_back(item);
             continue;
         }
 

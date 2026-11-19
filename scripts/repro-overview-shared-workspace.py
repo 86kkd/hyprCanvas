@@ -276,8 +276,8 @@ with (run / 'hyprland.log').open('w') as log:
             check(json.loads(ctl('activewindow', '-j')).get('monitor') == source['id'],
                   'reverse move subsequent keyboard action stays on destination')
         # Exercise scale changes on live windows, using logical rather than
-        # framebuffer bounds for containment. Test both layout implementations.
-        for layout, canvas in [('scroller', '8'), ('scrollergrid', '9')]:
+        # framebuffer bounds for containment.
+        for layout, canvas in [('scroller', '8')]:
             lua('hl.plugin.scroller.switch_workspace(' + json.dumps(canvas) + ')')
             lua('hl.config({general={layout=' + json.dumps(layout) + '}})')
             dispatch('hl.dsp.focus({monitor="TEST-2"})')

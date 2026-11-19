@@ -29,15 +29,8 @@ void dispatch_cyclesize(std::string arg) {
         return;
     }
 
-    const auto action = workspaceLayoutForAction();
-    if (action) {
+    if (const auto action = workspaceLayoutForAction())
         action.layout->cycle_window_size(action.workspace, step);
-        return;
-    }
-
-    const auto gridAction = workspaceGridLayoutForAction();
-    if (gridAction)
-        gridAction.layout->cycle_window_size(gridAction.workspace, step);
 }
 
 // movefocus <dir>: move focus inside scroller layout, with optional monitor
@@ -62,13 +55,6 @@ void dispatch_movefocus(std::string arg) {
     if (action) {
         spdlog::info("dispatch_movefocus: arg='{}' workspace={}", arg, action.workspace);
         action.layout->move_focus(action.workspace, *direction);
-        return;
-    }
-
-    const auto gridAction = workspaceGridLayoutForAction();
-    if (gridAction) {
-        spdlog::info("dispatch_movefocus: grid arg='{}' workspace={}", arg, gridAction.workspace);
-        gridAction.layout->move_focus(gridAction.workspace, *direction);
         return;
     }
 
@@ -138,12 +124,6 @@ void dispatch_movewindow(std::string arg) {
         return;
     }
 
-    const auto gridAction = workspaceGridLayoutForAction();
-    if (gridAction) {
-        gridAction.layout->move_window(gridAction.workspace, *direction);
-        return;
-    }
-
     spdlog::warn("dispatch_movewindow: no layout for arg='{}'", arg);
 }
 
@@ -158,15 +138,8 @@ void dispatch_alignwindow(std::string arg) {
     if (!direction)
         return;
 
-    const auto action = workspaceLayoutForAction();
-    if (action) {
+    if (const auto action = workspaceLayoutForAction())
         action.layout->align_window(action.workspace, *direction);
-        return;
-    }
-
-    const auto gridAction = workspaceGridLayoutForAction();
-    if (gridAction)
-        gridAction.layout->align_window(gridAction.workspace, *direction);
 }
 
 // admitwindow: split active stack and move focused window to the previous stack.
@@ -177,15 +150,8 @@ void dispatch_alignwindow(std::string arg) {
 // Stack::admit_window as an internal membership helper used by move_window.
 void dispatch_admitwindow(std::string arg) {
     (void)arg;
-    const auto action = workspaceLayoutForAction();
-    if (action) {
+    if (const auto action = workspaceLayoutForAction())
         action.layout->admit_window_left(action.workspace);
-        return;
-    }
-
-    const auto gridAction = workspaceGridLayoutForAction();
-    if (gridAction)
-        gridAction.layout->admit_window_left(gridAction.workspace);
 }
 
 // expelwindow: remove focused window from current stack into a new one right
@@ -195,29 +161,15 @@ void dispatch_admitwindow(std::string arg) {
 // split-to-new-stack is already handled by move_window along the stack axis.
 void dispatch_expelwindow(std::string arg) {
     (void)arg;
-    const auto action = workspaceLayoutForAction();
-    if (action) {
+    if (const auto action = workspaceLayoutForAction())
         action.layout->expel_window_right(action.workspace);
-        return;
-    }
-
-    const auto gridAction = workspaceGridLayoutForAction();
-    if (gridAction)
-        gridAction.layout->expel_window_right(gridAction.workspace);
 }
 
 // setmode row|col: switch between row mode and column mode.
 void dispatch_setmode(std::string arg) {
     withParsedModeArgOrWarn("dispatch_setmode", arg, [&](Mode mode) {
-        const auto action = workspaceLayoutForAction();
-        if (action) {
+        if (const auto action = workspaceLayoutForAction())
             action.layout->set_mode(action.workspace, mode);
-            return;
-        }
-
-        const auto gridAction = workspaceGridLayoutForAction();
-        if (gridAction)
-            gridAction.layout->set_mode(gridAction.workspace, mode);
     });
 }
 
@@ -236,29 +188,15 @@ void dispatch_fitsize(std::string arg) {
     if (!fitSize)
         return;
 
-    const auto action = workspaceLayoutForAction();
-    if (action) {
+    if (const auto action = workspaceLayoutForAction())
         action.layout->fit_size(action.workspace, *fitSize);
-        return;
-    }
-
-    const auto gridAction = workspaceGridLayoutForAction();
-    if (gridAction)
-        gridAction.layout->fit_size(gridAction.workspace, *fitSize);
 }
 
 // togglefullscreen: expand the active scroller window to the monitor bounds.
 void dispatch_togglefullscreen(std::string arg) {
     (void)arg;
-    const auto action = workspaceLayoutForAction();
-    if (action) {
+    if (const auto action = workspaceLayoutForAction())
         action.layout->toggle_fullscreen(action.workspace);
-        return;
-    }
-
-    const auto gridAction = workspaceGridLayoutForAction();
-    if (gridAction)
-        gridAction.layout->toggle_fullscreen(gridAction.workspace);
 }
 
 // createlane <dir>: move the active stack into a new adjacent lane.
@@ -266,22 +204,14 @@ void dispatch_togglefullscreen(std::string arg) {
 // TODO(remove-create-lane-command): Delete this public command. It is not used
 // by automated tests; only a manual hyprland-testing.md example references it.
 // Daily lane creation is already covered by move_focus (ephemeral empty lane)
-// and move_window. Before deleting GridLayout::create_lane, rewrite
-// GridLayout::expel_window_right so it no longer calls through this API.
+// and move_window.
 void dispatch_createlane(std::string arg) {
     const auto direction = parsedDirectionArg(arg);
     if (!direction)
         return;
 
-    const auto action = workspaceLayoutForAction();
-    if (action) {
+    if (const auto action = workspaceLayoutForAction())
         action.layout->create_lane(action.workspace, *direction);
-        return;
-    }
-
-    const auto gridAction = workspaceGridLayoutForAction();
-    if (gridAction)
-        gridAction.layout->create_lane(gridAction.workspace, *direction);
 }
 
 // focuslane <dir>: switch the active lane inside the current canvas.
@@ -294,15 +224,8 @@ void dispatch_focuslane(std::string arg) {
     if (!direction)
         return;
 
-    const auto action = workspaceLayoutForAction();
-    if (action) {
+    if (const auto action = workspaceLayoutForAction())
         action.layout->focus_lane(action.workspace, *direction);
-        return;
-    }
-
-    const auto gridAction = workspaceGridLayoutForAction();
-    if (gridAction)
-        gridAction.layout->focus_lane(gridAction.workspace, *direction);
 }
 
 } // namespace

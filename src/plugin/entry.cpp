@@ -40,7 +40,6 @@
 #include "layout/canvas/layout.h"
 #include "layout/canvas/layout_repository.h"
 #include "layout/canvas/canvas_workspace_repository.h"
-#include "layout/grid/layout.h"
 #include "core/focus_pointer_sync.h"
 #include "model/stack/pointer.h"
 #include "overview/render/render.h"
@@ -154,17 +153,7 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
         "scroller",
         &typeid(CanvasLayout),
         []() -> UP<Layout::ITiledAlgorithm> { return makeUnique<CanvasLayout>(); });
-    // TODO(remove-scrollergrid): Delete this second tiled algorithm. Routing
-    // simplification keeps lane/stack and uses a topology neighbor index; it
-    // does not keep scrollergrid as a parallel layout product. See
-    // docs/topology-neighbor-index.md and docs/planned-work.md.
-    spdlog::info("pluginInit: registering tiled algorithm scrollergrid");
-    HyprlandAPI::addTiledAlgo(
-        PHANDLE,
-        "scrollergrid",
-        &typeid(ScrollerGrid::GridLayout),
-        []() -> UP<Layout::ITiledAlgorithm> { return makeUnique<ScrollerGrid::GridLayout>(); });
-    spdlog::info("pluginInit: tiled algorithms registered");
+    spdlog::info("pluginInit: tiled algorithm registered");
 
     spdlog::info("pluginInit: initializing overview renderer hooks");
     Overview::initializeRendererHooks(PHANDLE);
@@ -186,15 +175,6 @@ APICALL EXPORT void PLUGIN_EXIT() {
             continue;
         if (auto *layout = CanvasLayoutInternal::get_canvas_for_workspace(ScrollerCore::HyprlandRuntime::workspaceId(workspace)))
             layout->persistCurrentSnapshot();
-        if (workspace->space()) {
-            if (const auto algorithm = workspace->space()->algorithm()) {
-                const auto& tiled = algorithm->tiledAlgo();
-                if (!tiled)
-                    continue;
-                if (auto *grid = dynamic_cast<ScrollerGrid::GridLayout*>(tiled.get()))
-                    grid->persistCurrentSnapshot();
-            }
-        }
     }
     CanvasLayoutState::repository().flush();
     CanvasLayoutState::canvasRepository().flush();

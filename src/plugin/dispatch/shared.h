@@ -23,7 +23,6 @@
 #include "core/hyprland_runtime.h"
 #include "layout/canvas/internal.h"
 #include "layout/canvas/layout.h"
-#include "layout/grid/layout.h"
 #include "overview/session/session.h"
 
 extern HANDLE PHANDLE;
@@ -33,15 +32,6 @@ namespace dispatchers::detail {
 struct WorkspaceActionLayout {
     CanvasLayout* layout = nullptr;
     int           workspace = -1;
-
-    explicit operator bool() const {
-        return layout != nullptr && workspace != -1;
-    }
-};
-
-struct WorkspaceActionGridLayout {
-    ScrollerGrid::GridLayout* layout = nullptr;
-    int                       workspace = -1;
 
     explicit operator bool() const {
         return layout != nullptr && workspace != -1;
@@ -70,22 +60,6 @@ inline CanvasLayout* getCanvasForWorkspace(const int workspaceId) {
         return nullptr;
 
     return dynamic_cast<CanvasLayout*>(tiled.get());
-}
-
-inline ScrollerGrid::GridLayout* getGridForWorkspace(const int workspaceId) {
-    const auto workspace = ScrollerCore::HyprlandRuntime::workspaceById(workspaceId);
-    if (!workspace || !workspace->space())
-        return nullptr;
-
-    const auto algorithm = workspace->space()->algorithm();
-    if (!algorithm)
-        return nullptr;
-
-    const auto& tiled = algorithm->tiledAlgo();
-    if (!tiled)
-        return nullptr;
-
-    return dynamic_cast<ScrollerGrid::GridLayout*>(tiled.get());
 }
 
 inline PHLWORKSPACE getWorkspaceForAction(PHLMONITOR monitor) {
@@ -160,23 +134,9 @@ inline CanvasLayout* layoutForAction(int* workspace) {
     return layout;
 }
 
-inline ScrollerGrid::GridLayout* gridLayoutForAction(int* workspace) {
-    const auto selectedWorkspace = workspaceForActionContext(workspace);
-    if (!selectedWorkspace)
-        return nullptr;
-
-    return getGridForWorkspace(ScrollerCore::HyprlandRuntime::workspaceId(selectedWorkspace));
-}
-
 inline WorkspaceActionLayout workspaceLayoutForAction() {
     WorkspaceActionLayout action;
     action.layout = layoutForAction(&action.workspace);
-    return action;
-}
-
-inline WorkspaceActionGridLayout workspaceGridLayoutForAction() {
-    WorkspaceActionGridLayout action;
-    action.layout = gridLayoutForAction(&action.workspace);
     return action;
 }
 

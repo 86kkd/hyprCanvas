@@ -327,10 +327,13 @@ TODO(canvas-workspace-model)
 
 ### 建议完成判定
 
-- [ ] 无法再 `layout = scrollergrid` 加载该算法
-- [ ] 仓库无 `ScrollerGrid::` / `src/layout/grid` 生产路径
-- [ ] ctest 不再编译/运行 grid 专用测试
-- [ ] README / architecture / smoke-test 不再把 scrollergrid 写成并存布局
+- [x] 无法再 `layout = scrollergrid` 加载该算法
+- [x] 仓库无 `ScrollerGrid::` / `src/layout/grid` 生产路径
+- [x] ctest 不再编译/运行 grid 专用测试
+- [x] README / architecture / smoke-test 不再把 scrollergrid 写成并存布局
+
+> 已完成：旧快照文件中的 `GRID` / `GRIDITEM` 行仍可解析但会被忽略，lane 状态照常恢复；
+> `repro-grid-*.sh` 三个脚本已删除。
 
 ---
 

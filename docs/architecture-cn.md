@@ -20,11 +20,10 @@ Hyprland 的事件或快捷键，是如何最终驱动 hyprscroller 移动窗口
    - `plugin:scroller:*` 配置项
    - `hl.plugin.scroller.*` Lua 命令（例如 `move_focus`）
    - 名为 `scroller` 的平铺布局算法 `CanvasLayout`
-   - 名为 `scrollergrid` 的平铺布局算法 `ScrollerGrid::GridLayout`
    - overview 渲染钩子，以及焦点/卡片指针辅助逻辑
 3. 之后 Hyprland 会调用其中一类入口：
    - 用户按下快捷键时，走 [`src/plugin/dispatch/`](../src/plugin/dispatch/) 中的 Lua 命令
-   - 窗口创建、移除、移动或重新布局时，走 `CanvasLayout` / `GridLayout` 的平铺算法回调
+   - 窗口创建、移除、移动或重新布局时，走 `CanvasLayout` 的平铺算法回调
 4. `CanvasLayout` 把请求路由到当前的 `Lane`。
 5. 每个 `Lane` 再把操作路由到一个或多个 `Stack`。
 6. `Stack` 更新窗口归属、当前选中项与几何布局。
@@ -59,7 +58,7 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 - 初始化日志，以及 layout / canvas 仓库
 - 注册配置项
 - 通过 `dispatchers::addLuaFunctions()` 注册 Lua 命令
-- 注册 `CanvasLayout` / `GridLayout` 为平铺算法
+- 注册 `CanvasLayout` 为 `scroller` 平铺算法
 - 初始化 overview 渲染钩子、焦点指针同步，以及卡片指针命中测试
 
 它本身不包含布局策略。
@@ -109,14 +108,8 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 真正的 Hyprland 窗口对象仍然来自 Hyprland。Hyprscroller 只做轻量簿记，
 合成器才是真实客户端的权威来源。
 
-### GridLayout（计划删除）
-
-`scrollergrid` 目前仍是同一插件注册的第二种平铺算法，代码在
-[`src/layout/grid/`](../src/layout/grid/)。
-它**不是**长期并存方案：目标是删除该算法，并在 scroller 的 lane/stack 上用
-**拓扑邻居索引** 简化寻路。见 [`topology-neighbor-index.md`](./topology-neighbor-index.md)
-与 [`planned-work.md`](./planned-work.md) 中的 `TODO(remove-scrollergrid)`。
-阅读时仍可把它当现状代码，但不要按「第二种正式布局」扩展功能。
+插件只注册 `scroller` 一种平铺算法。原先的 `scrollergrid` 格子布局已删除；
+方向寻路仍建立在 lane/stack 上（见 [`topology-neighbor-index.md`](./topology-neighbor-index.md)）。
 
 ## 主流程
 
@@ -130,7 +123,7 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 2. 初始化 layout / canvas 仓库
 3. 注册配置项
 4. 注册 `hl.plugin.scroller.*` Lua 命令
-5. 注册 `scroller` 与 `scrollergrid` 平铺算法
+5. 注册 `scroller` 平铺算法
 6. 初始化 overview 渲染钩子，以及焦点 / 卡片指针辅助逻辑
 
 配置必须先于平铺算法注册。原因是：算法一旦挂上，Hyprland 就可能立刻创建布局对象，
@@ -231,10 +224,6 @@ Lane 级行为。
 - `actions.cpp`：stack / 窗口移动与转移动作
 - `geometry.cpp`：lane 本地几何计算
 
-### `src/layout/grid`
-
-可选的 `scrollergrid` 平铺算法。
-
 ### `src/model/stack`
 
 本地 stack 数据结构。
@@ -261,8 +250,6 @@ Overview 的 session、model、navigation、scene 与 render 钩子。
   覆盖布局路由与交接决策辅助。
 - [`tests/layout_snapshot_tests.cpp`](../tests/layout_snapshot_tests.cpp)
   覆盖布局快照行为。
-- [`tests/grid_logic_tests.cpp`](../tests/grid_logic_tests.cpp)
-  覆盖 grid 布局辅助。
 - overview 相关测试拆在
   [`tests/overview_logic_tests.cpp`](../tests/overview_logic_tests.cpp)、
   [`tests/overview_model_tests.cpp`](../tests/overview_model_tests.cpp)、

@@ -23,12 +23,11 @@ Most of the project can be understood as one pipeline:
    - config values under `plugin:scroller:*`
    - Lua commands under `hl.plugin.scroller.*` such as `move_focus`
    - `CanvasLayout` as the tiled algorithm named `scroller`
-   - `ScrollerGrid::GridLayout` as the tiled algorithm named `scrollergrid`
    - overview renderer hooks plus focus/deck pointer helpers
 3. Hyprland later calls either:
    - Lua functions in [`src/plugin/dispatch/`](../src/plugin/dispatch/)
      when the user presses a keybinding
-   - tiled-algorithm callbacks on `CanvasLayout` or `GridLayout` when windows
+   - tiled-algorithm callbacks on `CanvasLayout` when windows
      are created, removed, moved, or relaid out
 4. `CanvasLayout` routes that request to its current `Lane`.
 5. Each `Lane` routes the operation to one or more `Stack` objects.
@@ -65,7 +64,7 @@ Its job is to:
 - initialize logging and layout/canvas repositories
 - register config values
 - register Lua commands via `dispatchers::addLuaFunctions()`
-- register `CanvasLayout` / `GridLayout` as tiled algorithms
+- register `CanvasLayout` as the `scroller` tiled algorithm
 - initialize overview renderer hooks, focus-pointer sync, and deck-pointer
   hit testing
 
@@ -122,15 +121,9 @@ The actual Hyprland window object still comes from Hyprland. Hyprscroller keeps
 lightweight bookkeeping around it, but the compositor remains the source of
 truth for the real client.
 
-### GridLayout (planned removal)
-
-`scrollergrid` is currently a second tiled algorithm under
-[`src/layout/grid/`](../src/layout/grid/). It is **not** a long-term parallel
-product: the plan is to remove it and simplify scroller routing with a
-**topology neighbor index** on lane/stack instead. See
-[`topology-neighbor-index.md`](./topology-neighbor-index.md) and
-`TODO(remove-scrollergrid)` in [`planned-work.md`](./planned-work.md).
-Treat existing grid code as legacy; do not extend it as a second official layout.
+`scroller` is the only tiled algorithm this plugin registers. The former
+`scrollergrid` cell layout was removed; directional routing stays on
+lane/stack (see [`topology-neighbor-index.md`](./topology-neighbor-index.md)).
 
 ## Main Flows
 
@@ -144,7 +137,7 @@ Read `PLUGIN_INIT` first. It does these things in order:
 2. initializes layout and canvas repositories
 3. registers config values
 4. registers Lua commands under `hl.plugin.scroller.*`
-5. registers the `scroller` and `scrollergrid` tiled algorithms
+5. registers the `scroller` tiled algorithm
 6. initializes overview renderer hooks plus focus/deck pointer helpers
 
 Config registration happens before tiled-algorithm registration on purpose:
@@ -254,10 +247,6 @@ Lane-level behavior.
 - `actions.cpp`: stack/window movement and transfer actions
 - `geometry.cpp`: lane-local geometry work
 
-### `src/layout/grid`
-
-Optional `scrollergrid` tiled algorithm.
-
 ### `src/model/stack`
 
 Local stack data structures.
@@ -286,8 +275,6 @@ worth keeping stable across refactors.
   covers layout routing and handoff decision helpers.
 - [`tests/layout_snapshot_tests.cpp`](../tests/layout_snapshot_tests.cpp)
   covers layout snapshot behavior.
-- [`tests/grid_logic_tests.cpp`](../tests/grid_logic_tests.cpp)
-  covers grid-layout helpers.
 - overview coverage is split across
   [`tests/overview_logic_tests.cpp`](../tests/overview_logic_tests.cpp),
   [`tests/overview_model_tests.cpp`](../tests/overview_model_tests.cpp),

@@ -98,10 +98,6 @@ add_library(hyprscroller SHARED
             src/layout/canvas/focus.cpp
             src/layout/canvas/commands.cpp
             src/layout/canvas/internal.h
-            src/layout/grid/grid.h
-            src/layout/grid/grid.cpp
-            src/layout/grid/layout.h
-            src/layout/grid/layout.cpp
             src/layout/lane/core.cpp
             src/layout/lane/actions.cpp
             src/layout/lane/geometry.cpp)
@@ -133,7 +129,6 @@ if(BUILD_TESTING)
     add_executable(hyprscroller_logic_tests
                    tests/test_main.cpp
                    tests/core_logic_tests.cpp
-                   tests/grid_logic_tests.cpp
                    tests/layout_snapshot_tests.cpp
                    tests/layout_logic_tests.cpp
                    tests/overview_logic_tests.cpp
@@ -148,7 +143,6 @@ if(BUILD_TESTING)
                    src/core/workarea_pager.cpp
                    src/core/monitor_geometry.cpp
                    src/core/layout_profile.cpp
-                   src/layout/grid/grid.cpp
                    src/overview/navigation/logic.cpp
                    src/overview/scene/orientation.cpp
                    src/overview/model/workspace_grid.cpp

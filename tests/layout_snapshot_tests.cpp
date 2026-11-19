@@ -59,14 +59,6 @@ void test_snapshot_round_trip() {
 
     canvas.lanes.push_back(firstLane);
     canvas.lanes.push_back(secondLane);
-    canvas.grid.enabled = true;
-    canvas.grid.activeItemIndex = 1;
-    canvas.grid.viewportColumn = 3;
-    canvas.grid.viewportRow = -2;
-    canvas.grid.mode = static_cast<int>(Mode::Column);
-    canvas.grid.fullscreenKey = 0x55;
-    canvas.grid.items.push_back({.key = 0x44, .column = 1, .row = 2, .columnSpan = 1, .rowSpan = 1});
-    canvas.grid.items.push_back({.key = 0x55, .column = 3, .row = 2, .columnSpan = 2, .rowSpan = 1});
     repository.emplace(canvas.workspaceId, canvas);
 
     const auto serialized = serialize_repository(repository);
@@ -93,15 +85,6 @@ void test_snapshot_round_trip() {
     expect_eq(restored.lanes[0].stacks[0].activeWindowKey, static_cast<uintptr_t>(0x22), "layout snapshot keeps active window key");
     expect_eq(restored.lanes[0].stacks[0].windows[1].heightMode, 5, "layout snapshot keeps window height mode");
     expect_box_eq(restored.lanes[1].stacks[0].geom, {100.0, 120.0, 800.0, 900.0}, "layout snapshot keeps stack geom");
-    expect_true(restored.grid.enabled, "layout snapshot keeps grid enabled flag");
-    expect_eq(restored.grid.activeItemIndex, 1, "layout snapshot keeps grid active item");
-    expect_eq(restored.grid.viewportColumn, 3, "layout snapshot keeps grid viewport column");
-    expect_eq(restored.grid.viewportRow, -2, "layout snapshot keeps grid viewport row");
-    expect_eq(restored.grid.mode, static_cast<int>(Mode::Column), "layout snapshot keeps grid mode");
-    expect_eq(restored.grid.fullscreenKey, static_cast<uintptr_t>(0x55), "layout snapshot keeps grid fullscreen key");
-    expect_eq(restored.grid.items.size(), static_cast<size_t>(2), "layout snapshot keeps grid item count");
-    expect_eq(restored.grid.items[1].key, static_cast<uintptr_t>(0x55), "layout snapshot keeps grid item key");
-    expect_eq(restored.grid.items[1].columnSpan, 2, "layout snapshot keeps grid item span");
 }
 
 void test_snapshot_accepts_legacy_lane_format() {
@@ -121,62 +104,40 @@ void test_snapshot_accepts_legacy_lane_format() {
     if (it == parsed->end())
         return;
 
-    expect_true(!it->second.grid.enabled, "legacy layout snapshot leaves grid disabled");
+    expect_eq(it->second.lanes.size(), static_cast<size_t>(1), "legacy layout snapshot keeps lanes");
     expect_eq(it->second.version, ScrollerSnapshot::kLegacyFormatVersion, "legacy snapshot keeps source format version");
 }
 
-void test_snapshot_accepts_v2_grid_without_mode() {
-    const std::string v2 =
-        "VERSION 2\n"
-        "WORKSPACE 4 0 0\n"
-        "GRID 1 0 2 -1 1\n"
-        "GRIDITEM 11 2 0 1 1\n";
-    const auto parsed = ScrollerSnapshot::deserialize_repository(v2);
-    expect_true(parsed.has_value(), "layout snapshot accepts v2 grid without mode field");
-    if (!parsed)
-        return;
-
-    const auto it = parsed->find(4);
-    expect_true(it != parsed->end(), "v2 grid snapshot keeps workspace");
-    if (it == parsed->end())
-        return;
-
-    expect_true(it->second.grid.enabled, "v2 grid snapshot keeps grid enabled");
-    expect_eq(it->second.version, ScrollerSnapshot::kGridFormatVersion, "v2 snapshot keeps source format version");
-    expect_eq(it->second.grid.mode, -1, "v2 grid snapshot defaults missing mode");
-    expect_eq(it->second.grid.fullscreenKey, static_cast<uintptr_t>(0), "v2 grid snapshot defaults missing fullscreen key");
-}
-
-void test_snapshot_accepts_v3_grid_without_fullscreen_key() {
+void test_snapshot_ignores_removed_grid_state() {
     const std::string v3 =
         "VERSION 3\n"
-        "WORKSPACE 4 0 0\n"
+        "WORKSPACE 4 0 1\n"
+        "LANE 0 0 0 0 1\n"
+        "STACK 1 0 0 0 10 20 300 400 1 2 3 4 11 1\n"
+        "WINDOW 11 3 20 300 20 300\n"
         "GRID 1 0 2 -1 1 0\n"
         "GRIDITEM 11 2 0 1 1\n";
     const auto parsed = ScrollerSnapshot::deserialize_repository(v3);
-    expect_true(parsed.has_value(), "layout snapshot accepts v3 grid without fullscreen key");
+    expect_true(parsed.has_value(), "layout snapshot accepts files written with scrollergrid state");
     if (!parsed)
         return;
 
     const auto it = parsed->find(4);
-    expect_true(it != parsed->end(), "v3 grid snapshot keeps workspace");
+    expect_true(it != parsed->end(), "grid-era snapshot keeps workspace");
     if (it == parsed->end())
         return;
 
-    expect_true(it->second.grid.enabled, "v3 grid snapshot keeps grid enabled");
-    expect_eq(it->second.grid.mode, static_cast<int>(Mode::Row), "v3 grid snapshot keeps mode");
-    expect_eq(it->second.grid.fullscreenKey, static_cast<uintptr_t>(0), "v3 grid snapshot defaults missing fullscreen key");
+    expect_eq(it->second.lanes.size(), static_cast<size_t>(1), "grid-era snapshot keeps lane state");
+    expect_eq(it->second.lanes[0].stacks.size(), static_cast<size_t>(1), "grid lines do not truncate lane stacks");
+    expect_true(ScrollerSnapshot::serialize_repository(*parsed).find("GRID") == std::string::npos,
+                "serialized snapshot no longer writes grid state");
 }
 
 void test_snapshot_preserves_mixed_window_key_versions() {
     const std::string mixed =
         "VERSION 5\n"
         "WORKSPACE 1 0 0 4\n"
-        "GRID 1 0 0 0 1 0 123\n"
-        "GRIDITEM 123 0 0 1 1\n"
-        "WORKSPACE 2 0 0 5\n"
-        "GRID 1 0 0 0 1 0 456\n"
-        "GRIDITEM 456 0 0 1 1\n";
+        "WORKSPACE 2 0 0 5\n";
     const auto parsed = ScrollerSnapshot::deserialize_repository(mixed);
     expect_true(parsed.has_value(), "layout snapshot accepts mixed key versions during migration");
     if (!parsed)
@@ -268,8 +229,7 @@ void test_canvas_workspace_snapshot_rejects_missing_active_line() {
 void run_layout_snapshot_tests() {
     test_snapshot_round_trip();
     test_snapshot_accepts_legacy_lane_format();
-    test_snapshot_accepts_v2_grid_without_mode();
-    test_snapshot_accepts_v3_grid_without_fullscreen_key();
+    test_snapshot_ignores_removed_grid_state();
     test_snapshot_preserves_mixed_window_key_versions();
     test_snapshot_rejects_invalid_version();
     test_snapshot_rejects_malformed_stack_line();

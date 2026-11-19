@@ -247,7 +247,7 @@ while [[ $# -gt 0 ]]; do
         --layout)
             [[ $# -ge 2 ]] || die "--layout requires a value"
             case "$2" in
-                scroller|scrollergrid)
+                scroller)
                     LAYOUT_NAME="$2"
                     ;;
                 *)
