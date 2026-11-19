@@ -180,7 +180,8 @@ TODO(canvas-workspace-model)
 
 ### 建议完成判定
 
-- [ ] 公共 Lua/dispatch/Canvas `focus_lane` / `create_lane` 已删除
+- [x] 公共 Lua/dispatch/Canvas `focus_lane` 已删除
+- [ ] 公共 Lua/dispatch/Canvas `create_lane` 已删除
 - [ ] `GridLayout::expel_window_right` 不再依赖 `create_lane`
 - [ ] `GridLayout::focus_lane` / `create_lane` 已删除或仅保留真正需要的内部实现
 - [ ] README 与 hyprland-testing 示例已去掉这两条命令

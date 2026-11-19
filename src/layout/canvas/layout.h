@@ -125,8 +125,6 @@ public:
     void toggle_fullscreen(int workspace);
     // TODO(remove-create-lane-command): Delete this public API with the command.
     void create_lane(int workspace, Direction);
-    // TODO(remove-focus-lane): Delete this public API with the command.
-    void focus_lane(int workspace, Direction);
 
     // Mark helpers: lightweight named bookmarks for focused windows.
     void marks_add(const std::string &name);

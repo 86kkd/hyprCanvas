@@ -214,20 +214,6 @@ void dispatch_createlane(std::string arg) {
         action.layout->create_lane(action.workspace, *direction);
 }
 
-// focuslane <dir>: switch the active lane inside the current canvas.
-//
-// TODO(remove-focus-lane): Delete this public command and implementation. It is
-// unused by automated tests and is a weaker subset of move_focus adjacent-lane
-// routing (no mode-axis awareness, no ephemeral lane, no monitor handoff).
-void dispatch_focuslane(std::string arg) {
-    const auto direction = parsedDirectionArg(arg);
-    if (!direction)
-        return;
-
-    if (const auto action = workspaceLayoutForAction())
-        action.layout->focus_lane(action.workspace, *direction);
-}
-
 } // namespace
 
 namespace {
@@ -329,12 +315,6 @@ int lua_create_lane(lua_State* state) {
     return 0;
 }
 
-// TODO(remove-focus-lane): Remove this Lua binding with the command.
-int lua_focus_lane(lua_State* state) {
-    dispatch_focuslane(luaStringArg(state));
-    return 0;
-}
-
 void registerLuaFunction(const char* name, PLUGIN_LUA_FN function) {
     if (!HyprlandAPI::addLuaFunction(PHANDLE, "scroller", name, function))
         spdlog::warn("failed to register Lua function hl.plugin.scroller.{}", name);
@@ -360,8 +340,6 @@ void registerLayoutLuaFunctions() {
     registerLuaFunction("toggle_fullscreen", lua_toggle_fullscreen);
     // TODO(remove-create-lane-command): Drop this registration.
     registerLuaFunction("create_lane", lua_create_lane);
-    // TODO(remove-focus-lane): Drop this registration.
-    registerLuaFunction("focus_lane", lua_focus_lane);
 }
 
 } // namespace dispatchers::detail
