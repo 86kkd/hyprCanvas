@@ -1,0 +1,198 @@
+#!/usr/bin/env bash
+# Short wrapper for nested-Hyprland manual testing.
+#
+# Usage:
+#   ./scripts/hsctl focus l
+#   ./scripts/hsctl move d
+#   ./scripts/hsctl size 3
+#   ./scripts/hsctl mode col
+#   ./scripts/hsctl kitty
+#   ./scripts/hsctl clients
+#
+# Instance selection (first match wins):
+#   1. -i / --instance SIGNATURE
+#   2. $HYPRSCROLLER_INSTANCE
+#   3. newest Hyprland instance that is not the current session
+#   4. newest instance overall
+set -euo pipefail
+
+INSTANCE="${HYPRSCROLLER_INSTANCE:-}"
+
+die() {
+    printf 'hsctl: %s\n' "$*" >&2
+    exit 1
+}
+
+usage() {
+    cat <<'EOF'
+hsctl — short hyprctl wrapper for nested hyprscroller tests
+
+Commands:
+  focus <l|r|u|d|...>     hl.plugin.scroller.move_focus
+  move  <l|r|u|d|...>     hl.plugin.scroller.move_window
+  size  <1-8>             hl.plugin.scroller.set_window_size
+  mode  <row|col>         hl.plugin.scroller.set_mode
+  fullscreen              hl.plugin.scroller.toggle_fullscreen
+  overview [accept|cancel]
+  exec  <cmd...>          dispatch exec in the nested instance
+  kitty|foot|alacritty    shorthand for exec <term>
+  clients|monitors|activeworkspace|activewindow|workspaces
+                          hyprctl -j queries
+  plugins                 hyprctl plugin list
+  eval  <lua...>          raw hyprctl eval
+  raw   <hyprctl args...> pass through to hyprctl -i <instance>
+  which                   print the chosen instance signature
+  exit                    exit the nested instance
+  help                    this text
+
+Options:
+  -i, --instance SIG      target a specific Hyprland instance
+  -h, --help
+
+Environment:
+  HYPRSCROLLER_INSTANCE   default instance signature
+EOF
+}
+
+pick_instance() {
+    if [[ -n "$INSTANCE" ]]; then
+        printf '%s\n' "$INSTANCE"
+        return
+    fi
+
+    command -v jq >/dev/null 2>&1 || die "jq is required to auto-pick an instance; pass -i SIG"
+
+    local outer="${HYPRLAND_INSTANCE_SIGNATURE:-}"
+    local chosen
+    chosen="$(hyprctl instances -j | jq -r --arg outer "$outer" '
+        (map(select(.instance != $outer)) | sort_by(.time) | reverse | .[0].instance)
+        // (sort_by(.time) | reverse | .[0].instance)
+        // empty
+    ')"
+    [[ -n "$chosen" ]] || die "no Hyprland instances found"
+    printf '%s\n' "$chosen"
+}
+
+run_hypr() {
+    local instance
+    instance="$(pick_instance)"
+    hyprctl -i "$instance" "$@"
+}
+
+run_eval() {
+    run_hypr eval "$1"
+}
+
+scroller() {
+    local fn="$1"
+    shift
+    if [[ $# -eq 0 ]]; then
+        run_eval "hl.plugin.scroller.${fn}()"
+    else
+        # Quote a single string arg for Lua.
+        local arg="${1//\\/\\\\}"
+        arg="${arg//\"/\\\"}"
+        run_eval "hl.plugin.scroller.${fn}(\"${arg}\")"
+    fi
+}
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -i|--instance)
+            [[ $# -ge 2 ]] || die "$1 needs an instance signature"
+            INSTANCE="$2"
+            shift 2
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        --)
+            shift
+            break
+            ;;
+        -*)
+            die "unknown option: $1"
+            ;;
+        *)
+            break
+            ;;
+    esac
+done
+
+[[ $# -gt 0 ]] || { usage; exit 0; }
+
+cmd="$1"
+shift
+
+case "$cmd" in
+    help)
+        usage
+        ;;
+    which)
+        pick_instance
+        ;;
+    focus)
+        [[ $# -ge 1 ]] || die "focus needs a direction"
+        scroller move_focus "$1"
+        ;;
+    move)
+        [[ $# -ge 1 ]] || die "move needs a direction"
+        scroller move_window "$1"
+        ;;
+    size)
+        [[ $# -ge 1 ]] || die "size needs an integer 1-8"
+        scroller set_window_size "$1"
+        ;;
+    mode)
+        [[ $# -ge 1 ]] || die "mode needs row or col"
+        scroller set_mode "$1"
+        ;;
+    fullscreen)
+        scroller toggle_fullscreen
+        ;;
+    overview)
+        case "${1:-}" in
+            ""|accept|confirm|enter)
+                scroller toggle_overview
+                ;;
+            cancel|abort|close)
+                scroller cancel_overview
+                ;;
+            *)
+                die "overview accepts accept or cancel"
+                ;;
+        esac
+        ;;
+    exec)
+        [[ $# -ge 1 ]] || die "exec needs a command"
+        # Prefer Lua exec so it matches the rest of the 0.57 test flow.
+        joined="$*"
+        joined="${joined//\\/\\\\}"
+        joined="${joined//\"/\\\"}"
+        run_eval "hl.dispatch(hl.dsp.exec_cmd(\"${joined}\"))"
+        ;;
+    kitty|foot|alacritty|ghostty)
+        run_eval "hl.dispatch(hl.dsp.exec_cmd(\"${cmd}\"))"
+        ;;
+    clients|monitors|activeworkspace|activewindow|workspaces)
+        run_hypr "$cmd" -j
+        ;;
+    plugins)
+        run_hypr plugin list
+        ;;
+    eval)
+        [[ $# -ge 1 ]] || die "eval needs a Lua expression"
+        run_eval "$*"
+        ;;
+    raw)
+        [[ $# -ge 1 ]] || die "raw needs hyprctl arguments"
+        run_hypr "$@"
+        ;;
+    exit)
+        run_eval 'hl.dispatch(hl.dsp.exit())'
+        ;;
+    *)
+        die "unknown command: $cmd (try: hsctl help)"
+        ;;
+esac

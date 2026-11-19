@@ -390,7 +390,40 @@ hyprctl -i <instance-signature> eval 'hl.plugin.scroller.cancel_overview()'
 
 ## 8. 手工测试 scroller Lua 命令
 
-常用命令：
+日常手工回归优先用仓库里的短命令包装，它会自动选中「非当前会话」的嵌套实例：
+
+```bash
+./scripts/hsctl which          # 看选中了哪个 instance
+./scripts/hsctl kitty          # 在嵌套实例里开终端
+./scripts/hsctl focus l
+./scripts/hsctl focus r
+./scripts/hsctl move d
+./scripts/hsctl size 3
+./scripts/hsctl size 2
+./scripts/hsctl mode col
+./scripts/hsctl mode row
+./scripts/hsctl fullscreen
+./scripts/hsctl overview
+./scripts/hsctl overview cancel
+./scripts/hsctl clients
+./scripts/hsctl exit
+```
+
+也可以先固定目标实例，后面就不用每次带 `-i`：
+
+```bash
+export HYPRSCROLLER_INSTANCE="$(./scripts/hsctl which)"
+./scripts/hsctl focus r
+```
+
+需要原始 `hyprctl` 时：
+
+```bash
+./scripts/hsctl raw monitors -j
+./scripts/hsctl eval 'hl.plugin.scroller.move_focus("r")'
+```
+
+等价的长命令（一般不必再手写）：
 
 ```bash
 hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_focus("r")'
