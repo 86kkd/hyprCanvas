@@ -53,6 +53,27 @@ bool Stack::swap_windows(PHLWINDOW a, PHLWINDOW b) {
     return true;
 }
 
+bool Stack::swap_active_window_with(Stack &other) {
+    if (this == &other || mode != other.mode || !active || !other.active ||
+        !get_active_window() || !other.get_active_window() || fullscreen() || other.fullscreen())
+        return false;
+
+    auto *a = active->data();
+    auto *b = other.active->data();
+    a->set_fullsize_before_join(a->get_fullsize_before_join().value_or(expanded()));
+    b->set_fullsize_before_join(b->get_fullsize_before_join().value_or(other.expanded()));
+    a->swap_slot_geometry(*b);
+    // Swap payloads only: active cursors and list positions stay in their stacks.
+    auto *source = active;
+    auto *target = other.active;
+    windows.swap(source, target);
+    if (previousActive == a)
+        previousActive = b;
+    if (other.previousActive == b)
+        other.previousActive = a;
+    return true;
+}
+
 void Stack::remove_window(PHLWINDOW window) {
     auto *win = findWindowNode(window);
     if (!win)

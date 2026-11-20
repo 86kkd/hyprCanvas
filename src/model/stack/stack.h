@@ -95,6 +95,7 @@ public:
     void update_height(WindowHeight h, double max);
     // Switch to free (custom) height mode.
     void set_height_free();
+    void swap_slot_geometry(Window &other);
     // Restore all persisted logical window state in one step.
     void restore_state(WindowHeight h, double geom_y, double geom_h, double mem_y, double mem_h);
     // Export this window's persisted logical state.
@@ -159,6 +160,7 @@ public:
     // Window membership / reorder helpers.
     bool has_window(PHLWINDOW window) const;
     bool swap_windows(PHLWINDOW a, PHLWINDOW b);
+    bool swap_active_window_with(Stack &other);
     template <typename Fn>
     void for_each_window(Fn&& fn) const {
         for (auto win = windows.first(); win != nullptr; win = win->next()) {

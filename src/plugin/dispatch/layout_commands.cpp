@@ -191,6 +191,17 @@ int lua_move_window(lua_State* state) {
     return 0;
 }
 
+int lua_swap_window(lua_State* state) {
+    if (Overview::session().active())
+        return 0;
+    const auto direction = parsedDirectionArg(luaStringArg(state));
+    if (!direction)
+        return 0;
+    if (const auto action = workspaceLayoutForAction())
+        action.layout->swap_window(action.workspace, *direction);
+    return 0;
+}
+
 int lua_set_mode(lua_State* state) {
     dispatch_setmode(luaStringArg(state));
     return 0;
@@ -214,6 +225,7 @@ void registerLayoutLuaFunctions() {
     registerLuaFunction("focus_monitor", lua_focus_monitor);
     registerLuaFunction("switch_workspace", lua_switch_workspace);
     registerLuaFunction("move_window", lua_move_window);
+    registerLuaFunction("swap_window", lua_swap_window);
     registerLuaFunction("set_mode", lua_set_mode);
     registerLuaFunction("toggle_fullscreen", lua_toggle_fullscreen);
 }

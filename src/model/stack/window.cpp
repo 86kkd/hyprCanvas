@@ -118,6 +118,13 @@ void Window::set_height_free() {
     height = WindowHeight::Free;
 }
 
+void Window::swap_slot_geometry(Window &other) {
+    std::swap(height, other.height);
+    std::swap(box_y, other.box_y);
+    std::swap(box_h, other.box_h);
+    std::swap(mem, other.mem);
+}
+
 void Window::restore_state(WindowHeight h, double geom_y, double geom_h, double mem_y, double mem_h) {
     height = h;
     box_y = geom_y;

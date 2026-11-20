@@ -129,6 +129,7 @@ public:
     void resize_active_window(const Vector2D &delta);
     void set_mode(Mode m);
     void move_active_stack(Direction dir);
+    bool swap_active_window_with_stack(size_t stackIndex);
     void move_active_window_to_adjacent_stack(Direction dir);
     void move_active_window_to_new_stack(Direction dir);
     Vector2D predict_window_size() const;

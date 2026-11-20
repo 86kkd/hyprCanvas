@@ -215,6 +215,38 @@ void test_invalid_index() {
               "an index without lanes resolves to no-op");
 }
 
+void test_swap_window_routes() {
+    using CanvasLayoutInternal::swap_window_neighbor;
+    for (const auto mode : {Mode::Row, Mode::Column}) {
+        auto index = row_index(1, 3, 1, 3, 1, 3);
+        index.mode = mode;
+        const auto backward = mode == Mode::Row ? Direction::Left : Direction::Up;
+        const auto forward = mode == Mode::Row ? Direction::Right : Direction::Down;
+        expect_true(is_local(swap_window_neighbor(index, backward), LocalMove::Focus, 0),
+                    "swap selects the previous stack's active window just like focus");
+        expect_true(is_local(swap_window_neighbor(index, forward), LocalMove::Focus, 2),
+                    "swap selects the next stack's active window just like focus");
+        for (const auto direction : {Direction::Begin, Direction::End, Direction::Center,
+                                    mode == Mode::Row ? Direction::Up : Direction::Left,
+                                    mode == Mode::Row ? Direction::Down : Direction::Right})
+            expect_eq(swap_window_neighbor(index, direction).kind, NeighborKind::NoOp,
+                      "swap rejects non-adjacent and same-stack directions");
+        index.stackIndex = 0;
+        expect_eq(swap_window_neighbor(index, backward).kind, NeighborKind::NoOp,
+                  "swap at the first stack never wraps or crosses monitors");
+        index.stackIndex = 2;
+        expect_eq(swap_window_neighbor(index, forward).kind, NeighborKind::NoOp,
+                  "swap at the last stack never wraps or crosses monitors");
+        index.stackCount = 1;
+        index.stackIndex = 0;
+        expect_eq(swap_window_neighbor(index, forward).kind, NeighborKind::NoOp,
+                  "a single stack has no swap target");
+        index.stackCount = 0;
+        expect_eq(swap_window_neighbor(index, backward).kind, NeighborKind::NoOp,
+                  "an empty lane has no swap target");
+    }
+}
+
 } // namespace
 
 void run_topology_route_tests() {
@@ -226,4 +258,5 @@ void run_topology_route_tests() {
     test_move_window_within_stack();
     test_focus_and_move_share_lane_exits();
     test_invalid_index();
+    test_swap_window_routes();
 }

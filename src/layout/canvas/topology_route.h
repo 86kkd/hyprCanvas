@@ -86,5 +86,7 @@ struct Neighbor {
 
 // Resolve the neighbor of the focused item for one directional command.
 Neighbor neighbor(const TopologyIndex &index, const NeighborQuery &query);
+// Focus routing restricted to the physically adjacent stack in this lane.
+Neighbor swap_window_neighbor(const TopologyIndex &index, Direction direction);
 
 } // namespace CanvasLayoutInternal

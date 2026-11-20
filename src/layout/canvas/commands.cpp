@@ -256,6 +256,24 @@ void CanvasLayout::move_window(int workspace, Direction direction) {
     persistSnapshot();
 }
 
+void CanvasLayout::swap_window(int workspace, Direction direction) {
+    (void)workspace;
+    bool swapped = false;
+    withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [&](Lane *lane) {
+        const auto next = CanvasLayoutInternal::swap_window_neighbor(topologyIndex(lane), direction);
+        if (next.kind != CanvasLayoutInternal::NeighborKind::LocalTarget)
+            return;
+        const auto window = lane->get_active_window();
+        if (!lane->swap_active_window_with_stack(next.stackIndex))
+            return;
+        swapped = true;
+        focusManagedWindow(window, true, "swap_window", true);
+        debugVerifyLaneCache();
+    });
+    if (swapped)
+        persistSnapshot();
+}
+
 // Change the active lane traversal mode.
 void CanvasLayout::set_mode(int workspace, Mode mode) {
     (void)workspace;

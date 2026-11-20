@@ -4,6 +4,7 @@
 # Usage:
 #   ./scripts/hsctl focus l
 #   ./scripts/hsctl move d
+#   ./scripts/hsctl swap l
 #   ./scripts/hsctl size 3
 #   ./scripts/hsctl mode col
 #   ./scripts/hsctl overview
@@ -33,6 +34,7 @@ hsctl — short hyprctl wrapper for nested hyprscroller tests
 Commands:
   focus <l|r|u|d|...>     hl.plugin.scroller.move_focus
   move  <l|r|u|d|...>     hl.plugin.scroller.move_window
+  swap  <l|r|u|d|...>     hl.plugin.scroller.swap_window (adjacent stack)
   size  <1-8>             hl.plugin.scroller.set_window_size
   mode  <row|col>         hl.plugin.scroller.set_mode
   fullscreen              hl.plugin.scroller.toggle_fullscreen
@@ -144,6 +146,10 @@ case "$cmd" in
     move)
         [[ $# -ge 1 ]] || die "move needs a direction"
         scroller move_window "$1"
+        ;;
+    swap)
+        [[ $# -ge 1 ]] || die "swap needs a direction"
+        scroller swap_window "$1"
         ;;
     size)
         [[ $# -ge 1 ]] || die "size needs an integer 1-8"

@@ -172,6 +172,7 @@ following functions under `hl.plugin.scroller` instead:
 | `move_focus(direction)` | Move focus inside the layout, or move the overview selection. |
 | `focus_monitor(direction)` | Move monitor focus, or select another canvas in overview. |
 | `move_window(direction)` | Move the active window in the requested direction. |
+| `swap_window(direction)` | Swap the active window with the active window of the adjacent stack in the same lane. |
 | `set_window_size(n)` | Size every stack so `n` stacks (1–8) share the monitor workarea. |
 | `set_mode(mode)` | Select `row` or `col` mode. |
 | `toggle_fullscreen()` | Toggle scroller-managed fullscreen expansion. |
@@ -250,6 +251,23 @@ it never wraps within the stack.
 - the active window of a multi-window stack is split out into a new stack on
   that side.
 
+
+## Swapping Windows Between Stacks
+
+`swap_window` uses the same adjacent-stack target as `move_focus`: left/right
+in *row* mode, up/down in *column* mode. It accepts the existing directional
+aliases, but does not wrap or accept `begin`/`end`. Directions within the same
+stack or beyond the lane edge do nothing. It is also inactive in overview or
+when either selected window is in Hyprland-native fullscreen.
+
+Focus follows the original window to the other stack. Each window takes the
+other's slot geometry; stack sizes, membership counts and scroller fullsize
+states are preserved. For example:
+
+```lua
+hl.bind("SUPER + ALT + LEFT", function() hl.plugin.scroller.swap_window("l") end)
+hl.bind("SUPER + ALT + RIGHT", function() hl.plugin.scroller.swap_window("r") end)
+```
 
 ## Overview
 

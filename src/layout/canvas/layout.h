@@ -114,6 +114,7 @@ public:
     void apply_stack_width(ScrollerModel::StackWidth width);
     void move_focus(int workspace, Direction);
     void move_window(int workspace, Direction);
+    void swap_window(int workspace, Direction);
     void set_mode(int workspace, Mode);
     void toggle_fullscreen(int workspace);
 

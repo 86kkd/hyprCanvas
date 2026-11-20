@@ -125,4 +125,14 @@ Neighbor neighbor(const TopologyIndex &index, const NeighborQuery &query) {
     return focus ? local_focus_neighbor(index, query) : local_move_neighbor(index, query);
 }
 
+Neighbor swap_window_neighbor(const TopologyIndex &index, Direction direction) {
+    if (direction != ScrollerCore::local_item_backward_direction(index.mode) &&
+        direction != ScrollerCore::local_item_forward_direction(index.mode))
+        return no_op();
+    const auto target = neighbor(index, {.intent = NeighborIntent::Focus, .direction = direction});
+    if (target.kind != NeighborKind::LocalTarget || target.stackIndex == index.stackIndex)
+        return no_op();
+    return target;
+}
+
 } // namespace CanvasLayoutInternal

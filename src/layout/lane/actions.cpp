@@ -184,6 +184,29 @@ void Lane::move_active_stack(Direction dir) {
     recalculate_lane_geometry();
 }
 
+bool Lane::swap_active_window_with_stack(size_t stackIndex) {
+    if (!active)
+        return false;
+    auto *target = stacks.first();
+    for (size_t i = 0; target && i < stackIndex; ++i)
+        target = target->next();
+    if (!target || (target != active->prev() && target != active->next()))
+        return false;
+
+    auto *sourceStack = active->data();
+    auto *targetStack = target->data();
+    const auto sourceWindow = sourceStack->get_active_window();
+    const auto targetWindow = targetStack->get_active_window();
+    if (!sourceStack->swap_active_window_with(*targetStack))
+        return false;
+    rememberWindowStack(sourceWindow, targetStack);
+    rememberWindowStack(targetWindow, sourceStack);
+    active = target;
+    recalculate_lane_geometry();
+    debugVerifyStackCache();
+    return true;
+}
+
 void Lane::move_active_window_to_adjacent_stack(Direction dir) {
     if (!active)
         return;
