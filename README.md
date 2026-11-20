@@ -1,522 +1,235 @@
+<div align="center">
+
 # HyprCanvas
 
-Stacks with more than two windows automatically use an overlapping card layout:
-the active window occupies 61.8% of the visible stack axis, the previously
-focused window 19.1%, and the remaining windows equally share 19.1%. Windows
-retain their original order: moving down leaves the previous window above the
-active card; moving up leaves it below. Without focus history, an adjacent
-window becomes secondary. Row mode stacks vertically; column mode stacks
-horizontally. Across the perpendicular axis, the main card uses the full span,
-the secondary uses 95% of the main card, and other cards shrink by 0.9 per
-layer outward on each side, starting from the secondary size. Cards remain
-centered; the secondary does not count toward the other-card layer number.
-For six cards with the main and secondary at one end, cross-axis sizes are
-100%, 95%, 85.5%, 76.95%, 69.255%, and 62.3295%.
-These cross-axis scales also apply in scroller fullsize.
-Scroller fullsize (`mainMod+F`) with multiple windows gives the
-focused window 90% of the monitor workarea along the stack axis and its full
-cross-axis span. Two windows use 90% / 10%; with three or more, the previous
-window gets 5% and the rest equally share 5%. All background windows have edge
-labels. Switching focus transfers the large region to the new main window;
-leaving fullsize restores ordinary proportions. Native fullscreen and maximized
-windows retain their normal behavior.
-Returning to one or two windows restores the ordinary layout and saved size
-settings. Card placement is automatic while the stack contains three or more
-windows; per-window size settings apply again outside that mode.
-Moving a window toward a stack expanded with the scroller fullscreen toggle
-places it in a separate stack on the requested side instead of joining the
-fullsize stack. The destination retains its fullsize and restore geometry.
-Deck movement and resizing use Hyprland's existing window animation settings;
-the plugin does not register or override animation curves.
-Narrow background cards show a larger 18px title in an opaque rounded rectangle
-(up to 34px high, scaled down when necessary) on the exposed edge:
-upper-left above the active card, lower-left below it. Long titles are ellipsized;
-column mode places the tags vertically on the exposed left/right edges.
-Background strips divide their fixed 19.1% share equally regardless of count. Pointer focus uses only the currently visible
-strip or foreground area, tracking native window animations rather than the
-covered full-window rectangles. Narrow side slivers do not steal pointer focus.
+**A scrolling canvas for your Hyprland desktop.**
 
+Keep windows in stacks. Navigate with the keyboard. Switch your whole desktop across monitors.
 
-[HyprCanvas](https://github.com/86kkd/hyprCanvas) is a
-[Hyprland](https://hyprland.org) layout plugin that creates a window layout
-similar to [PaperWM](https://github.com/paperwm/PaperWM). I initialy
-learned how to write a *Hyprland* plugin from [hyprslidr](https://gitlab.com/magus/hyprslidr),
-which is a similar idea.
+[Get started](#get-started) · [User guide](docs/user-guide.md) · [Development](#development) · [Architecture](docs/architecture.md)
 
-This repository is an actively maintained fork of the original
-[`dawsers/hyprscroller`](https://github.com/dawsers/hyprscroller), which is now
-archived.
+</div>
 
-![Intro](./videos/hyprscroller.gif)
+---
 
-The plugin is quite feature complete and supports gaps, borders, special
-workspace, scroller-managed fullscreen expansion, overview, marks and
-installation through `hyprpm`.
+HyprCanvas is a Hyprland layout plugin built around scrolling lanes, window
+stacks, and canvas workspaces. A canvas groups one workspace per monitor, so
+switching canvases changes the whole desktop together.
 
-This fork is maintained against the Hyprland versions I actually run and test.
-The focus is practical compatibility with packaged Hyprland releases first,
-instead of chasing trunk continuously.
+It grows out of [hyprscroller](https://github.com/dawsers/hyprscroller), with a
+focus on multi-monitor navigation, overlapping window cards, and a workspace
+overview.
 
-The current compatibility baseline is Arch Linux Hyprland 0.57.0. Rebuild the
-plugin after every Hyprland package update, and restart the Hyprland session
-before loading that new build.
+## The desktop model
 
-## Requirements
+| Feature | What it does |
+| --- | --- |
+| **Scrolling lanes** | Arrange stacks horizontally or vertically and navigate beyond the visible monitor area. |
+| **Window stacks** | Group related windows; stacks with three or more windows become overlapping cards with the focused window in front. |
+| **Canvas workspaces** | Switch a group of workspaces across all connected monitors in one action. |
+| **Overview** | Preview canvases and select a window or workspace without rearranging the real windows. Accept to switch, or cancel to return. |
+| **Keyboard movement** | Reorder windows, join or split stacks, exchange windows between stacks, and move between monitors. |
+| **Focus and sizing** | Choose how many stacks fit on screen, expand a stack, or jump to a named window mark. |
 
-*hyprCanvas* supports the version of *Hyprland* I use, which should be the
-same as the Arch Linux `hyprland` package. You can try your luck with the
-latest `git` changes, but I will be slower to keep up with those, as there are
-too many API changes going on upstream.
+<details>
+<summary>Earlier scrolling-layout demo</summary>
 
-Historical hyprscroller releases supported older Hyprland versions. Their
-commit pins are not used by hyprCanvas because those commits export the old
-plugin identifier and build artifact.
+![Scrolling layout demonstration from hyprscroller](videos/hyprscroller.gif)
 
+This inherited demo illustrates the scrolling layout. It predates the current
+canvas overview and card-stack behavior.
 
-## Building and installing
+</details>
 
-Use `hyprpm` to install the published version from this repository:
+## Compatibility
 
-``` sh
+The current code targets **Hyprland 0.57 with Lua configuration**, with local
+Release builds and logic tests verified against **Arch Linux Hyprland 0.57.2**.
+Other versions are not guaranteed. Plugins use Hyprland's internal APIs and
+must be rebuilt when Hyprland changes.
+
+The project name and configuration names serve different purposes:
+
+| Where | Name |
+| --- | --- |
+| `hyprpm` plugin | `hyprCanvas` |
+| Shared library | `hyprCanvas.so` |
+| Hyprland layout | `scroller` |
+| Lua functions | `hl.plugin.scroller.*` |
+| Plugin options | `plugin:scroller:*` |
+
+## Get started
+
+### 1. Install through hyprpm
+
+> **Migrating from hyprscroller or a manual `.so`?** Follow the
+> [migration notes](docs/user-guide.md#migrating-an-existing-installation)
+> before enabling the new plugin. Both versions register the same layout and
+> must not be loaded together.
+
+Run these as your normal user in a Hyprland session. Enter your sudo password
+when the manager requests it.
+
+```sh
 hyprpm update
 hyprpm add https://github.com/86kkd/hyprCanvas.git
 hyprpm enable hyprCanvas
-hyprpm list
 ```
 
-The repository and plugin identifier are `hyprCanvas`; the built library is
-`hyprCanvas.so`. The layout is `scroller`, and Lua commands are under
-`hl.plugin.scroller`. Configure startup loading as described below, then log
-out and back in to activate it.
+`hyprpm update` prepares the manager's Hyprland headers and updates registered
+plugins. It does not update the `hyprpm` executable; your system package manager
+does that. On first use, it may clone Hyprland to prepare its own header cache,
+even if system development headers are already installed.
 
-For later updates, run `hyprpm update`. It builds published Git commits, not
-uncommitted changes in your local checkout. Updating can unload a running
-plugin; save your work first. After upgrading Hyprland, restart the session
-before loading a plugin compiled against the new version.
+### 2. Configure startup and layout
 
-For local development, `make release` builds `Release/hyprCanvas.so`.
-Test it in a nested compositor (see the testing notes below). Do not run
-`make install` over a shared library loaded by your active desktop.
+Add this to `~/.config/hypr/hyprland.lua`. Put the layout setting after any
+other module that selects a default layout.
 
-If you are hacking on the plugin, you can also run the pure logic tests without
-starting Hyprland:
+```lua
+hl.permission("/usr/(bin|local/bin)/hyprpm", "plugin", "allow")
 
-``` sh
-cmake -S . -B Debug -DCMAKE_BUILD_TYPE=Debug
-cmake --build ./Debug -j
-ctest --test-dir ./Debug --output-on-failure
-```
-
-For compositor-level regressions after touching canvas or lane hot paths, run
-the manual [smoke test checklist](./docs/smoke-test-checklist.md) as well.
-
-## For Developers
-
-If you are trying to understand how the project works internally, start with
-the newcomer-oriented [architecture guide](./docs/architecture.md).
-
-For repository workflow and commit writing, see the
-[commit convention](./docs/commit-convention.md).
-
-The shortest useful reading path is:
-
-1. [`src/plugin/entry.cpp`](./src/plugin/entry.cpp)
-2. [`src/dispatchers.cpp`](./src/dispatchers.cpp)
-3. [`src/layout/canvas/layout.h`](./src/layout/canvas/layout.h)
-4. [`src/layout/canvas/core.cpp`](./src/layout/canvas/core.cpp)
-5. [`src/layout/canvas/focus.cpp`](./src/layout/canvas/focus.cpp)
-6. [`src/layout/canvas/commands.cpp`](./src/layout/canvas/commands.cpp)
-
-The automated tests are now split by subsystem instead of living in one large
-file:
-
-- [`tests/core_logic_tests.cpp`](./tests/core_logic_tests.cpp)
-- [`tests/layout_logic_tests.cpp`](./tests/layout_logic_tests.cpp)
-- [`tests/overview_logic_tests.cpp`](./tests/overview_logic_tests.cpp)
-
-For stateful layout changes, pair those tests with:
-
-- [smoke test checklist](./docs/smoke-test-checklist.md)
-- [Hyprland testing notes](./docs/hyprland-testing.md)
-
-For the locally maintained Hyprland layout-switch helper script that wires
-`master` / `dwindle` / `scroller` and the current scroller-specific binds, see
-[examples/ChangeLayout.sh](./examples/ChangeLayout.sh).
-
-## Configuration
-
-For Hyprland 0.57, add this to `~/.config/hypr/hyprland.lua`:
-
-``` lua
 hl.on("hyprland.start", function()
     hl.exec_cmd("hyprpm reload -n")
 end)
-```
 
-When migrating from manual installation, remove the old
-`hl.plugin.load(...hyprscroller.so)` call (or a manual `hyprCanvas.so` load)
-and any startup command that runs `hyprctl plugin load` for it. Keep existing
-layout settings and keybindings. Save your work before changing the config:
-automatic config reload can unload the manually loaded plugin. Do not load
-both plugins: hyprscroller and hyprCanvas register the same layout and Lua
-commands. Log out and back in after installing and enabling hyprCanvas;
-`hyprpm` will load its managed copy at startup. Keep the old `.so` as a
-rollback copy until this is verified.
-
-If plugin permission management is enabled, allow the manager:
-
-``` lua
-hl.permission("/usr/(bin|local/bin)/hyprpm", "plugin", "allow")
-```
-
-To turn on the layout, use
-
-``` lua
 hl.config({ general = { layout = "scroller" } })
 ```
 
-For manual runtime loading, use `hyprctl plugin load /path/to/hyprCanvas.so`.
-This is a plugin-management command, not a dispatcher. Add `-i <instance-signature>`
-when targeting a nested test instance. Do not load the same plugin twice.
+The startup hook loads enabled plugins when a new session starts. It does not
+fetch updates. Remove any separate manual load of this plugin from your config.
 
+### 3. Add keyboard controls
 
-## Lua commands
-
-Hyprland 0.57 no longer registers plugin dispatchers. The plugin exposes the
-following functions under `hl.plugin.scroller` instead:
-
-| Lua function | Description |
-|--------------|-------------|
-| `move_focus(direction)` | Move focus inside the layout, or move the overview selection. |
-| `focus_monitor(direction)` | Move monitor focus, or select another canvas in overview. |
-| `move_window(direction)` | Move the active window in the requested direction. |
-| `swap_window(direction)` | Swap the active window with the active window of the adjacent stack in the same lane. |
-| `set_window_size(n)` | Size every stack so `n` stacks (1–8) share the monitor workarea. |
-| `set_mode(mode)` | Select `row` or `col` mode. |
-| `toggle_fullscreen()` | Toggle scroller-managed fullscreen expansion. |
-| `toggle_overview(action)` / `cancel_overview()` | Open, accept, or cancel overview. |
-| `marks_add(name)` / `marks_delete(name)` | Add or delete a mark. |
-| `marks_visit(name)` / `marks_reset()` | Visit a mark or clear all marks. |
-
-## Fullscreen behavior
-
-`scroller:togglefullscreen` is not the same as Hyprland's native
-`fullscreen/fullscreenstate` dispatchers.
-
-- In *row* mode, it expands the active column horizontally so the focused
-  window becomes as wide as a single-window workspace.
-- In *column* mode, it expands the active window vertically so it becomes as
-  tall as a single-window workspace.
-- It stays inside scroller's layout model, so focus movement and scrolling
-  behavior continue to work normally.
-
-
-## Modes
-
-*Hyprscroller* works in one of two modes that can be changed at any moment.
-
-1. *row* mode: it is the default. It creates new windows in a new column.
-   `set_window_size` sets the width of every column.
-
-2. *column* mode: It creates new windows in the current column, right below the
-   active window. `set_window_size` sets the height of every column.
-
-
-## Window/Column Focus and Movement
-
-If you want to use *Hyprscroller* you will need to map your key bindings from
-the default `movefocus`/`movewindow` to
-`scroller:movefocus`/`scroller:movewindow`. The reason is *Hyprland* doesn't
-have the concept (yet) of a workspace that spans more than the space of a
-monitor, and when focusing directionally, it doesn't look for windows that are
-"outside" of that region. If this changes in the future, these two dispatches
-may become obsolete.
-
-`movefocus` and `movewindow` accept the following directional arguments:
-`l` or `left`, `r` or `right`, `u` or `up`, `d` or `dn` or `down`, `b` or
-`begin` or `beginning`, `e` or `end`. So you can focus or move windows/columns
-in a direction or to the beginning or end or the row.
-
-
-## Resizing
-
-`set_window_size(n)` is a session-wide setting: every stack in every lane, on
-every workspace, is resized to `workarea / n` along the lane axis, and stacks
-created afterwards use the same size. `n` is how many stacks fit on the
-monitor at once: width in *row* mode, height in *column* mode. `n` ranges from
-1 to 8; a typical monitor uses 2, an ultrawide 3 or 4. Maximized stacks and
-stacks expanded with `toggle_fullscreen` keep their current span and return to
-`workarea / n` when restored. A lane holding a single window still fills the
-whole workarea.
-Using `resizewindow`, you can still modify the width or height of any window
-freely; that stack then keeps its free size until `set_window_size` is called
-again. The chosen `n` lasts until Hyprland restarts; `column_default_width`
-applies before the first call.
-
-
-## Building and Splitting Stacks
-
-`move_window` first swaps the active window with the adjacent window in the
-same stack when one exists in the requested direction (up/down in *row* mode,
-left/right in *column* mode). Focus follows the moved window. At the stack
-edge, the window moves out using the existing lane/monitor routing rules;
-it never wraps within the stack.
-
-`move_window` along the lane's stack axis (left/right in *row* mode, up/down in
-*column* mode) handles stack membership:
-
-- a single-window stack joins the neighboring stack in that direction;
-- the active window of a multi-window stack is split out into a new stack on
-  that side.
-
-
-## Swapping Windows Between Stacks
-
-`swap_window` uses the same adjacent-stack target as `move_focus`: left/right
-in *row* mode, up/down in *column* mode. It accepts the existing directional
-aliases, but does not wrap or accept `begin`/`end`. Directions within the same
-stack or beyond the lane edge do nothing. It is also inactive in overview or
-when either selected window is in Hyprland-native fullscreen.
-
-Focus follows the original window to the other stack. Each window takes the
-other's slot geometry; stack sizes, membership counts and scroller fullsize
-states are preserved. For example:
+Use plugin functions for scrolling focus and window movement. These callbacks
+resolve the functions when a key is pressed, after the plugin has loaded.
+The bindings below are examples; adjust them to fit your configuration.
 
 ```lua
-hl.bind("SUPER + ALT + LEFT", function() hl.plugin.scroller.swap_window("l") end)
-hl.bind("SUPER + ALT + RIGHT", function() hl.plugin.scroller.swap_window("r") end)
-```
+-- Focus and move windows in all four directions.
+for _, spec in ipairs({
+    { "LEFT", "l" }, { "RIGHT", "r" },
+    { "UP", "u" }, { "DOWN", "d" },
+}) do
+    local key, direction = spec[1], spec[2]
+    hl.bind("SUPER + " .. key, function()
+        hl.plugin.scroller.move_focus(direction)
+    end)
+    hl.bind("SUPER + CTRL + " .. key, function()
+        hl.plugin.scroller.move_window(direction)
+    end)
+end
 
-## Overview
-
-`scroller:toggleoverview` toggles a bird's eye overlay across the visible
-monitors. Overview is now a read-only navigation layer:
-
-1. Real window geometry is left untouched while overview is open.
-2. `scroller:movefocus` moves the logical overview selection instead of real focus.
-3. `scroller:focusmonitor` moves the focused canvas workspace preview while overview stays open.
-4. Closing overview accepts the currently focused target/canvas.
-5. `scroller:toggleoverview cancel` or `scroller:canceloverview` restores the
-   original workspace/window.
-
-With hold-to-preview bindings, that means you can hold your main modifier,
-open overview, use `scroller:focusmonitor` on `N/M/,/.` to change canvas
-workspace focus, and release the modifier to enter the currently focused
-canvas workspace.
-
-Overview can target:
-
-1. Existing tiled windows.
-2. Existing empty workspaces.
-3. Synthetic empty-workspace targets created by directional navigation.
-
-The renderer now draws stable workspace cards instead of live window previews,
-so overview should be used as a monitor/workspace/window picker, not as a mode
-for editing window state in place.
-
-
-## Marks
-
-You can use *marks* to navigate to frequently used windows, regardless of
-which workspace they are in (it even works for the special workspace windows).
-
-`scroller:marksadd` adds a named mark. Use a *submap* to create bindings for
-several named marks you may want to use. See the configuration example for
-directions.
-
-`scroller:marksdelete` deletes a named mark created with `scroller:marksadd`.
-
-`scroller:marksvisit` moves the focus to a previously created mark.
-
-`scroller:marksreset` clears all marks.
-
-Marks reference windows, but are global, they may belong to different
-workspaces, so visiting a mark may switch workspaces.
-
-You can use any string name for a mark, for example in scripts. But they are
-also very convenient to use with regular key bindings by simply using a letter
-as the name. Again, see the example configuration.
-
-
-## Options
-
-*hyprCanvas* currently accepts the following options:
-
-1. `column_default_width`: the visible-stack count new stacks start with,
-using the same `workarea / n` rule as `set_window_size`. Possible values are
-`1` to `8` (default `2`), or `floating` (uses the window's last floating size).
-Once `set_window_size` has been called, its count replaces this option for the
-rest of the session.
-The old `onehalf` / `onethird` / `twothirds` / `maximized` names are no longer
-recognized and fall back to `2`.
-
-2. `focus_wrap`: determines whether focus will *wrap* when at the first or
-last window of a row/column. Possible arguments are: `true`|`1` (default), or
-`false`|`0`.
-
-For example:
-
-``` conf
-plugin {
-    scroller {
-        column_default_width = 3
-        focus_wrap = false
-    }
-}
-```
-
-
-## Key bindings
-
-On Hyprland 0.57, bind the plugin Lua functions after calling
-`hl.plugin.load(...)`. The callback resolves the plugin function when the key is
-pressed, after asynchronous plugin loading has completed:
-
-``` lua
-hl.bind("SUPER + LEFT", function() hl.plugin.scroller.move_focus("l") end)
-hl.bind("SUPER + RIGHT", function() hl.plugin.scroller.move_focus("r") end)
-hl.bind("SUPER + CTRL + LEFT", function() hl.plugin.scroller.move_window("l") end)
-hl.bind("SUPER + CTRL + RIGHT", function() hl.plugin.scroller.move_window("r") end)
-hl.bind("SUPER + BRACKETLEFT", function() hl.plugin.scroller.set_mode("row") end)
-hl.bind("SUPER + BRACKETRIGHT", function() hl.plugin.scroller.set_mode("col") end)
+-- Overview, stack expansion, and the number of visible stacks.
+hl.bind("SUPER + O", function() hl.plugin.scroller.toggle_overview() end)
+hl.bind("SUPER + F", function() hl.plugin.scroller.toggle_fullscreen() end)
 hl.bind("SUPER + 2", function() hl.plugin.scroller.set_window_size(2) end)
 hl.bind("SUPER + 3", function() hl.plugin.scroller.set_window_size(3) end)
-hl.bind("SUPER + TAB", function() hl.plugin.scroller.toggle_overview() end)
 ```
 
-The repository's [ChangeLayout helper](./examples/ChangeLayout.sh) installs the
-same Lua-compatible bindings dynamically when switching layouts.
+For whole-desktop workspace switching, see
+[canvas workspace bindings](docs/user-guide.md#canvas-workspaces).
+The supplied workspace helper uses `SUPER + number` for canvases; if you use
+it, move the two sizing shortcuts above to different keys.
 
-### Legacy pre-0.57 configuration
+### 4. Verify
 
-The dispatcher-based examples below apply only to older Hyprland releases and
-are retained as a migration reference. They do not register on Hyprland 0.57.
-
-``` conf
-# Move focus with mainMod + arrow keys
-bind = $mainMod, left, scroller:movefocus, l
-bind = $mainMod, right, scroller:movefocus, r
-bind = $mainMod, up, scroller:movefocus, u
-bind = $mainMod, down, scroller:movefocus, d
-bind = $mainMod, home, scroller:movefocus, begin
-bind = $mainMod, end, scroller:movefocus, end
-
-# Movement
-bind = $mainMod CTRL, left, scroller:movewindow, l
-bind = $mainMod CTRL, right, scroller:movewindow, r
-bind = $mainMod CTRL, up, scroller:movewindow, u
-bind = $mainMod CTRL, down, scroller:movewindow, d
-bind = $mainMod CTRL, home, scroller:movewindow, begin
-bind = $mainMod CTRL, end, scroller:movewindow, end
-
-# Modes
-bind = $mainMod, bracketleft, scroller:setmode, row
-bind = $mainMod, bracketright, scroller:setmode, col
-
-# Resize submap
-# will switch to a submap called resize
-bind = $mainMod SHIFT, R, submap, resize
-# will start a submap called "resize"
-submap = resize
-# sets repeatable binds for resizing the active window
-binde = , right, resizeactive, 100 0
-binde = , left, resizeactive, -100 0
-binde = , up, resizeactive, 0 -100
-binde = , down, resizeactive, 0 100
-# use reset to go back to the global submap
-bind = , escape, submap, reset
-# will reset the submap, meaning end the current one and return to the global one
-submap = reset
-
-# overview keys
-# bind key to toggle overview (normal)
-bind = $mainMod, tab, scroller:toggleoverview
-# overview submap
-# will switch to a submap called overview
-bind = $mainMod, tab, submap, overview
-# will start a submap called "overview"
-submap = overview
-bind = , right, scroller:movefocus, right
-bind = , left, scroller:movefocus, left
-bind = , up, scroller:movefocus, up
-bind = , down, scroller:movefocus, down
-# use reset to go back to the global submap
-bind = , escape, scroller:toggleoverview,
-bind = , escape, submap, reset
-bind = , return, scroller:toggleoverview,
-bind = , return, submap, reset
-bind = $mainMod, tab, scroller:toggleoverview,
-bind = $mainMod, tab, submap, reset
-# will reset the submap, meaning end the current one and return to the global one
-submap = reset
-
-# Marks
-bind = $mainMod, M, submap, marksadd
-submap = marksadd
-bind = , a, scroller:marksadd, a
-bind = , a, submap, reset
-bind = , b, scroller:marksadd, b
-bind = , b, submap, reset
-bind = , c, scroller:marksadd, c
-bind = , c, submap, reset
-bind = , escape, submap, reset
-submap = reset
-
-bind = $mainMod SHIFT, M, submap, marksdelete
-submap = marksdelete
-bind = , a, scroller:marksdelete, a
-bind = , a, submap, reset
-bind = , b, scroller:marksdelete, b
-bind = , b, submap, reset
-bind = , c, scroller:marksdelete, c
-bind = , c, submap, reset
-bind = , escape, submap, reset
-submap = reset
-
-bind = $mainMod, apostrophe, submap, marksvisit
-submap = marksvisit
-bind = , a, scroller:marksvisit, a
-bind = , a, submap, reset
-bind = , b, scroller:marksvisit, b
-bind = , b, submap, reset
-bind = , c, scroller:marksvisit, c
-bind = , c, submap, reset
-bind = , escape, submap, reset
-submap = reset
-
-bind = $mainMod CTRL, M, scroller:marksreset
+```sh
+hyprpm list
+hyprctl plugin list
+hyprctl getoption general:layout
 ```
 
-### Global canvas workspace bindings (Hyprland 0.57 Lua)
+Look for `hyprCanvas` enabled in the manager, `Plugin hyprCanvas` in the loaded
+plugin list, and `scroller` as the active layout. The startup hook takes effect
+on your next login; `hyprpm enable` also attempts to load the plugin now.
 
-`hl.plugin.scroller.switch_workspace("l"|"r"|"u"|"d"|"1".."10")`
-switches the complete canvas: one native backing workspace per connected monitor.
-Numbers address canvas creation order, **not** native Hyprland workspace IDs.
-Missing canvases are created with separate backing workspaces on every monitor.
-While overview is open this changes only the preview; acceptance switches all monitors.
-Outside overview it switches immediately. Directional `move_window` stays within the
-visible canvas and can hand windows between physical monitors.
+## Update and manage
 
-Load [examples/scroller-workspaces.lua](examples/scroller-workspaces.lua) **after**
-your existing keybind modules and after updating the plugin. It replaces Tab,
-number and wheel workspace switches with canvas switches; Ctrl+Shift+H/L and
-bracket window moves use directional movement. Shift/Ctrl+number window transfers
-and whole native workspace-to-monitor moves are inactive under scroller, preserving
-the monitor-only movement policy. Other layouts retain native behavior. Special
-scratchpads are separate from ordinary canvas workspaces.
+Save your work before updating: replacing a layout plugin can unload it and
+change window placement.
 
-The Lua branch of `ChangeLayout.sh` reloads
-`~/.config/hypr/lua/scroller-workspaces.lua` after each layout change (including
-`init`). Install that module as well as the shell script, and load it after your
-user bindings in `hyprland.lua` so config reloads preserve the overrides. The
-module also removes duplicate native comma/period workspace bindings before
-installing scroller monitor/overview actions.
-Native `hl.dsp.focus({workspace=...})`, workspace gestures and external workspace
-widgets still use Hyprland's per-monitor semantics; route ordinary workspace
-navigation through the plugin API when using the global canvas model.
+| Task | Command |
+| --- | --- |
+| Update registered plugins | `hyprpm update` |
+| Enable HyprCanvas | `hyprpm enable hyprCanvas` |
+| Load enabled plugins | `hyprpm reload -n` |
+| Disable HyprCanvas | `hyprpm disable hyprCanvas` |
+| Inspect installed plugins | `hyprpm list` |
+| Inspect plugins loaded in this session | `hyprctl plugin list` |
 
-Legacy canvas records that share a native workspace are normalized when the
-current visible canvas is captured. The visible canvas retains its backing
-workspaces and windows; duplicate references in other canvases receive fresh,
-empty backing workspace IDs. This prevents an unchanged monitor when switching
-between groups imported from earlier native per-monitor navigation.
+**`hyprpm` downloads, builds, and manages plugins. `hyprctl` controls the
+running compositor.** You do not need `make install` or a manual
+`hyprctl plugin load` for an installation managed by `hyprpm`.
+
+After a Hyprland package upgrade, rebuild plugins with `hyprpm update` and
+restart the Hyprland session before loading builds for the new version.
+For local development, push the commits you want to distribute first:
+`hyprpm` builds the published Git repository, not your working directory.
+
+<details>
+<summary>Troubleshooting the first install</summary>
+
+- **`Headers missing`** — the manager's cache is missing, even if system
+  headers exist. Run `hyprpm update` in a terminal and complete sudo authentication.
+- **`Failed to write plugin state`** — inspect the preceding permission or sudo
+  error. Retry the command in a terminal where you can authenticate.
+- **Installed, but not loaded** — check `hyprpm list`, then run
+  `hyprpm enable hyprCanvas`. Use `hyprctl plugin list` to verify the result.
+- **Still named `hyprscroller`** — an older build or repository record is in use.
+  Follow the [migration notes](docs/user-guide.md#migrating-an-existing-installation).
+- **Version or ABI mismatch** — make sure the running Hyprland session matches
+  the installed package, update plugins, and restart the session as needed.
+
+</details>
+
+## Learn the controls
+
+The [user guide](docs/user-guide.md) covers:
+
+- [Canvas workspaces and multi-monitor navigation](docs/user-guide.md#canvas-workspaces)
+- [Row and column modes, sizing, and card stacks](docs/user-guide.md#lanes-and-stacks)
+- [Moving, splitting, and swapping windows](docs/user-guide.md#moving-windows)
+- [Overview and marks](docs/user-guide.md#overview-and-marks)
+- [Lua API and options](docs/user-guide.md#lua-api)
+
+## Development
+
+Build against the installed Hyprland development files:
+
+```sh
+make release
+# Output: Release/hyprCanvas.so
+```
+
+Build a debug configuration and run the logic tests:
+
+```sh
+cmake -S . -B Debug -DCMAKE_BUILD_TYPE=Debug
+cmake --build Debug -j
+ctest --test-dir Debug --output-on-failure
+```
+
+Use a [nested Hyprland session](docs/hyprland-testing.md) to test plugin loads
+and layout changes. Do not run `make install` over a library loaded by your
+active desktop: its current install target copies directly over the file.
+
+| Resource | Purpose |
+| --- | --- |
+| [Architecture](docs/architecture.md) · [中文架构说明](docs/architecture-cn.md) | Runtime flow, ownership, and source map |
+| [Testing guide](docs/hyprland-testing.md) | Nested sessions and reproducible scenarios |
+| [Smoke checklist](docs/smoke-test-checklist.md) | Compositor-level regression checks |
+| [Debug workflow](docs/feature-debug-workflow.md) | Investigating behavior changes |
+| [Commit convention](docs/commit-convention.md) | Commit types, scopes, and verification notes |
+
+Start reading at [`src/plugin/entry.cpp`](src/plugin/entry.cpp), then follow
+[`src/plugin/dispatch/`](src/plugin/dispatch/) into
+[`src/layout/canvas/`](src/layout/canvas/).
+
+## Credits and license
+
+HyprCanvas is a fork of [dawsers/hyprscroller](https://github.com/dawsers/hyprscroller),
+inspired by [PaperWM](https://github.com/paperwm/PaperWM).
+[hyprslidr](https://gitlab.com/magus/hyprslidr) helped inform the original plugin.
+
+Released under the [MIT License](LICENSE).
