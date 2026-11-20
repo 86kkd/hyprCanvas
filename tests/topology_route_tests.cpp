@@ -150,11 +150,50 @@ void test_move_window_routes() {
               "move_window never wraps at the lane edge");
 
     expect_eq(move(row_index(1, 3, 0, 1, 0, 2), Direction::Up).kind, NeighborKind::AdjacentLane,
-              "move_window on the lane axis skips windows inside the stack");
+              "move_window leaves the stack when no window precedes it");
     expect_eq(move(row_index(2, 3, 0, 1), Direction::Down, true).kind, NeighborKind::CrossMonitor,
               "move_window prefers a monitor over a new lane");
     expect_eq(move(row_index(2, 3, 0, 1), Direction::Down).kind, NeighborKind::CreateEphemeral,
               "move_window past the last lane carries the window into a new lane");
+}
+
+void test_move_window_within_stack() {
+    for (const auto mode : {Mode::Row, Mode::Column}) {
+        const auto backward = mode == Mode::Row ? Direction::Up : Direction::Left;
+        const auto forward = mode == Mode::Row ? Direction::Down : Direction::Right;
+        auto index = row_index(1, 3, 1, 3, 1, 3);
+        index.mode = mode;
+        for (const bool monitor : {false, true}) {
+            expect_true(is_local(move(index, backward, monitor), LocalMove::ReorderWindow, 1, 0),
+                        "move swaps with the previous window before leaving the stack");
+            expect_true(is_local(move(index, forward, monitor), LocalMove::ReorderWindow, 1, 2),
+                        "move swaps with the next window before leaving the stack");
+        }
+
+        index.windowIndex = 0;
+        const auto previous = move(index, backward, true);
+        expect_true(previous.kind == NeighborKind::AdjacentLane && previous.laneIndex == 0,
+                    "moving the first window backward leaves for the previous lane");
+        index.windowIndex = 2;
+        const auto next = move(index, forward, true);
+        expect_true(next.kind == NeighborKind::AdjacentLane && next.laneIndex == 2,
+                    "moving the last window forward leaves for the next lane");
+
+        for (const bool before : {false, true}) {
+            index.laneIndex = before ? 0 : 2;
+            index.windowIndex = before ? 0 : 2;
+            const auto direction = before ? backward : forward;
+            expect_eq(move(index, direction, true).kind, NeighborKind::CrossMonitor,
+                      "moving past both stack and canvas edges prefers a monitor");
+            const auto created = CanvasLayoutInternal::neighbor(index, {
+                .intent = NeighborIntent::MoveWindow,
+                .direction = direction,
+                .focusWrap = true,
+            });
+            expect_true(created.kind == NeighborKind::CreateEphemeral && created.laneIndex == index.laneIndex,
+                        "moving past the canvas edge creates a lane even when focus wrapping is enabled");
+        }
+    }
 }
 
 void test_focus_and_move_share_lane_exits() {
@@ -184,6 +223,7 @@ void run_topology_route_tests() {
     test_focus_between_lanes();
     test_focus_from_empty_lane();
     test_move_window_routes();
+    test_move_window_within_stack();
     test_focus_and_move_share_lane_exits();
     test_invalid_index();
 }

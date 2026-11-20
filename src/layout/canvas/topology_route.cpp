@@ -41,14 +41,16 @@ Neighbor lane_neighbor(const TopologyIndex &index, const NeighborQuery &query, b
     return no_op();
 }
 
-// Lane-axis focus first walks the windows of the active stack, because the
+// Lane-axis commands first walk the windows of the active stack, because the
 // stack-item axis and the lane axis are the same screen axis.
 std::optional<Neighbor> stack_window_neighbor(const TopologyIndex &index, const NeighborQuery &query) {
     const bool backward = query.direction == ScrollerCore::stack_item_backward_direction(index.mode);
+    const bool focus = query.intent == NeighborIntent::Focus;
     if (backward ? index.windowIndex > 0 : index.windowIndex + 1 < index.windowCount)
-        return local(LocalMove::Focus, index.stackIndex, backward ? index.windowIndex - 1 : index.windowIndex + 1);
+        return local(focus ? LocalMove::Focus : LocalMove::ReorderWindow, index.stackIndex,
+                     backward ? index.windowIndex - 1 : index.windowIndex + 1);
     // Wrapping inside the stack is a last resort when no monitor is there.
-    if (!query.monitorInDirection && query.focusWrap && index.windowCount > 1)
+    if (focus && !query.monitorInDirection && query.focusWrap && index.windowCount > 1)
         return local(LocalMove::Focus, index.stackIndex, backward ? index.windowCount - 1 : 0);
     return std::nullopt;
 }
@@ -109,7 +111,7 @@ Neighbor neighbor(const TopologyIndex &index, const NeighborQuery &query) {
 
     const bool focus = query.intent == NeighborIntent::Focus;
     if (ScrollerCore::direction_moves_between_lanes(index.mode, query.direction)) {
-        if (focus && !index.laneEmpty()) {
+        if (!index.laneEmpty()) {
             if (const auto inStack = stack_window_neighbor(index, query))
                 return *inStack;
         }

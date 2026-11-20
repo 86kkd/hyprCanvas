@@ -146,7 +146,7 @@ void Lane::set_mode(Mode m) {
     recalculate_lane_geometry();
 }
 
-// Reorder stacks in row mode or windows in column mode.
+// Reorder stacks along the stack axis, or windows along the stack-item axis.
 void Lane::move_active_stack(Direction dir) {
     if (!active)
         return;

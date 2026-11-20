@@ -237,6 +237,12 @@ applies before the first call.
 
 ## Building and Splitting Stacks
 
+`move_window` first swaps the active window with the adjacent window in the
+same stack when one exists in the requested direction (up/down in *row* mode,
+left/right in *column* mode). Focus follows the moved window. At the stack
+edge, the window moves out using the existing lane/monitor routing rules;
+it never wraps within the stack.
+
 `move_window` along the lane's stack axis (left/right in *row* mode, up/down in
 *column* mode) handles stack membership:
 

@@ -165,6 +165,10 @@ void CanvasLayout::applyLocalWindowMove(Lane *lane, CanvasLayoutInternal::LocalM
 
     const char *context = nullptr;
     switch (move) {
+    case CanvasLayoutInternal::LocalMove::ReorderWindow:
+        lane->move_active_stack(direction);
+        context = "move_window_within_stack";
+        break;
     case CanvasLayoutInternal::LocalMove::ReorderStack:
         lane->move_active_stack(direction);
         context = "move_window_stack";

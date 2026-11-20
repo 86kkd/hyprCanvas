@@ -66,6 +66,8 @@ enum class LocalMove {
     Focus,
     // Move the whole active stack to `stackIndex` (lane begin/end).
     ReorderStack,
+    // Swap the active window with its neighbor at `windowIndex` in the stack.
+    ReorderWindow,
     // Move the active window into the neighboring stack at `stackIndex`.
     JoinStack,
     // Split the active window into a new stack on the requested side.
