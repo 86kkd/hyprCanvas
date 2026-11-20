@@ -16,10 +16,16 @@
     "wrap": false
   },
   "preview": {
-    "window_count": 5,
+    "window_count": 6,
     "direction": "row",
-    "extent_px": 900,
+    "extent_px": 400,
     "labels": true,
     "ruler": true
+  },
+  "cross_axis": {
+    "basis": "progressive_cross_axis",
+    "main_scale": 1,
+    "secondary_relative_scale": 0.95,
+    "others_decay": 0.9
   }
 }

@@ -6,7 +6,14 @@ focused window 19.1%, and the remaining windows equally share 19.1%. Windows
 retain their original order: moving down leaves the previous window above the
 active card; moving up leaves it below. Without focus history, an adjacent
 window becomes secondary. Row mode stacks vertically; column mode stacks
-horizontally. Scroller fullsize (`mainMod+F`) with multiple windows gives the
+horizontally. Across the perpendicular axis, the main card uses the full span,
+the secondary uses 95% of the main card, and other cards shrink by 0.9 per
+layer outward on each side, starting from the secondary size. Cards remain
+centered; the secondary does not count toward the other-card layer number.
+For six cards with the main and secondary at one end, cross-axis sizes are
+100%, 95%, 85.5%, 76.95%, 69.255%, and 62.3295%.
+These cross-axis scales also apply in scroller fullsize.
+Scroller fullsize (`mainMod+F`) with multiple windows gives the
 focused window 90% of the monitor workarea along the stack axis and its full
 cross-axis span. Two windows use 90% / 10%; with three or more, the previous
 window gets 5% and the rest equally share 5%. All background windows have edge

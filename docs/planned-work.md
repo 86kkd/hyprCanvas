@@ -2,10 +2,10 @@
 
 集中记录当前已在代码中标注、但尚未落地的计划项：公开 API 清理、功能落地（如拓扑邻居索引）、以及目标模型对齐（如 Canvas Workspace）。按 `TODO(...)` 检索与执行。
 
-> 状态：下列各项均已落地，代码中的 `TODO(...)` 标记已随实现移除；本文保留为决策记录。
-> 唯一未勾选的是 §3 的「overview 空白预览问题单独跟踪」，它不属于本轮代码改动。
+> 状态：§1–§9 已落地；本文保留为决策记录。
+> 未勾选：§3「overview 空白预览问题单独跟踪」、§10 `TODO(deck-card-share)`。
 
-代码里曾用这些标记检索：
+代码里用这些标记检索（含历史项与未完成项）：
 
 ```text
 TODO(set_window_size)
@@ -17,6 +17,7 @@ TODO(remove-admit-expel-window)
 TODO(remove-scrollergrid)
 TODO(topology-neighbor-index)
 TODO(canvas-workspace-model)
+TODO(deck-card-share)
 ```
 
 相关决策背景也可对照：
@@ -407,6 +408,43 @@ Canvas Workspace          ← hyprscroller 抽象：一整套多屏桌面
 
 ---
 
+## 10. `TODO(deck-card-share)`：卡牌交叉轴逐层缩放
+
+### 最终设计
+
+用户通过前端调节台确认：调整的是**垂直于堆叠轴的宽／高**，并非堆叠轴露出份额。
+选定参数记录于 [final-ratios.json](../tools/stack-tuner/final-ratios.json)。
+
+| 角色 | 常量 | 规则 |
+|---|---|---|
+| 主卡 | `kDeckMainScale = 1.0` | 占满 stack 交叉轴 |
+| 次卡（上次焦点） | `kDeckSecondaryRelativeScale = 0.95` | 主卡尺寸 × 0.95 |
+| 其他卡 | `kDeckOthersDecay = 0.9` | 次卡尺寸 × 0.9 的 k 次方 |
+
+其他卡在主卡两侧分别由近到远编号 k=1,2,…，次卡不占其他卡的层数。
+卡片保持居中，row 模式缩放宽度，column 模式缩放高度；普通 deck 与 fullsize 共用规则。
+例如主卡和次卡在六窗队列末端时，从主卡向外为：
+100%、95%、85.5%、76.95%、69.255%、62.3295%。
+
+### 保留的行为
+
+- 普通 deck 的主轴露出仍为 **61.8% / 19.1% / 19.1%**，其他卡均分最后一项；按最终选择保留这些文档与测试断言。
+- fullsize 的主轴露出仍为 90% / 10% 或 90% / 5% / 5%。
+- 普通 deck ≥3 窗进入、≤2 窗退出；次卡仍由上次焦点确定，原始窗口顺序不变。
+- 指针仍使用 `deck_hit_box` 的露出条；标签根据实际窗口尺寸截断，过小尺寸隐藏。
+
+### 落地与验收
+
+- [x] 交叉轴常量与逐层几何已实现，row / column 共用
+- [x] 调节台默认倍率与最终 JSON 同步为 1 / 0.95 / 0.9
+- [x] 几何测试覆盖六窗阶梯、两侧独立递减、远端次卡、失效焦点历史、普通 / fullsize 和不同尺寸
+- [x] Debug 编译、ctest 和前端模型测试通过
+- [x] 隔离 Hyprland 的 fullsize 回归通过（row / column，2 / 3 / 5 窗、切换焦点、退出还原与卸载）
+- [x] README / smoke checklist 已区分交叉轴倍率与主轴露出份额
+- [ ] 横竖屏真实渲染下的标题可读性、动画中途点击需人工验收
+
+---
+
 ## 推荐处理顺序
 
 1. **`remove-focus-lane`** — 无内部生产依赖、无 ctest 引用，可先整条删  
@@ -416,6 +454,7 @@ Canvas Workspace          ← hyprscroller 抽象：一整套多屏桌面
 5. **`remove-scrollergrid`** — 删除第二种布局及 grid 测试/脚本（可与命令瘦身并行，但勿再往 grid 加功能）  
 6. **`topology-neighbor-index`** — 在 scroller 上落地邻居索引，简化 `move_focus` / `move_window`  
 7. **`canvas-workspace-model`** — 文档与 overview/canvas 仓库对齐目标层级（可与 6 并行规划；改跨屏切换语义时再动代码）
+8. **`deck-card-share`** — 横向/纵向 stack 卡牌交叉轴逐层缩放（已实现，待人工验收）
 
 ## 验证建议
 

@@ -96,6 +96,13 @@ Use this checklist after changing `src/layout/canvas/*`, `src/layout/lane/*`, or
 - Close/expel windows until only two remain, change layouts, then unload/reload
   the plugin. Confirm hit areas return to ordinary full-window layout behavior.
 
+- Check progressive cross-axis scaling in both row and column, landscape and
+  portrait: with six cards and the last two as main/secondary, sizes from main
+  outward are 100%, 95%, 85.5%, 76.95%, 69.255%, 62.3295%.
+  Focus a middle card: other-card layers restart independently on each side.
+  Repeat in fullsize, including two cards (100% / 95% across the cross axis).
+  Check shortened title tags remain readable/ellipsized, exposed strips remain
+  clickable, and side slivers do not steal focus during animation.
 - Check deck visible shares: primary 61.8%, secondary 19.1%, all remaining
   strips together 19.1%, both axes and after changing window count.
 - Check narrow-edge labels have opaque rounded backgrounds and larger text;

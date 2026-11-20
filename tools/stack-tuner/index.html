@@ -5,7 +5,15 @@
 <header class="topbar"><div class="brand"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span><strong>Hyprscroller</strong><span class="divider"></span><h1>堆叠调节台</h1></div><div class="header-actions"><button id="reset">重置</button><button id="save" class="primary">保存最终参数</button></div></header>
 <main>
 <aside class="panel inspector" aria-label="堆叠参数">
-<section><h2>可见区域比例</h2><p class="muted description">沿堆叠方向的可见占比，<br>不是窗口本身的大小。</p>
+<section><h2>卡片宽高缩放倍率</h2>
+<p class="muted description" id="cross-description"></p>
+<div class="field main-field"><label for="cross-main-range">主窗口</label><div class="number-wrap"><input id="cross-main-number" aria-label="主窗口缩放倍率" type="number" min="0.1" max="2" step="0.01"><span>×</span></div><input id="cross-main-range" aria-label="主窗口缩放倍率滑块" type="range" min="0.1" max="2" step="0.01"></div>
+<div class="field secondary-field"><label for="cross-secondary-range">次窗口 · 相对主窗口</label><div class="number-wrap"><input id="cross-secondary-number" aria-label="次窗口 · 相对主窗口缩放倍率" type="number" min="0.1" max="1" step="0.01"><span>×</span></div><input id="cross-secondary-range" aria-label="次窗口 · 相对主窗口缩放倍率滑块" type="range" min="0.1" max="1" step="0.01"></div>
+<div class="field others-field"><label for="cross-others-range">其他窗口 · 每层递减</label><div class="number-wrap"><input id="cross-others-number" aria-label="其他窗口 · 每层递减缩放倍率" type="number" min="0.1" max="1" step="0.01"><span>×</span></div><input id="cross-others-range" aria-label="其他窗口 · 每层递减缩放倍率滑块" type="range" min="0.1" max="1" step="0.01"></div>
+<p id="cross-summary" class="muted description"></p>
+<p class="hint">主窗口以预览区域为基准；次窗口乘主窗口倍率。其他窗口以次窗口尺寸为基准，在主窗口两侧分别由近到远逐层相乘，1× 表示不递减。卡片居中，超出区域部分裁切。</p>
+</section>
+<section><h2>堆叠轴露出比例</h2><p class="muted description">沿堆叠方向的可见占比，<br>不是窗口本身的大小。</p>
 <div id="share-bar" class="share-bar" aria-label="比例合计百分之百"></div>
 <div class="field main-field"><label for="main-range">主窗口</label><div class="number-wrap"><input id="main-number" aria-label="主窗口百分比" type="number" min="35" max="94" step="0.1"><span>%</span></div><input id="main-range" aria-label="主窗口比例滑块" type="range" min="35" max="94" step="0.1"></div>
 <div class="field secondary-field"><label for="secondary-range">次窗口</label><div class="number-wrap"><input id="secondary-number" aria-label="次窗口百分比" type="number" min="5" max="49.5" step="0.1"><span>%</span></div><input id="secondary-range" aria-label="次窗口比例滑块" type="range" min="5" max="49.5" step="0.1"></div>

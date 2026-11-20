@@ -506,6 +506,31 @@ void test_stack_deck() {
             }
         }
     }
+    // Tuner-approved scales are independent of deck mode and viewport aspect.
+    for (const bool fullsize : {false, true}) {
+        for (const double crossSpan : {400.0, 800.0, 1920.0}) {
+            const auto fraction = [crossSpan](const auto& cards, size_t index) {
+                for (const auto& card : cards)
+                    if (card.index == index)
+                        return (crossSpan - 2 * card.inset) / crossSpan;
+                return -1.0;
+            };
+            const auto end = deck_cards(6, 5, 900, crossSpan, 4, fullsize);
+            const double expected[] = {0.623295, 0.69255, 0.7695, 0.855, 0.95, 1.0};
+            for (size_t i = 0; i < 6; ++i)
+                expect_near(fraction(end, i), expected[i], 1e-9,
+                            "approved six-card progressive cross-axis sizes");
+            const auto middle = deck_cards(6, 2, 900, crossSpan, 1, fullsize);
+            expect_near(fraction(middle, 0), 0.855, 1e-9, "left side first other layer");
+            expect_near(fraction(middle, 3), 0.855, 1e-9, "right side restarts decay");
+            expect_near(fraction(middle, 5), 0.69255, 1e-9, "right side third other layer");
+            const auto distant = deck_cards(6, 5, 900, crossSpan, 0, fullsize);
+            expect_near(fraction(distant, 0), 0.95, 1e-9, "distant previous focus stays secondary");
+            expect_near(fraction(distant, 4), 0.855, 1e-9, "nearest other starts first decay layer");
+            const auto fallback = deck_cards(6, 5, 900, crossSpan, 99, fullsize);
+            expect_near(fraction(fallback, 4), 0.95, 1e-9, "stale history uses adjacent secondary");
+        }
+    }
     const auto tiny = deck_cards(20, 7, 30.0, 20.0);
     expect_true(tiny.back().span > 0.0, "small viewports keep positive card spans");
 }

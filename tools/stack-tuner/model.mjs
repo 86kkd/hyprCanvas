@@ -1,8 +1,10 @@
-export const DEFAULT = Object.freeze({main:61.8,secondary:19.1,others:19.1,count:5,direction:'row',extent:900,labels:true,ruler:true});
+export const DEFAULT = Object.freeze({crossMain:1,crossSecondary:0.95,crossOthers:0.9,main:61.8,secondary:19.1,others:19.1,count:6,direction:'row',extent:400,labels:true,ruler:true});
 const round = n => Math.round(n * 10) / 10;
 const clamp = (n, a, b) => Math.max(a, Math.min(b,n));
 export function valid(s) {
   return s && ['main','secondary','others','extent','count'].every(k=>typeof s[k]==='number'&&Number.isFinite(s[k]))
+    && Number.isFinite(s.crossMain)&&s.crossMain>=0.1&&s.crossMain<=2
+    && ['crossSecondary','crossOthers'].every(k=>Number.isFinite(s[k])&&s[k]>=0.1&&s[k]<=1)
     && s.main>=35 && s.secondary>=5 && s.others>=1 && s.others<=30 && s.secondary<=s.main
     && Math.abs(s.main+s.secondary+s.others-100)<.05
     && Number.isInteger(s.count)&&s.count>=3&&s.count<=10
@@ -39,9 +41,12 @@ export function layout(s,active,previous) {
   let offset=0;
   const cards=Array.from({length:count},(_,i)=>{
     if(i>0) offset+=exposure(i<=active?i-1:i);
-    const distance=Math.abs(i-active);
+    // Count other cards outward from the active card on each side.
+    const sameSide=(i-active)*(previous-active)>0;
+    const depth=Math.abs(i-active)-(sameSide&&Math.abs(previous-active)<Math.abs(i-active)?1:0);
+    const crossPercent=100*s.crossMain*(i===active?1:i===previous?s.crossSecondary:s.crossSecondary*s.crossOthers**depth);
     return {index:i,offset,span:s.main,visible:exposure(i),kind:i===active?'main':i===previous?'secondary':'other',
-      before:i<active,inset:distance*12,z:i===active?count+1:i<active?i+1:count-i};
+      before:i<active,crossPercent,insetPercent:(100-crossPercent)/2,z:i===active?count+1:i<active?i+1:count-i};
   });
   let cursor=0;
   const segments=cards.map(c=>{const segment={...c,start:cursor};cursor+=c.visible;return segment;});
@@ -49,13 +54,14 @@ export function layout(s,active,previous) {
 }
 export function payload(s) {
   return {schema_version:1,ratio_basis:'visible_extent_along_stack_axis',
+    cross_axis:{basis:'progressive_cross_axis',main_scale:s.crossMain,secondary_relative_scale:s.crossSecondary,others_decay:s.crossOthers},
     ratios:{main_percent:s.main,secondary_percent:s.secondary,others_total_percent:s.others},
     other_windows:{distribution:'equal',count_policy:'keep_total_share'},
     focus:{order:'preserve_original',secondary:'previous_focused_window',wrap:false},
     preview:{window_count:s.count,direction:s.direction,extent_px:s.extent,labels:s.labels,ruler:s.ruler}};
 }
 export function fromPayload(p) {
-  const s={main:p?.ratios?.main_percent,secondary:p?.ratios?.secondary_percent,others:p?.ratios?.others_total_percent,
+  const s={crossMain:p?.cross_axis?.main_scale??DEFAULT.crossMain,crossSecondary:p?.cross_axis?.secondary_relative_scale??DEFAULT.crossSecondary,crossOthers:p?.cross_axis?.others_decay??DEFAULT.crossOthers,main:p?.ratios?.main_percent,secondary:p?.ratios?.secondary_percent,others:p?.ratios?.others_total_percent,
     count:p?.preview?.window_count,direction:p?.preview?.direction,extent:p?.preview?.extent_px,
     labels:p?.preview?.labels,ruler:p?.preview?.ruler};
   return p?.schema_version===1&&valid(s)?s:null;

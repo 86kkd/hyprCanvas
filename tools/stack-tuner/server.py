@@ -15,6 +15,13 @@ def validate(p):
     if not isinstance(p, dict) or p.get('schema_version') != 1:
         raise ValueError('Invalid schema')
     r, v = p['ratios'], p['preview']
+    cross = p.get('cross_axis', {})
+    x, y, z = (cross.get(k, default) for k, default in zip(
+        ('main_scale', 'secondary_relative_scale', 'others_decay'), (1, 0.95, 0.9)))
+    if not all(type(n) in (float, int) and math.isfinite(n) for n in (x, y, z)):
+        raise ValueError('Invalid cross axis ratios')
+    if not (0.1 <= x <= 2 and 0.1 <= y <= 1 and 0.1 <= z <= 1):
+        raise ValueError('Invalid progressive scales')
     a, b, c = (r[k] for k in ('main_percent', 'secondary_percent', 'others_total_percent'))
     if not all(type(n) in (float, int) and math.isfinite(n) for n in (a,b,c)):
         raise ValueError('Invalid ratios')
@@ -24,7 +31,7 @@ def validate(p):
         raise ValueError('Invalid preview dimensions')
     if v['direction'] not in ('row','column') or any(type(v[k]) is not bool for k in ('labels','ruler')):
         raise ValueError('Invalid preview settings')
-    return dict(schema_version=1, ratio_basis='visible_extent_along_stack_axis', ratios=dict(zip(('main_percent','secondary_percent','others_total_percent'),(a,b,c))),
+    return dict(cross_axis=dict(basis='progressive_cross_axis',main_scale=x,secondary_relative_scale=y,others_decay=z),schema_version=1, ratio_basis='visible_extent_along_stack_axis', ratios=dict(zip(('main_percent','secondary_percent','others_total_percent'),(a,b,c))),
         other_windows=dict(distribution='equal',count_policy='keep_total_share'),focus=dict(order='preserve_original',secondary='previous_focused_window',wrap=False),
         preview={k:v[k] for k in ('window_count','direction','extent_px','labels','ruler')})
 

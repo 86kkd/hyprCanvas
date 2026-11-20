@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cmath>
 #include <optional>
 #include <span>
 #include <vector>
@@ -15,6 +16,11 @@ namespace ScrollerModel::StackLogic {
 inline constexpr double kDeckMainShare = 0.618;
 inline constexpr double kDeckSecondaryShare = 0.191;
 inline constexpr double kDeckOthersShare = 0.191;
+// Cross-axis scales selected in tools/stack-tuner/final-ratios.json.
+// Secondary is relative to main; other cards decay outward on each side.
+inline constexpr double kDeckMainScale = 1.0;
+inline constexpr double kDeckSecondaryRelativeScale = 0.95;
+inline constexpr double kDeckOthersDecay = 0.9;
 inline double deck_peek(size_t count, double localSpan, bool fullsize = false) {
     return count > 2 ? std::max(0.0, localSpan) * (fullsize ? 0.05 : kDeckOthersShare) / static_cast<double>(count - 2) : 0.0;
 }
@@ -86,7 +92,6 @@ inline std::vector<DeckCard> deck_cards(size_t count, size_t activeIndex,
     const auto cardSpan = localSpan * (fullsize ? 0.9 : kDeckMainShare);
     // With only one background window it gets the entire remaining 10%.
     const auto secondarySpan = localSpan * (fullsize ? (count == 2 ? 0.1 : 0.05) : kDeckSecondaryShare);
-    const auto insetStep = std::min(12.0, crossSpan * 0.12 / static_cast<double>(count - 1));
     std::vector<DeckCard> ordered;
     ordered.reserve(count);
     double offset = 0.0;
@@ -98,7 +103,15 @@ inline std::vector<DeckCard> deck_cards(size_t count, size_t activeIndex,
             offset += exposedIndex == secondaryIndex ? secondarySpan : peek;
         }
         const auto distance = index > activeIndex ? index - activeIndex : activeIndex - index;
-        ordered.push_back({index, offset, cardSpan, static_cast<double>(distance) * insetStep,
+        const auto secondaryDistance = secondaryIndex > activeIndex
+            ? secondaryIndex - activeIndex : activeIndex - secondaryIndex;
+        const bool sameSide = (index < activeIndex) == (secondaryIndex < activeIndex);
+        const auto depth = distance - (sameSide && secondaryDistance < distance ? 1u : 0u);
+        const double scale = kDeckMainScale * (index == activeIndex ? 1.0
+            : index == secondaryIndex ? kDeckSecondaryRelativeScale
+            : kDeckSecondaryRelativeScale * std::pow(kDeckOthersDecay, static_cast<double>(depth)));
+        const double inset = crossSpan * (1.0 - scale) * 0.5;
+        ordered.push_back({index, offset, cardSpan, inset,
             index != activeIndex && (fullsize || index != secondaryIndex),
             index == activeIndex ? cardSpan : index == secondaryIndex ? secondarySpan : peek});
     }
