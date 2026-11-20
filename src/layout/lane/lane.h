@@ -30,6 +30,8 @@ struct ActiveWindowPayload {
     ScrollerModel::StackWidth              width = ScrollerModel::StackWidth::visible(ScrollerModel::StackWidth::kDefaultVisibleStacks);
     // When width is Free, carry the stack's primary-axis span into the next lane.
     double                  primarySpan = 0.0;
+    // Scroller-fullsize state the window owned on its own before any join.
+    bool                    fullsize = false;
 
     ActiveWindowPayload() = default;
     ActiveWindowPayload(const ActiveWindowPayload &) = delete;

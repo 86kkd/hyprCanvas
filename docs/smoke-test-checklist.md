@@ -106,15 +106,17 @@ Use this checklist after changing `src/layout/canvas/*`, `src/layout/lane/*`, or
 Automated isolated regression: `python3 scripts/repro-fullsize-insertion.py`.
 
 - Expand a single-window stack with the scroller fullscreen toggle (`mainMod+F`).
-  From its right neighbor, move a window left: it must become a separate stack
-  to the left of the fullsize target. Repeat rightward from the left neighbor.
-- The target must keep its single window and fullsize geometry. Toggle fullsize
-  off and confirm its original size is restored.
+  From its right neighbor, move a window left: it must join the fullsize target
+  deck while the target stays expanded. Repeat rightward from the left neighbor.
+- The joined stack must keep fullsize geometry. Toggle fullsize off and confirm
+  ordinary multi-window geometry is restored.
+- Split the joined window back out with `move_window`; the remaining fullsize
+  stack must stay expanded, and the expelled window restores the fullsize state
+  its own stack had before joining (ordinary stays ordinary, fullsize stays
+  fullsize).
 - Repeat in column mode with up/down.
-- After disabling fullsize on the target, ordinary adjacent-stack insertion
-  must still merge the incoming window into that stack.
-- Cross-lane/monitor insertion next to an expanded target must preserve its
-  fullsize state and place the incoming window in a separate stack.
+- Cross-lane/monitor insertion into an expanded target must also join that deck
+  without clearing its fullsize state.
 
 ### Focused-window fullsize decks
 

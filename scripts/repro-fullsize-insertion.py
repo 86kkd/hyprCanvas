@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regress fullsize insertion in an isolated Hyprland instance.
+"""Regress fullsize join/split in an isolated Hyprland instance.
 
 Requires Hyprland, hyprctl and kitty. Does not reload the desktop plugin.
 """
@@ -94,35 +94,48 @@ with (run / 'hyprland.log').open('w') as log:
             lua('hl.plugin.scroller.'+expr)
             time.sleep(.3)
             print(expr, json.loads(ctl('activewindow','-j')).get('class'), [(c['class'],c['at'],c['size']) for c in json.loads(ctl('clients','-j'))],flush=True)
-        for mode,back,forward,axis in [('row','l','r',0),('column','u','d',1)]:
+        # In row mode stacks share the x axis; in column mode they share y.
+        # Windows inside one stack differ on the opposite axis.
+        for mode, back, forward, stack_axis, item_axis in [
+            ('row', 'l', 'r', 0, 1),
+            ('column', 'u', 'd', 1, 0),
+        ]:
             launch('full-target','#aa2222')
             command('set_mode("'+mode+'")')
             launch('incoming','#22aa22')
             focus('full-target')
-            original=client('full-target')['size'][axis]
+            original=client('full-target')['size'][stack_axis]
             command('toggle_fullscreen()')
-            expanded=client('full-target')['size'][axis]
+            expanded=client('full-target')['size'][stack_axis]
             check(expanded>original,'fullsize expands target '+mode)
             focus('incoming')
             command('move_window("'+back+'")')
             incoming=client('incoming');target=client('full-target')
-            check(incoming['at'][axis]+incoming['size'][axis]<=target['at'][axis]+3,'incoming crosses to backward side '+mode)
-            check(target['size'][axis]==expanded,'target remains fullsize after backward insertion '+mode)
-            focus('full-target')
-            command('toggle_fullscreen()')
-            check(abs(client('full-target')['size'][axis]-original)<=2,'fullsize restore width preserved '+mode)
-            command('toggle_fullscreen()')
+            check(abs(incoming['at'][stack_axis]-target['at'][stack_axis])<=2,
+                  'incoming joins the fullsize stack on the stack axis '+mode)
+            check(abs(incoming['at'][item_axis]-target['at'][item_axis])>2,
+                  'joined fullsize deck keeps distinct window cards '+mode)
+            check(max(incoming['size'][stack_axis], target['size'][stack_axis])==expanded,
+                  'joined deck remains fullsize after admission '+mode)
             focus('incoming')
             command('move_window("'+forward+'")')
             incoming=client('incoming');target=client('full-target')
-            check(target['at'][axis]+target['size'][axis]<=incoming['at'][axis]+3,'incoming crosses to forward side '+mode)
-            check(target['size'][axis]==expanded,'target remains fullsize after forward insertion '+mode)
+            check(abs(incoming['at'][stack_axis]-target['at'][stack_axis])>2,
+                  'split leaves a separate stack beside the fullsize target '+mode)
+            check(target['size'][stack_axis]==expanded,
+                  'remaining fullsize stack stays expanded after split '+mode)
+            check(incoming['size'][stack_axis]<expanded,
+                  'expelled window restores its pre-join non-fullsize state '+mode)
+            focus('incoming')
             command('move_window("'+back+'")')
-            check(client('incoming')['at'][axis]<client('full-target')['at'][axis],'move_window back past fullsize keeps membership separate '+mode)
-            # A normal target should still accept the incoming window.
-            focus('full-target');command('toggle_fullscreen()')
-            focus('incoming');command('move_window("'+forward+'")')
-            check(abs(client('incoming')['at'][axis]-client('full-target')['at'][axis])<=2,'ordinary target still admits incoming window '+mode)
+            incoming=client('incoming');target=client('full-target')
+            check(abs(incoming['at'][stack_axis]-target['at'][stack_axis])<=2,
+                  'rejoin into the remaining fullsize stack '+mode)
+            focus('full-target')
+            command('toggle_fullscreen()')
+            restored_axis = max(client('incoming')['size'][stack_axis], client('full-target')['size'][stack_axis])
+            check(restored_axis < expanded,
+                  'toggling fullsize off restores ordinary stack geometry '+mode)
             for name in ['incoming','full-target']:
                 subprocess.run(['kitty','@','--to','unix:'+str(run/(name+'.sock')),'close-window'],check=True)
                 time.sleep(.3)

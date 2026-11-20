@@ -82,6 +82,14 @@ double Window::get_saved_geom_h() const {
     return mem.box_h;
 }
 
+std::optional<bool> Window::get_fullsize_before_join() const {
+    return fullsizeBeforeJoin;
+}
+
+void Window::set_fullsize_before_join(std::optional<bool> fullsize) {
+    fullsizeBeforeJoin = fullsize;
+}
+
 WindowHeight Window::get_height() const {
     return height;
 }

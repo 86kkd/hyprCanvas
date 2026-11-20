@@ -230,10 +230,13 @@ ActiveWindowPayload Lane::extract_active_window_payload() {
     payload.width = stack->get_width();
     payload.primarySpan = stack_primary_span_for_transfer(stack);
     const auto payloadWindow = stack->get_active_window();
+    const auto stackExpanded = stack->expanded();
 
     payload.window = stack->expel_active(gap);
     if (!payload.window)
         return {};
+    payload.fullsize = payload.window->get_fullsize_before_join().value_or(stackExpanded);
+    payload.window->set_fullsize_before_join(std::nullopt);
 
     forgetWindowStack(payloadWindow);
 
@@ -318,18 +321,16 @@ void Lane::insert_window_payload(ActiveWindowPayload payload, Direction directio
     if (!payload)
         return;
 
-    // Preserve a fullsize destination, including its restore geometry. Incoming
-    // windows get their own stack on the requested side, never join its deck.
+    // Fullsize destinations accept incoming windows into the same deck so the
+    // expanded flag and restore geometry stay on the original stack.
     if (active && active->data()->expanded()) {
-        auto *reference = active->data();
-        auto *stack = create_stack_from_payload(std::move(payload));
-        if (!stack)
+        payload.window->set_fullsize_before_join(payload.fullsize);
+        auto window = payload.release_window();
+        const auto compositorWindow = window ? window->ptr().lock() : nullptr;
+        if (!window)
             return;
-        const bool before = direction == Direction::Left || direction == Direction::Up || direction == Direction::Begin;
-        active = before ? stacks.emplace_before(active, stack) : stacks.emplace_after(active, stack);
-        position_stack_relative_to_reference(stack, reference,
-            before ? ScrollerCore::local_item_backward_direction(mode) : ScrollerCore::local_item_forward_direction(mode));
-        rememberWindowStack(stack->get_active_window(), stack);
+        active->data()->admit_window(std::move(window));
+        rememberWindowStack(compositorWindow, active->data());
         recalculate_lane_geometry();
         debugVerifyStackCache();
         return;
@@ -358,8 +359,6 @@ void Lane::insert_window_payload(ActiveWindowPayload payload, Direction directio
     // mode would otherwise overflow the visible lane width.
     auto *current = active;
     auto *currentStack = current->data();
-    if (currentStack->expanded())
-        (void)currentStack->toggle_fullscreen(max);
 
     auto inserted = stacks.emplace_after(current, stack);
     if (direction == Direction::Left || direction == Direction::Up || direction == Direction::Begin)
@@ -406,6 +405,7 @@ void Lane::restore_active_window_payload(ActiveWindowPayload payload, const Acti
     }
 
     auto *stack = active->data();
+    payload.window->set_fullsize_before_join(payload.fullsize);
     auto window = payload.release_window();
     const auto compositorWindow = window ? window->ptr().lock() : nullptr;
 

@@ -198,9 +198,6 @@ void Lane::move_active_window_to_adjacent_stack(Direction dir) {
         sourceStack->fullscreen())
         return;
 
-    if (sourceStack->expanded())
-        (void)sourceStack->toggle_fullscreen(max);
-
     auto *target = dir == backward ? active->prev() : active->next();
     if (!target)
         return;
@@ -210,18 +207,17 @@ void Lane::move_active_window_to_adjacent_stack(Direction dir) {
     if (!payload)
         return;
     const auto targetWindowCountBefore = target->data()->size();
+    const auto targetExpanded = target->data()->expanded();
 
+    // Join the destination stack even when it is scroller-fullsize. Expanded
+    // stacks already know how to present multiple windows as a fullsize deck,
+    // so admitting must not clear that flag or fall back to a sibling stack.
     active = target;
-    // Fullsize stacks remain independent: cross to the requested side instead
-    // of admitting another window and changing their membership.
-    if (target->data()->expanded()) {
-        insert_window_payload(std::move(payload), dir);
-        return;
-    }
+    payload.window->set_fullsize_before_join(payload.fullsize);
     active->data()->admit_window(payload.release_window());
     rememberWindowStack(movedWindow, active->data());
 
-    if (targetWindowCountBefore == 1)
+    if (targetWindowCountBefore == 1 && !targetExpanded)
         active->data()->fit_windows_to_span(calculate_gap_x(active), gap, max);
     recalculate_lane_geometry();
     debugVerifyStackCache();
@@ -242,15 +238,15 @@ void Lane::move_active_window_to_new_stack(Direction dir) {
         sourceStack->size() == 1)
         return;
 
-    if (sourceStack->expanded())
-        (void)sourceStack->toggle_fullscreen(max);
-
+    // The leftover deck keeps its fullsize flag; the expelled window gets back
+    // the fullsize state it had before joining this stack.
     auto *sourceNode = active;
     sourceStack = sourceNode->data();
     auto payload = extract_active_window_payload();
     const auto movedWindow = payload.window ? payload.window->ptr().lock() : nullptr;
     if (!payload)
         return;
+    const auto restoreFullsize = payload.fullsize;
     auto *stack = create_stack_from_payload(std::move(payload));
     if (!stack)
         return;
@@ -262,6 +258,8 @@ void Lane::move_active_window_to_new_stack(Direction dir) {
         inserted = stacks.emplace_after(sourceNode, stack);
     }
     position_stack_relative_to_reference(stack, sourceStack, dir);
+    if (restoreFullsize)
+        (void)stack->toggle_fullscreen(max);
 
     active = inserted;
     rememberWindowStack(movedWindow, stack);

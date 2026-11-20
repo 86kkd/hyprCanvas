@@ -15,6 +15,7 @@
 #pragma once
 
 #include <memory>
+#include <optional>
 #include <string>
 #include <utility>
 #include <vector>
@@ -84,6 +85,10 @@ public:
     // Inspect the last saved logical geometry.
     double get_saved_geom_y() const;
     double get_saved_geom_h() const;
+    // Scroller-fullsize state of the stack this window lived in before it
+    // joined its current stack; unset for windows that never joined one.
+    std::optional<bool> get_fullsize_before_join() const;
+    void set_fullsize_before_join(std::optional<bool> fullsize);
     // Current height mode used for cycle logic.
     WindowHeight get_height() const;
     // Change height mode and sync the logical height for this mode.
@@ -114,6 +119,7 @@ private:
     double box_h;
     // Last saved logical geometry.
     Memory mem;
+    std::optional<bool> fullsizeBeforeJoin;
 };
 
 // Width every sized stack follows: the `set_window_size` count once chosen,
