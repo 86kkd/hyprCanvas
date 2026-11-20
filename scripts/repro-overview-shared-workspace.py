@@ -15,7 +15,7 @@ import time
 from PIL import Image
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--plugin', type=Path, default=Path(__file__).resolve().parents[1] / 'Debug/hyprscroller.so')
+parser.add_argument('--plugin', type=Path, default=Path(__file__).resolve().parents[1] / 'Debug/hyprCanvas.so')
 parser.add_argument('--reload-plugin', action='store_true', help='Check plugin unload/reload preserves monitor/window membership')
 parser.add_argument('--no-warps', action='store_true', help='Also verify keyboard focus with cursor.no_warps enabled')
 args = parser.parse_args()

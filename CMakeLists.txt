@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project("hyprscroller"
+project("hyprCanvas"
     LANGUAGES CXX
     DESCRIPTION "Hyprland layout similar to PaperWM and niri")
 
@@ -24,7 +24,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-gnu-unique")
 endif()
-add_library(hyprscroller SHARED
+add_library(hyprCanvas SHARED
             src/plugin/entry.cpp
             src/plugin/config.h
             src/plugin/dispatch/registration.h
@@ -104,11 +104,11 @@ add_library(hyprscroller SHARED
             src/layout/lane/geometry.cpp)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(hyprscroller PRIVATE
+    target_compile_options(hyprCanvas PRIVATE
         $<$<CONFIG:Debug>:-Wall;-Wextra;-Wpedantic>)
 
     if(HYPRSCROLLER_ENABLE_SANITIZERS)
-        target_compile_options(hyprscroller PRIVATE
+        target_compile_options(hyprCanvas PRIVATE
             $<$<CONFIG:Debug>:-fsanitize=address,undefined;-fno-omit-frame-pointer>)
         set(CMAKE_SHARED_LINKER_FLAGS_DEBUG
             "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} -fsanitize=address,undefined")
@@ -117,14 +117,14 @@ endif()
 
 add_compile_definitions(WLR_USE_UNSTABLE)
 
-target_include_directories(hyprscroller PRIVATE
+target_include_directories(hyprCanvas PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/src
             ${DEPS_INCLUDE_DIRS}
             /usr/include/hyprland/wlroots-hyprland/hyprland 
             /usr/include/hyprland/src
 )
-target_link_libraries(hyprscroller PRIVATE spdlog::spdlog_header_only PkgConfig::LUA)
-set_target_properties(hyprscroller PROPERTIES PREFIX "")
+target_link_libraries(hyprCanvas PRIVATE spdlog::spdlog_header_only PkgConfig::LUA)
+set_target_properties(hyprCanvas PROPERTIES PREFIX "")
 
 if(BUILD_TESTING)
     add_executable(hyprscroller_logic_tests
@@ -162,5 +162,5 @@ if(BUILD_TESTING)
         /usr/include/hyprland/src)
     target_link_libraries(hyprscroller_logic_tests PRIVATE PkgConfig::HYPRLAND ${DEPS_LIBRARIES} spdlog::spdlog_header_only stdc++ m)
     set_target_properties(hyprscroller_logic_tests PROPERTIES LINKER_LANGUAGE CXX)
-    add_test(NAME hyprscroller.logic COMMAND hyprscroller_logic_tests)
+    add_test(NAME hyprCanvas.logic COMMAND hyprscroller_logic_tests)
 endif()

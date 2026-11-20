@@ -161,8 +161,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     ScrollerModel::DeckPointer::initialize();
     spdlog::info("pluginInit: overview renderer hooks initialized");
 
-    // Keep the exported plugin metadata stable for plugin discovery and UI.
-    return {"hyprscroller", "scrolling window layout", "dawser", "1.0"};
+    // Export the same plugin identifier as the hyprpm manifest.
+    return {"hyprCanvas", "canvas window layout", "86kkd", "1.0"};
 }
 
 // Plugin shutdown hook used for final logging only.

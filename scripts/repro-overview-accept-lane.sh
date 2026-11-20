@@ -18,7 +18,7 @@ Usage: scripts/repro-overview-accept-lane.sh [options]
 Options:
   --outer-monitor NAME   Place the floating nested Hyprland window on NAME.
   --window-size WxH      Outer floating window size. Default: 1400x1800.
-  --plugin PATH          Plugin .so to load. Default: ./Debug/hyprscroller.so.
+  --plugin PATH          Plugin .so to load. Default: ./Debug/hyprCanvas.so.
   --keep-open            Leave the nested Hyprland instance running after setup.
   --hold-seconds N       Delay after opening overview before navigation. Default: 1.
   -h, --help             Show this help text.
@@ -122,7 +122,7 @@ launch_terminal_window() {
 }
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PLUGIN_PATH="$REPO_ROOT/Debug/hyprscroller.so"
+PLUGIN_PATH="$REPO_ROOT/Debug/hyprCanvas.so"
 WINDOW_WIDTH=1400
 WINDOW_HEIGHT=1800
 KEEP_OPEN=0

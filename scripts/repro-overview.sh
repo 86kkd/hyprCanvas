@@ -22,7 +22,7 @@ Usage: scripts/repro-overview.sh [options]
 Options:
   --outer-monitor NAME   Place the floating nested Hyprland window on NAME.
   --window-size WxH      Outer floating window size. Default: 1400x1800.
-  --plugin PATH          Plugin .so to load. Default: ./Debug/hyprscroller.so.
+  --plugin PATH          Plugin .so to load. Default: ./Debug/hyprCanvas.so.
   --keep-open            Leave the nested Hyprland instance running after setup.
   --hold-seconds N       Keep overview visible for N seconds before exit. Default: 2.
   -h, --help             Show this help text.
@@ -229,7 +229,7 @@ launch_preview_window() {
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 PATTERN_PATH="$REPO_ROOT/tests/assets/overview-pattern.svg"
-PLUGIN_PATH="$REPO_ROOT/Debug/hyprscroller.so"
+PLUGIN_PATH="$REPO_ROOT/Debug/hyprCanvas.so"
 WINDOW_WIDTH=1400
 WINDOW_HEIGHT=1800
 KEEP_OPEN=0
@@ -393,7 +393,7 @@ NESTED_SOCKET="$(hyprctl instances -j | jq -r --arg instance "$NESTED_INSTANCE" 
 wait_for_nested_output || die "nested Hyprland did not create a non-zero Wayland output"
 
 hyprctl -i "$NESTED_INSTANCE" plugin load "$PLUGIN_PATH" >/dev/null
-hyprctl -i "$NESTED_INSTANCE" plugin list | grep -q "Plugin hyprscroller" || die "nested Hyprland did not load hyprscroller"
+hyprctl -i "$NESTED_INSTANCE" plugin list | grep -q "Plugin hyprCanvas" || die "nested Hyprland did not load hyprCanvas"
 hyprctl -i "$NESTED_INSTANCE" eval "hl.config({ general = { layout = 'scroller' } })" >/dev/null
 hyprctl -i "$NESTED_INSTANCE" getoption general:layout | grep -q "str: scroller" || die "nested Hyprland did not activate the scroller layout"
 

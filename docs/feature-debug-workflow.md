@@ -185,7 +185,7 @@
 脚本要求尽量和 debug 场景一致：
 
 - 最小配置启动 nested `Hyprland`
-- 自动加载 `./Debug/hyprscroller.so`
+- 自动加载 `./Debug/hyprCanvas.so`
 - 明确窗口拓扑和 dispatcher 序列
 - 输出 run dir、log、result
 - 默认自动退出
@@ -309,7 +309,7 @@ ctest --test-dir Debug --output-on-failure
 脚本设计要求：
 
 - 用最小配置启动 nested `Hyprland`
-- 自动加载 `./Debug/hyprscroller.so`
+- 自动加载 `./Debug/hyprCanvas.so`
 - 明确窗口拓扑和 dispatcher 序列
 - 默认自动退出，避免残留测试会话
 - 输出 run dir、log、result

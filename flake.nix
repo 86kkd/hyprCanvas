@@ -1,5 +1,5 @@
 {
-  description = "hyprscroller";
+  description = "hyprCanvas";
 
   inputs.hyprland.url = "github:hyprwm/Hyprland";
 
@@ -20,9 +20,9 @@
           let
             pkgs = nixpkgs.legacyPackages.${system};
             hyprlandPkg = hyprland.packages.${system}.hyprland;
-            hyprscrollerPkg = self.packages.${system}.hyprscroller;
+            hyprCanvasPkg = self.packages.${system}.hyprCanvas;
           in
-          func { inherit pkgs hyprlandPkg hyprscrollerPkg; }
+          func { inherit pkgs hyprlandPkg hyprCanvasPkg; }
         );
 
       inherit (builtins) substring;
@@ -40,11 +40,11 @@
         {
           pkgs,
           hyprlandPkg,
-          hyprscrollerPkg,
+          hyprCanvasPkg,
         }:
         {
-          hyprscroller = pkgs.stdenv.mkDerivation {
-            pname = "hyprscroller";
+          hyprCanvas = pkgs.stdenv.mkDerivation {
+            pname = "hyprCanvas";
             inherit version;
             src = self;
 
@@ -61,17 +61,17 @@
 
             installPhase = ''
               mkdir -p $out/lib
-              cp ./hyprscroller.so $out/lib/libhyprscroller.so
+              cp ./hyprCanvas.so $out/lib/libhyprCanvas.so
             '';
 
             meta = with lib; {
-              homepage = "https://github.com/dawsers/hyprscroller";
+              homepage = "https://github.com/86kkd/hyprCanvas";
               description = "Hyprland layout plugin providing a scrolling layout like PaperWM";
               license = licenses.mit;
               platforms = platforms.linux;
             };
           };
-          default = hyprscrollerPkg;
+          default = hyprCanvasPkg;
         }
       );
 
@@ -79,19 +79,19 @@
         {
           pkgs,
           hyprlandPkg,
-          hyprscrollerPkg,
+          hyprCanvasPkg,
         }:
         {
           default = pkgs.mkShell {
             shellHook = ''
               make dev
             '';
-            name = "hyprscroller-shell";
+            name = "hyprCanvas-shell";
             nativeBuildInputs = with pkgs; [ cmake ];
             buildInputs = [ hyprlandPkg ];
             inputsFrom = [
               hyprlandPkg
-              hyprscrollerPkg
+              hyprCanvasPkg
             ];
           };
         }

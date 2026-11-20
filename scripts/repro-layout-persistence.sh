@@ -18,7 +18,7 @@ usage() {
 Usage: scripts/repro-layout-persistence.sh [options]
 
 Options:
-  --plugin PATH         Plugin .so to load. Default: ./Debug/hyprscroller.so.
+  --plugin PATH         Plugin .so to load. Default: ./Debug/hyprCanvas.so.
   --layout NAME         Tiled layout to test. Default: scroller.
   --keep-open           Leave the nested Hyprland instance running after setup.
   -h, --help            Show this help text.
@@ -212,7 +212,7 @@ assert_equal_snapshot() {
 }
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-PLUGIN_PATH="$REPO_ROOT/Debug/hyprscroller.so"
+PLUGIN_PATH="$REPO_ROOT/Debug/hyprCanvas.so"
 LAYOUT_NAME="scroller"
 KEEP_OPEN=0
 NESTED_INSTANCE=""

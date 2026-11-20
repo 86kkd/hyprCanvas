@@ -12,7 +12,7 @@ import tempfile
 import time
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--plugin', type=Path, default=Path(__file__).resolve().parents[1] / 'Debug/hyprscroller.so')
+parser.add_argument('--plugin', type=Path, default=Path(__file__).resolve().parents[1] / 'Debug/hyprCanvas.so')
 args = parser.parse_args()
 plugin = args.plugin.resolve()
 assert plugin.is_file(), f'Missing plugin: {plugin}'

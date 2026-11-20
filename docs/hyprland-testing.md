@@ -41,7 +41,7 @@ make debug
 构建完成后，测试用插件路径是：
 
 ```bash
-./Debug/hyprscroller.so
+./Debug/hyprCanvas.so
 ```
 
 插件初始化成功后，`~/.hyprland/plugins/hyprscroller/hyprscroller.log` 中的
@@ -64,7 +64,7 @@ overview”这条固定链路，优先直接用仓库里的脚本：
 
 脚本会完成这些事情：
 
-- 生成一份最小 nested `Hyprland` 配置并加载 `./Debug/hyprscroller.so`
+- 生成一份最小 nested `Hyprland` 配置并加载 `./Debug/hyprCanvas.so`
 - 把嵌套 Hyprland 作为一个浮动窗口放到指定 outer monitor
 - 在 nested 实例里创建一个图片预览窗口和四个终端窗口
 - 在 nested 实例内部自动执行 `scroller:toggleoverview`
@@ -254,7 +254,7 @@ hyprscroller_apply_five_monitor_cross_layout \
 先写一份最小测试配置，例如 `/tmp/hyprscroller-test.lua`：
 
 ```lua
-hl.plugin.load("/home/linda/Documents/hyprscroller/Debug/hyprscroller.so")
+hl.plugin.load("/home/linda/Documents/hyprscroller/Debug/hyprCanvas.so")
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
 hl.config({
     general = { layout = "scroller", gaps_in = 4, gaps_out = 8, border_size = 2 },
@@ -266,7 +266,7 @@ hl.config({
 ```
 
 当前基线使用 Lua 配置，不支持旧的 `plugin = ...`。运行时手动加载可用
-`hyprctl -i <instance-signature> plugin load /path/to/hyprscroller.so`；
+`hyprctl -i <instance-signature> plugin load /path/to/hyprCanvas.so`；
 这是插件管理命令，不是 dispatcher。不要对已经加载的插件重复加载。
 
 然后直接启动一个嵌套测试实例：

@@ -21,7 +21,7 @@ Usage: scripts/repro-overview-canvas-workspaces.sh [options]
 Options:
   --outer-monitor NAME   Place the floating nested output windows on NAME.
   --window-size WxH      Base outer landscape output size. Default: 1800x1200.
-  --plugin PATH          Plugin .so to load. Default: ./Debug/hyprscroller.so.
+  --plugin PATH          Plugin .so to load. Default: ./Debug/hyprCanvas.so.
   --keep-open            Leave the nested Hyprland instance running after setup.
   --hold-seconds N       Delay after opening overview before navigation. Default: 1.
   -h, --help             Show this help text.
@@ -275,7 +275,7 @@ prepare_outer_output_layout() {
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 source "$REPO_ROOT/scripts/lib/nested-monitor-layouts.sh"
-PLUGIN_PATH="$REPO_ROOT/Debug/hyprscroller.so"
+PLUGIN_PATH="$REPO_ROOT/Debug/hyprCanvas.so"
 WINDOW_WIDTH=1800
 WINDOW_HEIGHT=1200
 KEEP_OPEN=0

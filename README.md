@@ -1,4 +1,4 @@
-# Hyprscroller
+# HyprCanvas
 
 Stacks with more than two windows automatically use an overlapping card layout:
 the active window occupies 61.8% of the visible stack axis, the previously
@@ -37,7 +37,7 @@ strip or foreground area, tracking native window animations rather than the
 covered full-window rectangles. Narrow side slivers do not steal pointer focus.
 
 
-[Hyprscroller](https://github.com/86kkd/hyprscroller) is a
+[HyprCanvas](https://github.com/86kkd/hyprCanvas) is a
 [Hyprland](https://hyprland.org) layout plugin that creates a window layout
 similar to [PaperWM](https://github.com/paperwm/PaperWM). I initialy
 learned how to write a *Hyprland* plugin from [hyprslidr](https://gitlab.com/magus/hyprslidr),
@@ -63,25 +63,40 @@ before loading that new build.
 
 ## Requirements
 
-*hyprscroller* supports the version of *Hyprland* I use, which should be the
+*hyprCanvas* supports the version of *Hyprland* I use, which should be the
 same as the Arch Linux `hyprland` package. You can try your luck with the
 latest `git` changes, but I will be slower to keep up with those, as there are
 too many API changes going on upstream.
 
-Aside from those versions, even though the feature set will be frozen for
-them, *hyprscroller* also supports v0.35, v0.38.1, v0.39.1 and v0.40.0.
+Historical hyprscroller releases supported older Hyprland versions. Their
+commit pins are not used by hyprCanvas because those commits export the old
+plugin identifier and build artifact.
 
 
 ## Building and installing
 
-With Hyprland installed it should be as simple as running
+Use `hyprpm` to install the published version from this repository:
 
 ``` sh
-# builds a shared object hyprscroller.so
-make all
-# installs the shared library in ~/.config/hypr/plugins
-make install
+hyprpm update
+hyprpm add https://github.com/86kkd/hyprCanvas.git
+hyprpm enable hyprCanvas
+hyprpm list
 ```
+
+The repository and plugin identifier are `hyprCanvas`; the built library is
+`hyprCanvas.so`. The layout is `scroller`, and Lua commands are under
+`hl.plugin.scroller`. Configure startup loading as described below, then log
+out and back in to activate it.
+
+For later updates, run `hyprpm update`. It builds published Git commits, not
+uncommitted changes in your local checkout. Updating can unload a running
+plugin; save your work first. After upgrading Hyprland, restart the session
+before loading a plugin compiled against the new version.
+
+For local development, `make release` builds `Release/hyprCanvas.so`.
+Test it in a nested compositor (see the testing notes below). Do not run
+`make install` over a shared library loaded by your active desktop.
 
 If you are hacking on the plugin, you can also run the pure logic tests without
 starting Hyprland:
@@ -128,34 +143,30 @@ For the locally maintained Hyprland layout-switch helper script that wires
 `master` / `dwindle` / `scroller` and the current scroller-specific binds, see
 [examples/ChangeLayout.sh](./examples/ChangeLayout.sh).
 
-A more automated option is to use `hyprpm`.
-
-``` sh
-hyprpm add https://github.com/86kkd/hyprscroller
-# verify it installed correctly
-hyprpm list
-```
-
-You can enable or disable it via `hyprpm enable hyprscroller` and
-`hyprpm disable hyprscroller`.
-
-
 ## Configuration
 
-Hyprland 0.57 removed the legacy `plugin = ...` config keyword. If you are not
-using `hyprpm`, load the plugin from your Lua configuration:
-
-``` lua
-hl.plugin.load(os.getenv("HOME") .. "/.config/hypr/plugins/hyprscroller.so")
-```
-
-Instead, if you use `hyprpm`, it should be as simple as adding this to
-your `~/.config/hypr/hyprland.lua`:
+For Hyprland 0.57, add this to `~/.config/hypr/hyprland.lua`:
 
 ``` lua
 hl.on("hyprland.start", function()
     hl.exec_cmd("hyprpm reload -n")
 end)
+```
+
+When migrating from manual installation, remove the old
+`hl.plugin.load(...hyprscroller.so)` call (or a manual `hyprCanvas.so` load)
+and any startup command that runs `hyprctl plugin load` for it. Keep existing
+layout settings and keybindings. Save your work before changing the config:
+automatic config reload can unload the manually loaded plugin. Do not load
+both plugins: hyprscroller and hyprCanvas register the same layout and Lua
+commands. Log out and back in after installing and enabling hyprCanvas;
+`hyprpm` will load its managed copy at startup. Keep the old `.so` as a
+rollback copy until this is verified.
+
+If plugin permission management is enabled, allow the manager:
+
+``` lua
+hl.permission("/usr/(bin|local/bin)/hyprpm", "plugin", "allow")
 ```
 
 To turn on the layout, use
@@ -164,7 +175,7 @@ To turn on the layout, use
 hl.config({ general = { layout = "scroller" } })
 ```
 
-For manual runtime loading, use `hyprctl plugin load /path/to/hyprscroller.so`.
+For manual runtime loading, use `hyprctl plugin load /path/to/hyprCanvas.so`.
 This is a plugin-management command, not a dispatcher. Add `-i <instance-signature>`
 when targeting a nested test instance. Do not load the same plugin twice.
 
@@ -329,7 +340,7 @@ as the name. Again, see the example configuration.
 
 ## Options
 
-*hyprscroller* currently accepts the following options:
+*hyprCanvas* currently accepts the following options:
 
 1. `column_default_width`: the visible-stack count new stacks start with,
 using the same `workarea / n` rule as `set_window_size`. Possible values are

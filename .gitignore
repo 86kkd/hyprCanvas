@@ -1,6 +1,6 @@
 Debug/
 Release/
-hyprscroller.so
+hyprCanvas.so
 .cache/
 compile_commands.json
 build/
