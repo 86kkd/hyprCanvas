@@ -35,6 +35,7 @@ struct Target {
     ScrollerCore::Box box;
     ScrollerCore::Box sourceBox;
     bool              synthetic = false;
+    PHLWINDOW         stackActiveWindow = nullptr;
 };
 
 struct WorkspaceNode {

@@ -27,6 +27,9 @@ struct CanvasTargetCandidate {
     int               canvasId = -1;
     int               monitorId = MONITOR_ID_INVALID;
     ScrollerCore::Box box;
+    // Nonzero keys group windows belonging to the same stack.
+    uintptr_t         stackId = 0;
+    bool              stackActive = false;
 };
 
 enum class AcceptActionType {

@@ -48,14 +48,18 @@ CanvasOverviewSnapshot CanvasLayout::buildOverviewSnapshot() const {
         if (!lane)
             continue;
 
-        for (const auto& entry : lane->capture_window_boxes()) {
-            if (!entry.window)
-                continue;
-            snapshot.windows.push_back({
-                .window = entry.window,
-                .box = entry.box,
-            });
-        }
+        const auto windowBoxes = lane->capture_window_boxes();
+        lane->for_each_stack([&](auto* stack) {
+            for (const auto& entry : windowBoxes) {
+                if (!entry.window || !stack->has_window(entry.window))
+                    continue;
+                snapshot.windows.push_back({
+                    .window = entry.window,
+                    .box = entry.box,
+                    .stackActiveWindow = stack->get_active_window(),
+                });
+            }
+        });
     }
 
     return snapshot;

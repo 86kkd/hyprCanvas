@@ -54,6 +54,13 @@ inline ScrollerCore::Box centerScaleBox(const ScrollerCore::Box& box, double sca
     };
 }
 
+inline ScrollerCore::Box unionBox(const ScrollerCore::Box& a, const ScrollerCore::Box& b) {
+    const auto x = std::min(a.x, b.x);
+    const auto y = std::min(a.y, b.y);
+    return {x, y, std::max(a.x + a.w, b.x + b.w) - x,
+            std::max(a.y + a.h, b.y + b.h) - y};
+}
+
 inline std::optional<ScrollerCore::Box> intersectBox(const ScrollerCore::Box& box, const ScrollerCore::Box& bounds) {
     if (!finiteBox(box) || !finiteBox(bounds))
         return std::nullopt;

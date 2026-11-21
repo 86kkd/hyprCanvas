@@ -234,6 +234,8 @@ std::optional<TargetRef> Session::findBestTarget(Direction direction) const {
             .canvasId = target->canvasId,
             .monitorId = target->monitorId,
             .box = target->box,
+            .stackId = reinterpret_cast<uintptr_t>(target->stackActiveWindow.get()),
+            .stackActive = target->window && target->window == target->stackActiveWindow,
         });
         refs.push_back(node.ref);
 

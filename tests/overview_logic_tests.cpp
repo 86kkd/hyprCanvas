@@ -136,6 +136,40 @@ void test_overview_target_selection_keeps_empty_targets_reachable_in_canvas() {
                 "overview movefocus can select same-canvas empty workspace targets before accept");
 }
 
+void test_overview_stack_navigation() {
+    for (bool column : {false, true}) {
+        std::vector<OverviewLogic::CanvasTargetCandidate> targets = {
+            {.canvasId=10, .monitorId=1, .box={0, 0, 100, 100}, .stackId=1},
+            {.canvasId=10, .monitorId=1, .box={0, 120, 100, 100}, .stackId=1, .stackActive=true},
+            {.canvasId=10, .monitorId=1, .box={140, 0, 100, 100}, .stackId=2},
+            {.canvasId=10, .monitorId=1, .box={140, 120, 100, 100}, .stackId=2, .stackActive=true},
+            {.canvasId=10, .monitorId=2, .box={280, 0, 100, 220}}, // Empty workspace.
+            {.canvasId=20, .monitorId=1, .box={110, 0, 20, 220}, .stackId=3},
+        };
+        if (column) {
+            for (auto& target : targets) {
+                std::swap(target.box.x, target.box.y);
+                std::swap(target.box.w, target.box.h);
+            }
+        }
+        const auto forward = column ? Direction::Down : Direction::Right;
+        const auto backward = column ? Direction::Up : Direction::Left;
+        const auto within = column ? Direction::Right : Direction::Down;
+        for (size_t index : {0u, 1u}) {
+            expect_true(OverviewLogic::pickTargetIndexInCanvas(targets, index, forward) == 3,
+                        "moving to a stack selects its remembered active window");
+            expect_true(!OverviewLogic::pickTargetIndexInCanvas(targets, index, within),
+                        "overview never moves between windows in the same stack");
+            expect_true(!OverviewLogic::pickTargetIndexInCanvas(targets, index, backward),
+                        "overview stops at the stack boundary");
+        }
+        expect_true(OverviewLogic::pickTargetIndexInCanvas(targets, 3, backward) == 1,
+                    "returning to a stack preserves its active window");
+        expect_true(OverviewLogic::pickTargetIndexInCanvas(targets, 3, forward) == 4,
+                    "stack navigation still reaches an empty workspace on another monitor");
+    }
+}
+
 void test_overview_axis_alignment_tolerance() {
     // Projection and symmetric deck insets can leave a few ulps of center
     // drift. A sibling above/below must not steal the first horizontal move.
@@ -218,6 +252,7 @@ void run_overview_logic_tests() {
     test_overview_target_selection_stops_at_preview_edge();
     test_overview_target_selection_keeps_empty_targets_reachable_in_canvas();
     test_overview_axis_alignment_tolerance();
+    test_overview_stack_navigation();
     test_overview_empty_accept_plan();
     test_overview_window_accept_plan();
     test_overview_special_workspace_accept_plan();

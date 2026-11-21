@@ -94,6 +94,7 @@ WorkspaceNode build_workspace_node(const CanvasLayoutState::CanvasWorkspaceRecor
             .box = snapshotWindow.box,
             .sourceBox = snapshotWindow.box,
             .synthetic = synthetic,
+            .stackActiveWindow = snapshotWindow.stackActiveWindow,
         });
     }
 

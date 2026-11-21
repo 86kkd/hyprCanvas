@@ -141,6 +141,11 @@ Overview is a navigation layer. It renders workspace cards while leaving real
 window geometry untouched. It can select tiled windows, empty workspaces, and
 new empty-workspace targets reached through directional navigation.
 
+Directional focus moves between whole stacks, skipping sibling windows inside a
+stack. The selection outline surrounds the entire stack, including all its
+cards. Entering a stack selects its remembered active window. Empty workspaces
+remain selectable.
+
 While overview is open:
 
 - `move_focus(direction)` changes the logical selection.

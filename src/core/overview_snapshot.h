@@ -7,6 +7,7 @@
 struct CanvasOverviewSnapshotWindow {
     PHLWINDOW         window = nullptr;
     ScrollerCore::Box box;
+    PHLWINDOW         stackActiveWindow = nullptr;
 };
 
 struct CanvasOverviewSnapshot {

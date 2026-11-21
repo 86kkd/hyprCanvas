@@ -112,6 +112,23 @@ with (run / 'hyprland.log').open('w') as log:
                     command('toggle_overview()')
                     selected=json.loads(ctl('activewindow','-j')).get('class')
                     check(selected==expected,mode+' first '+direction+' from card-'+str(index)+' selects '+expected+' (got '+str(selected)+')')
+            # The stack-item axis must never select another card in overview.
+            within = ('u', 'd') if mode == 'row' else ('l', 'r')
+            for index in range(3):
+                for direction in within:
+                    name = 'card-' + str(index)
+                    focus(name)
+                    command('toggle_overview()')
+                    command('move_focus("'+direction+'")')
+                    command('toggle_overview()')
+                    selected = json.loads(ctl('activewindow','-j')).get('class')
+                    check(selected == name, mode+' '+direction+' stays on active card '+name)
+                focus('neighbor-before')
+                command('toggle_overview()')
+                command('move_focus("'+forward+'")')
+                command('toggle_overview()')
+                selected = json.loads(ctl('activewindow','-j')).get('class')
+                check(selected == name, mode+' entering stack restores '+name)
             for name in ['card-0','card-1','card-2','neighbor-before','neighbor-after']:
                 subprocess.run(['kitty','@','--to','unix:'+str(run/(name+'.sock')),'close-window'],check=True)
                 time.sleep(.2)

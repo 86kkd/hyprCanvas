@@ -38,8 +38,8 @@ Box localize_box(PHLMONITOR monitor, const Box& box) {
     return localizeGlobalBox(box, monitor->m_position.x, monitor->m_position.y);
 }
 
-// Scene objects do not hold `TargetRef`s. Recompute the same identity test in
-// render-friendly form so the scene can cheaply mark selection state.
+// Highlight every member of the selected stack, while the session retains its
+// active window as the concrete target to focus when overview is accepted.
 bool target_matches_selection(const Target& target, const Target* selection) {
     if (!selection)
         return false;
@@ -48,7 +48,8 @@ bool target_matches_selection(const Target& target, const Target* selection) {
         && target.canvasId == selection->canvasId
         && target.workspaceId == selection->workspaceId
         && target.monitorId == selection->monitorId
-        && target.window == selection->window
+        && (target.window == selection->window
+            || (target.stackActiveWindow && target.stackActiveWindow == selection->stackActiveWindow))
         && target.synthetic == selection->synthetic;
 }
 
@@ -129,7 +130,7 @@ std::optional<SceneMonitor> buildSceneForMonitor(PHLMONITOR monitor, const Model
 
             sceneWorkspace.selected = true;
             if (target.type == TargetType::Window)
-                scene.selectionBox = target.box;
+                scene.selectionBox = scene.selectionBox ? unionBox(*scene.selectionBox, target.box) : target.box;
         }
 
         scene.workspaces.push_back(std::move(sceneWorkspace));

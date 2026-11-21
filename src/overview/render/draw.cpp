@@ -306,7 +306,8 @@ void draw_window_preview(Render::CRenderContext& ctx, RenderState& state, const 
     // 4. title backdrop + text
     const auto previewBox = insetBox(drawBox, Style::kPreviewInset, Style::kPreviewInset);
     const auto previewShape = preview_shape_for_window(target, previewBox);
-    const auto border = Style::previewBorder(target.selected, static_cast<float>(0.92 * overlayAlpha));
+    // Selection is outlined once around the whole stack, not around each card.
+    const auto border = Style::previewBorder(false, static_cast<float>(0.92 * overlayAlpha));
     const auto shadowAlpha = target.selected ? 0.22F : 0.14F;
     if (const auto shadowBox = intersectBox(previewBox, bounds); shadowBox && shadowBox->w > 4.0 && shadowBox->h > 4.0) {
         const Config::CGradientValueData shadowGradient(Style::previewShadow(shadowAlpha * overlayAlpha));
@@ -445,7 +446,7 @@ void drawSceneMonitor(Render::CRenderContext& ctx, const SceneMonitor& scene, st
                 const auto drawBox = animated_window_draw_box(state, scene.monitorId, target, progress);
                 draw_window_preview(ctx, state, target, drawBox, scene.box, progress);
                 if (target.selected)
-                    selectionBox = drawBox;
+                    selectionBox = selectionBox ? unionBox(*selectionBox, drawBox) : drawBox;
             } else {
                 draw_empty_target(target, scene.box, progress);
             }

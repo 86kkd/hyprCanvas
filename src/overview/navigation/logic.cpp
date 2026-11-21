@@ -169,14 +169,34 @@ std::optional<size_t> pickTargetIndexInCanvas(const std::vector<CanvasTargetCand
         if (target.canvasId != currentCanvasId)
             continue;
 
-        if (index == currentIndex)
-            canvasCurrentIndex = canvasTargets.size();
+        auto groupIndex = canvasTargets.size();
+        if (target.stackId != 0) {
+            for (size_t group = 0; group < originalIndexes.size(); ++group) {
+                if (targets[originalIndexes[group]].stackId == target.stackId) {
+                    groupIndex = group;
+                    break;
+                }
+            }
+        }
 
-        canvasTargets.push_back({
-            .monitorId = target.monitorId,
-            .box = target.box,
-        });
-        originalIndexes.push_back(index);
+        if (index == currentIndex)
+            canvasCurrentIndex = groupIndex;
+
+        if (groupIndex == canvasTargets.size()) {
+            canvasTargets.push_back({.monitorId = target.monitorId, .box = target.box});
+            originalIndexes.push_back(index);
+        } else {
+            // Route by the entire preview stack, independent of its active card.
+            auto& box = canvasTargets[groupIndex].box;
+            const auto right = std::max(box.x + box.w, target.box.x + target.box.w);
+            const auto bottom = std::max(box.y + box.h, target.box.y + target.box.h);
+            box.x = std::min(box.x, target.box.x);
+            box.y = std::min(box.y, target.box.y);
+            box.w = right - box.x;
+            box.h = bottom - box.y;
+        }
+        if (target.stackActive)
+            originalIndexes[groupIndex] = index;
     }
 
     if (!canvasCurrentIndex)
