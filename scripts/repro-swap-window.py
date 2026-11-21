@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Regress adjacent-stack window swaps in an isolated Hyprland instance.
+"""Regress within-stack moves and adjacent-stack swaps in isolated Hyprland.
 
 Requires Hyprland, hyprctl and kitty. Does not reload the desktop plugin.
 """
@@ -115,7 +115,39 @@ with (run / 'hyprland.log').open('w') as log:
                 launch(name, '#2222aa')
                 if name != 'right-0':
                     command('move_window("'+back+'")')
+            # In-stack moves must promote the target rather than retain an
+            # unrelated secondary from focus history. Reverse each move to
+            # restore list order before testing the other direction.
+            cross_axis = 0 if mode == 'row' else 1
+            within_back = 'u' if mode == 'row' else 'l'
+            for expanded in [False, True]:
+                focus('left-1')
+                if expanded:
+                    command('toggle_fullscreen()')
+                for direction, reverse, target, old_secondary in [
+                    (within_back, within, 'left-0', 'left-2'),
+                    (within, within_back, 'left-2', 'left-0'),
+                ]:
+                    focus(old_secondary)
+                    focus('left-1')
+                    secondary_size = client(old_secondary)['size'][cross_axis]
+                    check(client(target)['size'][cross_axis] < secondary_size,
+                          mode + ' move target starts as a non-secondary card')
+                    command('move_window("'+direction+'")')
+                    check(active_name() == 'left-1', mode + ' in-stack move preserves primary focus')
+                    check(client(target)['size'][cross_axis] == secondary_size and
+                          client(old_secondary)['size'][cross_axis] < secondary_size,
+                          mode + ' ' + direction + ' promotes move target to secondary expanded=' + str(expanded))
+                    command('move_window("'+reverse+'")')
+                    check(client(target)['size'][cross_axis] == secondary_size,
+                          mode + ' reverse move retains target as secondary')
+                if expanded:
+                    command('toggle_fullscreen()')
+
             # Remember a non-last target window, then return to the source.
+            # Reset the earlier scenario's secondary history to the predecessor:
+            # layout snapshots restore that fallback, not previousActive.
+            focus('left-0')
             focus('right-0')
             focus('left-1')
             before = geometry()

@@ -139,12 +139,14 @@ void Stack::move_active(Direction direction) {
     const auto forward = ScrollerCore::stack_item_forward_direction(mode);
     if (direction == backward && active != windows.first()) {
         auto previous = active->prev();
+        previousActive = previous->data();
         windows.swap(active, previous);
         return;
     }
 
     if (direction == forward && active != windows.last()) {
         auto next = active->next();
+        previousActive = next->data();
         windows.swap(active, next);
     }
 }
