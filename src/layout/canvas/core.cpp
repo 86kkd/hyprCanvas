@@ -1090,6 +1090,11 @@ void CanvasLayout::onWindowRemovedTiling(PHLWINDOW window)
 
     forgetWindowLane(window);
     if (s->remove_window(window)) {
+        // Membership changes can also change lane-wide sizing (for example,
+        // the last surviving window must fill its lane). Refresh and damage
+        // the visible canvas here instead of relying on a later focus event.
+        if (const auto monitor = getVisibleCanvasMonitor())
+            recalculateMonitor(monitor->m_id);
         debugVerifyLaneCache();
         persistSnapshot();
         return;

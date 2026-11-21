@@ -50,6 +50,17 @@ make debug
 
 ## 2. 快速复现 overview
 
+关闭窗口后的 stack 布局回归（独立嵌套实例，不重新加载主桌面插件）：
+
+```bash
+python3 scripts/repro-stack-removal.py
+```
+
+该脚本覆盖 row / col 模式下三窗口 stack 删除成员后恢复普通布局，以及
+只剩一个窗口时立即填满 lane；删除后先读取几何，不切换焦点来触发刷新。
+同时验证进入空 lane 再返回后，未聚焦 stack 的所有窗口也恢复原坐标，
+防止从多 lane 回到单 lane 时残留一屏偏移。
+
 版本说明：本节及其子节中的旧版 shell repro 脚本保留了 Hyprlang 配置和旧
 `scroller:*` dispatcher 调用，尚未迁移，不适用于当前 0.57 基线。当前版本
 请使用本文末尾的 `scripts/repro-overview-shared-workspace.py`，或第 3 节起的

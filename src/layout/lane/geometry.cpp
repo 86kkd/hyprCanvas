@@ -188,9 +188,10 @@ void Lane::update_sizes(PHLMONITOR monitor) {
         return;
 
     const auto bounds = CanvasLayoutInternal::compute_canvas_bounds(monitor);
-    full = bounds.full;
-    max = bounds.max;
-    gap = bounds.gap;
+    // Returning from a paged canvas also changes the stack-local origin.
+    // Use the same translation as multi-lane layout before replacing `max`,
+    // otherwise unfocused stacks retain the old page's window coordinates.
+    set_canvas_geometry(bounds.full, bounds.max, bounds.gap);
 }
 
 // Force the active stack into fullscreen geometry used for special fullscreen paths.
