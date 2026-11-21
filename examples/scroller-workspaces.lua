@@ -35,8 +35,19 @@ switch("SUPER + tab", "r", "m+1")
 switch("SUPER + SHIFT + tab", "l", "m-1")
 switch("SUPER + mouse_down", "r", "e+1")
 switch("SUPER + mouse_up", "l", "e-1")
-move("CTRL + SHIFT + H", "l", "-1", true)
-move("CTRL + SHIFT + L", "r", "+1", true)
+for _, spec in ipairs({
+  { "H", "l", "left" }, { "J", "d", "down" },
+  { "K", "u", "up" }, { "L", "r", "right" },
+}) do
+  local key, direction, native = spec[1], spec[2], spec[3]
+  bind("CTRL + SHIFT + " .. key, function()
+    if scroller() then
+      hl.plugin.scroller.swap_window(direction)
+    else
+      hl.dispatch(hl.dsp.window.swap({ direction = native }))
+    end
+  end, "swap window " .. native .. " (scroller: adjacent stacks)")
+end
 for _, spec in ipairs({ {"bracketleft", "l", "-1"}, {"bracketright", "r", "+1"} }) do
   move("SUPER + SHIFT + " .. spec[1], spec[2], spec[3], true)
   move("SUPER + CTRL + " .. spec[1], spec[2], spec[3], false)

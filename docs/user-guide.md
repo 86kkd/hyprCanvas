@@ -40,6 +40,10 @@ keybinding modules:
 dofile(os.getenv("HOME") .. "/.config/hypr/lua/scroller-workspaces.lua")
 ```
 
+The module binds `Ctrl + Shift + H / J / K / L` to `swap_window`
+(left / down / up / right). In row mode, adjacent-stack swaps use H/L; in
+column mode they use J/K. Other layouts use native directional swapping.
+
 Read the module before installing it. It replaces Tab, number, and wheel
 workspace shortcuts, adds directional movement and monitor/overview controls,
 and disables numbered window transfers and whole-workspace monitor moves while
