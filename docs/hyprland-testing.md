@@ -48,6 +48,38 @@ make debug
 `hyprland_abi` 字段会记录该二进制的编译目标 commit 和依赖 ABI，可用于排查加载了
 旧构建的问题。
 
+## 使用仓库内的 Lua 测试配置
+
+构建 Debug 插件后，在仓库根目录运行（需安装 `kitty`）：
+
+```bash
+env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c tests/hyprscroller-test.lua
+```
+
+[`tests/hyprscroller-test.lua`](../tests/hyprscroller-test.lua) 加载本仓库的
+`Debug/hyprCanvas.so`，启动时不创建窗口，输出尺寸采用 `preferred`。
+需要终端时按 `Ctrl + Alt + Enter` 打开 kitty。快捷键使用
+`Ctrl + Alt`，方便在嵌套会话中与外层桌面的 `Super` 绑定区分：
+
+| 快捷键 | 操作 |
+| --- | --- |
+| Ctrl + Alt + Enter | 新建终端 |
+| Ctrl + Alt + 方向键 | 移动焦点；overview 中按 stack 导航 |
+| Ctrl + Alt + Shift + 方向键 | 移动窗口、合并或拆分 stack |
+| Ctrl + Alt + O | 打开 / 接受 overview |
+| Ctrl + Alt + Escape | 取消 overview |
+| Ctrl + Alt + R / C | 切换 row / col 模式 |
+| Ctrl + Alt + F | 展开 / 恢复 stack |
+| Ctrl + Alt + 1…8 | 设置可见 stack 数量 |
+| Ctrl + Alt + Tab / Shift + Tab | 下一个 / 上一个 canvas |
+| Ctrl + Alt + Super + 方向键 | 切换显示器；overview 中切换 canvas 预览 |
+| Ctrl + Alt + Shift + Q | 退出测试会话 |
+
+验证 stack 导航：在 row 模式下新建第二个终端，按
+`Ctrl + Alt + Shift + Left` 将其并入左侧 stack；再新建一个终端作为相邻
+stack。打开 overview 后，上下移动不应切换同一 stack 内的窗口，左右移动
+应切换 stack，并选中目标 stack 原来的活动窗口。切换 col 模式后，方向对调。
+
 ## 2. 快速复现 overview
 
 关闭窗口后的 stack 布局回归（独立嵌套实例，不重新加载主桌面插件）：
