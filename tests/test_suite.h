@@ -1,5 +1,6 @@
 #pragma once
 
+void run_minimap_tests();
 void run_core_logic_tests();
 void run_layout_snapshot_tests();
 void run_layout_logic_tests();

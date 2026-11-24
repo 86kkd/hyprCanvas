@@ -470,4 +470,66 @@ void drawSceneMonitor(Render::CRenderContext& ctx, const SceneMonitor& scene, st
     }
 }
 
+// Both the transient desktop HUD and persistent overview map use these same
+// boxes and styles. Hit-testing consumes the unmodified logical boxes.
+void drawCanvasMap(Render::CRenderContext& ctx, const Minimap::Map& map, double alpha, double scale, RenderState& state) {
+    if (map.cells.empty() || alpha <= 0)
+        return;
+    // OpenGL consumes monitor pixel coordinates, while map geometry and input
+    // use logical workarea coordinates. Scale exactly once, at this boundary.
+    const auto pixels = [scale](const Box& b) { return Box{b.x * scale, b.y * scale, b.w * scale, b.h * scale}; };
+    const auto rect = [&](Render::CRenderContext& context, const Box& b, const Box& clip, const CHyprColor& color, int round) {
+        draw_rect(context, pixels(b), pixels(clip), color, iround(round * scale));
+    };
+    const auto text = [&](Render::CRenderContext& context, RenderState& cache, const std::string& label, const Box& b,
+                          const Box& clip, const CHyprColor& color, int pt, int weight = 400) {
+        draw_text(context, cache, label, pixels(b), pixels(clip), color, iround(pt * scale), weight);
+    };
+    const auto outline = [&](Render::CRenderContext& context, const Box& b, const Box& clip, const CHyprColor& color, int round) {
+        draw_outline_panel(context, pixels(b), pixels(clip), color, iround(round * scale), 2.0F, 2 * scale);
+    };
+    const auto& bounds = map.panel;
+    const float a = static_cast<float>(alpha);
+    rect(ctx, bounds, bounds, Style::titleBackdrop(0.96F * a), 12);
+    text(ctx, state, "CANVAS MAP", {bounds.x + 12, bounds.y + 7, bounds.w - 24, 18}, bounds, Style::titleText(a), 14, 600);
+    for (const auto& cell : map.cells) {
+        const auto& b = cell.box;
+        if (cell.create || cell.canvas.synthetic || cell.canvas.temporary) {
+            // Dashed edges distinguish temporary/possible destinations from
+            // retained canvases even without color perception.
+            for (double x = b.x; x < b.x + b.w; x += 8) {
+                const double w = std::min(4.0, b.x + b.w - x);
+                rect(ctx, {x, b.y, w, 1}, bounds, Style::previewBorder(false, a), 0);
+                rect(ctx, {x, b.y + b.h - 1, w, 1}, bounds, Style::previewBorder(false, a), 0);
+            }
+            for (double y = b.y; y < b.y + b.h; y += 8) {
+                const double h = std::min(4.0, b.y + b.h - y);
+                rect(ctx, {b.x, y, 1, h}, bounds, Style::previewBorder(false, a), 0);
+                rect(ctx, {b.x + b.w - 1, y, 1, h}, bounds, Style::previewBorder(false, a), 0);
+            }
+        } else {
+            rect(ctx, b, bounds, Style::previewFallbackFill(cell.current, a), 5);
+        }
+        if (cell.current) {
+            rect(ctx, {b.x + 3, b.y + 3, b.w - 6, b.h - 6}, bounds, Style::previewFallbackFill(true, a), 3);
+            rect(ctx, {b.x + b.w - 8, b.y + 4, 4, 4}, bounds, Style::titleText(a), 2);
+        }
+        if (cell.selected)
+            outline(ctx, b, bounds, Style::selectionOutline(a), 5);
+        const auto label = cell.create ? "+" : std::to_string(cell.number) + (cell.canvas.synthetic || cell.canvas.temporary ? "*" : "");
+        text(ctx, state, label, {b.x + 8, b.y + 9, b.w - 14, b.h - 15}, bounds, Style::titleText(a), 14, 600);
+    }
+    std::string footer = "";
+    for (const auto& cell : map.cells)
+        if (cell.current) footer = "Now " + std::to_string(cell.number);
+    for (const auto& cell : map.cells)
+        if (cell.selected && !cell.current) footer += " / View " + std::to_string(cell.number);
+    if (footer.empty()) footer = "Canvas map";
+    if (map.left) footer += " <";
+    if (map.up) footer += " ^";
+    if (map.down) footer += " v";
+    if (map.right) footer += " >";
+    text(ctx, state, footer, {bounds.x + 12, bounds.y + bounds.h - 26, bounds.w - 24, 18}, bounds, Style::titleText(a), 12);
+}
+
 } // namespace Overview

@@ -5,6 +5,7 @@
 #include "test_support.h"
 
 int main() {
+    run_minimap_tests();
     run_core_logic_tests();
     run_layout_snapshot_tests();
     run_layout_logic_tests();

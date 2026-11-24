@@ -29,4 +29,14 @@ class OverviewPassElement : public IPassElement {
     PHLMONITOR monitor_;
 };
 
+class CanvasMapPassElement : public OverviewPassElement {
+  public:
+    explicit CanvasMapPassElement(PHLMONITOR monitor) : OverviewPassElement(monitor), monitor_(monitor) {}
+    std::vector<UP<IPassElement>> draw(Render::CRenderContext& ctx) override;
+    std::optional<CBox> boundingBox(Render::CRenderContext& ctx) override;
+    const char* passName() override { return "CanvasMapPassElement"; }
+  private:
+    PHLMONITOR monitor_;
+};
+
 } // namespace Overview

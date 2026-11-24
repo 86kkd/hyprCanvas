@@ -24,6 +24,7 @@ class Session {
     bool moveSelection(Direction direction);
     bool moveCanvasSelection(Direction direction);
     bool selectCanvasNumber(int number);
+    bool previewCanvas(int canvasId);
     void markInputHandled();
     bool consumeInputHandled(bool released);
     const Model& model() const;

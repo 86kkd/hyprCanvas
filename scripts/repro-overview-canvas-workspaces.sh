@@ -374,6 +374,8 @@ cleanup() {
 
 follow_session() {
     printf '\nTest session is active. Streaming %s\nPress Ctrl+C to close all five test outputs.\n' "$LOG_PATH"
+    printf 'Target this session explicitly: ./scripts/hsctl -i %s kitty\n' "$NESTED_INSTANCE"
+    printf 'Fish: set -gx HYPRSCROLLER_INSTANCE %s\n' "$NESTED_INSTANCE"
     tail -n 20 -F -- "$LOG_PATH" &
     LOG_FOLLOW_PID=$!
     # A short foreground wait lets Bash handle Ctrl+C promptly, and also lets

@@ -10,6 +10,7 @@ namespace scroller::plugin_config {
 
 inline SP<Config::Values::CStringValue> columnDefaultWidthValue;
 inline SP<Config::Values::CIntValue>    focusWrapValue;
+inline SP<Config::Values::CIntValue>    canvasMapValue;
 #ifdef COLORS_IPC
 inline SP<Config::Values::CColorValue>  freeColumnBorderValue;
 #endif
@@ -29,6 +30,10 @@ inline void registerConfigValues(HANDLE handle) {
             .max = Config::INTEGER{1},
         });
 
+    canvasMapValue = Config::Values::makeConfigValue<Config::Values::CIntValue>(
+        "plugin:scroller:canvas_map", "Show the canvas map after switches and during overview.",
+        Config::INTEGER{1}, Config::Values::SIntValueOptions{.min = Config::INTEGER{0}, .max = Config::INTEGER{1}});
+    HyprlandAPI::addConfigValueV2(handle, canvasMapValue);
     HyprlandAPI::addConfigValueV2(handle, columnDefaultWidthValue);
     HyprlandAPI::addConfigValueV2(handle, focusWrapValue);
 
@@ -44,6 +49,10 @@ inline void registerConfigValues(HANDLE handle) {
 
 inline std::string columnDefaultWidth() {
     return columnDefaultWidthValue ? columnDefaultWidthValue->value() : "2";
+}
+
+inline bool canvasMap() {
+    return !canvasMapValue || canvasMapValue->value() != 0;
 }
 
 inline bool focusWrap() {

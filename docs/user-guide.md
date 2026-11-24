@@ -76,6 +76,29 @@ Hyprland's per-monitor semantics. Route ordinary canvas switching through
 `dwindle`, and `scroller` and installs the associated bindings. Its Lua path
 also reloads the workspace module above, so install both files when using it.
 
+## Canvas map
+
+A compact map appears in the top-right workarea of the focused monitor for
+1.5 seconds after directly switching canvases from the desktop, including empty
+temporary canvases. Expiration does not depend on opening a window and leaves
+no persistent badge or explanatory message. During overview
+it stays on the monitor where overview opened and disappears immediately on
+accept or cancel; exiting overview does not start a desktop HUD. Each cell represents a whole multi-monitor canvas;
+positions preserve the actual canvas grid, including gaps and negative coordinates.
+
+- A filled cell with a dot marks the current desktop; a gold outline marks the preview.
+- Numbers follow canvas creation order, matching numbered canvas shortcuts.
+- Dashed cells with `*` mark temporary or uncommitted canvases; dashed `+` cells
+  advertise an adjacent creation slot. Empty temporary pages cannot extend further.
+- During overview, click a cell to preview it or `+` to preview a new canvas.
+  Accept overview to switch, or cancel to return. Desktop HUD clicks pass through.
+- Large maps show a local region up to five rows/columns around the preview.
+  Footer arrows indicate retained canvases beyond the visible region.
+
+Set `plugin:scroller:canvas_map` to `0` to disable both map surfaces (default `1`).
+The first version uses fixed placement and duration; the independent, zoomable
+world-map design is tracked in [planned work](planned-work.md).
+
 ## Lanes and stacks
 
 | Mode | Lane direction | Windows within a stack |
