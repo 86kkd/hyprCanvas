@@ -161,11 +161,20 @@ Wayland configure 更新后屏幕缩小而终端仍停留在旧坐标。默认�
 留出边距并居中，回归也会检查切换 canvas 返回后终端仍完整可见且居中。
 
 脚本使用 Lua 配置和 dispatcher，并在启动时输出目标 monitor、运行目录和日志路径。
-默认自动验证后关闭嵌套会话；需要继续手动测试时运行：
+不带 `--keep-open` 时自动验证后关闭嵌套会话；手动测试并持续输出日志时运行：
 
 ```bash
 ./scripts/repro-overview-canvas-workspaces.sh --keep-open
 ```
+
+`--keep-open` 默认只搭建五屏，不自动切换 canvas 或运行回归检查，可以直接开始
+手动操作。需要先自动验证再手动测试时加 `--check`；检查失败也会保留会话并输出
+结果文件路径，便于排查。自动检查期间请等待结果后再操作，以免改变验证条件。
+
+脚本保持在前台运行并输出本次 Hyprland 日志。按 Ctrl+C 会关闭
+本次启动的嵌套 Hyprland 及全部五个虚拟输出；从嵌套会话内部退出也会结束脚本。
+其他已运行的 Hyprland 会话不受影响。预览窗口按所属进程的唯一测试配置路径
+过滤，已有的同名 `aquamarine - WAYLAND-*` 窗口不会参与计数或被重新定位。
 
 保留会话的快捷键以 `Ctrl+Alt` 为前缀：`Enter` 新建终端，`O` 打开 / 确认
 退出 overview，`Escape` 取消 overview，`Super+方向键` 在普通模式切 monitor、

@@ -27,10 +27,14 @@ Options:
   --window-size WxH      Base outer landscape output size. Default: 1800x1200.
   --plugin PATH          Plugin .so to load. Default: ./Debug/hyprCanvas.so.
   --with-test-windows    Create two terminals for floating-window regression checks.
-  --keep-open            Leave the nested Hyprland instance running after setup.
+  --keep-open            Set up manual testing and stream logs until Ctrl+C.
+  --check                Run automatic canvas checks even with --keep-open.
   --hold-seconds N       Delay after opening overview before navigation. Default: 1.
   -h, --help             Show this help text.
 
+Without --keep-open, automatic checks run and the session closes afterward.
+With --keep-open, checks run only if --check is supplied; failed checks leave
+the session open for inspection until Ctrl+C or an in-session exit.
 No terminal windows are created by default. With --with-test-windows, the script
 also checks terminal floating state and centering. It exits non-zero when
 the outer nested output windows are not handled by the event watcher, floating,
@@ -230,7 +234,7 @@ launch_terminal_window() {
 }
 
 outer_client_count() {
-    hyprctl clients -j | jq '
+    hyprscroller_outer_output_clients | jq '
         map(select(.class == "aquamarine" and (.title | test("^aquamarine - WAYLAND-[0-9]+$"))))
         | length
     '
@@ -251,7 +255,7 @@ wait_for_outer_output_window_count() {
 }
 
 collect_outer_windows_json() {
-    hyprctl clients -j | jq '
+    hyprscroller_outer_output_clients | jq '
         map(select(.class == "aquamarine" and (.title | test("^aquamarine - WAYLAND-[1-5]$"))))
         | sort_by(.title)
     '
@@ -295,6 +299,7 @@ PLUGIN_PATH="$REPO_ROOT/Debug/hyprCanvas.so"
 WINDOW_WIDTH=1800
 WINDOW_HEIGHT=1200
 KEEP_OPEN=0
+RUN_CHECKS=0
 WITH_TEST_WINDOWS=0
 OVERVIEW_HOLD_SECONDS=1
 OUTER_MONITOR=""
@@ -311,6 +316,7 @@ OUTER_OUTPUT_XS=()
 OUTER_OUTPUT_YS=()
 OUTER_OUTPUT_WIDTHS=()
 OUTER_OUTPUT_HEIGHTS=()
+LOG_FOLLOW_PID=""
 OUTER_OUTPUT_EVENT_WATCHER_PID=""
 OUTER_OUTPUT_EVENT_SOCKET=""
 OUTER_OUTPUT_EVENT_STATE=""
@@ -320,20 +326,61 @@ OUTER_OUTPUT_MAP_TIME_RULES_INSTALLED=0
 hyprscroller_five_monitor_names NESTED_MONITOR_NAMES
 hyprscroller_five_outer_titles OUTER_OUTPUT_TITLES
 
+# Match the unique config path, so concurrent or pre-existing nested sessions
+# cannot be mistaken for this run during startup or cleanup.
+owned_instances() {
+    [[ -n "${CONFIG_PATH:-}" ]] || return 0
+    hyprctl instances -j | python3 -c '
+import json, pathlib, sys
+config = sys.argv[1].encode()
+for instance in json.load(sys.stdin):
+    try:
+        args = pathlib.Path("/proc", str(instance["pid"]), "cmdline").read_bytes().split(b"\0")
+        if config in args:
+            print(instance["instance"])
+    except (OSError, KeyError):
+        pass
+' "$CONFIG_PATH"
+}
+
 cleanup() {
+    trap - EXIT ERR INT TERM
+    set +e
+    # An interrupt may arrive before instance discovery completed.
+    local instance
+    local owned
+    owned="$(owned_instances 2>/dev/null)"
+    for instance in $owned; do
+        printf '\nClosing test Hyprland: %s\n' "$instance"
+        hyprctl -i "$instance" dispatch 'hl.dsp.exit()' >/dev/null 2>&1
+    done
+    if [[ -n "${NESTED_INSTANCE:-}" && "$owned" == *"$NESTED_INSTANCE"* ]]; then
+        wait_for_instance_exit || printf 'Warning: test instance did not exit in time: %s\n' "$NESTED_INSTANCE" >&2
+    fi
+    if [[ -n "${LOG_FOLLOW_PID:-}" ]]; then
+        kill "$LOG_FOLLOW_PID" >/dev/null 2>&1
+        wait "$LOG_FOLLOW_PID" >/dev/null 2>&1
+    fi
     if [[ -n "${OUTER_OUTPUT_EVENT_WATCHER_PID:-}" ]]; then
-        kill "$OUTER_OUTPUT_EVENT_WATCHER_PID" >/dev/null 2>&1 || true
-        wait "$OUTER_OUTPUT_EVENT_WATCHER_PID" >/dev/null 2>&1 || true
-        OUTER_OUTPUT_EVENT_WATCHER_PID=""
+        # Stop the event reader as well as its shell, including during setup.
+        pkill -TERM -P "$OUTER_OUTPUT_EVENT_WATCHER_PID" >/dev/null 2>&1
+        kill "$OUTER_OUTPUT_EVENT_WATCHER_PID" >/dev/null 2>&1
+        wait "$OUTER_OUTPUT_EVENT_WATCHER_PID" >/dev/null 2>&1
     fi
+    # EXIT already preserves the original status; a failing trap return would
+    # produce a second ERR report for the cleanup itself.
+    return 0
+}
 
-    if [[ "${KEEP_OPEN:-0}" -eq 1 ]]; then
-        return
-    fi
-
-    if [[ -n "${NESTED_INSTANCE:-}" ]]; then
-        hyprctl -i "$NESTED_INSTANCE" dispatch 'hl.dsp.exit()' >/dev/null 2>&1 || true
-    fi
+follow_session() {
+    printf '\nTest session is active. Streaming %s\nPress Ctrl+C to close all five test outputs.\n' "$LOG_PATH"
+    tail -n 20 -F -- "$LOG_PATH" &
+    LOG_FOLLOW_PID=$!
+    # A short foreground wait lets Bash handle Ctrl+C promptly, and also lets
+    # the script finish when the user exits from inside the nested compositor.
+    while hyprctl instances -j | jq -e --arg instance "$NESTED_INSTANCE" 'any(.[]; .instance == $instance)' >/dev/null; do
+        sleep 0.5
+    done
 }
 
 trap cleanup EXIT
@@ -359,6 +406,10 @@ while [[ $# -gt 0 ]]; do
             [[ $# -ge 2 ]] || die "--plugin requires a path"
             PLUGIN_PATH="$2"
             shift 2
+            ;;
+        --check)
+            RUN_CHECKS=1
+            shift
             ;;
         --with-test-windows)
             WITH_TEST_WINDOWS=1
@@ -388,6 +439,7 @@ require_cmd hyprctl
 require_cmd jq
 require_cmd start-hyprland
 require_cmd python3
+require_cmd pkill
 
 [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] || die "run this inside an existing Hyprland session"
 [[ -f "$PLUGIN_PATH" ]] || die "plugin not found: $PLUGIN_PATH (run 'cmake --build ./Debug -j' first)"
@@ -408,6 +460,7 @@ prepare_outer_output_layout
 
 RUN_DIR="$(mktemp -d /tmp/hyprscroller-overview-canvas.XXXXXX)"
 CONFIG_PATH="$RUN_DIR/hyprland.lua"
+HYPRSCROLLER_OUTER_OWNER_CONFIG="$CONFIG_PATH"
 printf 'Preparing five-monitor test on %s\nRun directory: %s\nPlugin: %s\n' "$OUTER_MONITOR" "$RUN_DIR" "$PLUGIN_PATH"
 LOG_PATH="$RUN_DIR/hyprland.log"
 LAUNCHER_PATH="$RUN_DIR/launch-nested.sh"
@@ -427,7 +480,7 @@ hl.config({
     decoration = { rounding = 6 },
     misc = { disable_hyprland_logo = true, disable_splash_rendering = true },
     input = { kb_layout = "us" },
-    debug = { disable_logs = false },
+    debug = { disable_logs = false, enable_stdout_logs = true },
 })
 local function bind(key, action)
     hl.bind("CTRL + ALT + " .. key, action)
@@ -469,19 +522,11 @@ hyprscroller_start_outer_output_event_watcher \
 hyprscroller_wait_for_outer_output_event_watcher_ready "$OUTER_OUTPUT_EVENT_READY" \
     || die "timed out waiting for outer output event watcher"
 
-BEFORE_INSTANCES="$(hyprctl instances -j | jq -c 'map(.instance)')"
 printf 'Starting nested Hyprland (log: %s)...\n' "$LOG_PATH"
 hyprctl dispatch "hl.dsp.exec_cmd($(lua_string "$(quote_command "$LAUNCHER_PATH")"), { monitor = $(lua_string "$OUTER_MONITOR"), floating = true, size = {${OUTER_OUTPUT_WIDTHS[0]}, ${OUTER_OUTPUT_HEIGHTS[0]}}, center = true })"
 
 for ((attempt = 0; attempt < 80; ++attempt)); do
-    NESTED_INSTANCE="$(hyprctl instances -j | jq -r --argjson before "$BEFORE_INSTANCES" '
-        (map(select(.instance as $id | ($before | index($id) | not)))) as $instances
-        | if ($instances | length) == 0 then
-            empty
-          else
-            ($instances | max_by(.time).instance)
-          end
-    ')"
+    NESTED_INSTANCE="$(owned_instances | head -n 1)"
 
     if [[ -n "$NESTED_INSTANCE" ]]; then
         break
@@ -562,7 +607,7 @@ for monitor_name in "${NESTED_MONITOR_NAMES[@]}"; do
         || die "could not resolve nested monitor $monitor_name"
 done
 
-printf 'Five monitors ready; running canvas create/return checks...\n'
+printf 'Five monitors ready.\n'
 SOURCE_MONITOR="WAYLAND-1"
 TARGET_MONITOR="WAYLAND-3"
 
@@ -580,6 +625,13 @@ ensure_window_floating "$TARGET_CLASS"
 
 fi
 
+if [[ "$KEEP_OPEN" -eq 1 && "$RUN_CHECKS" -eq 0 ]]; then
+    printf 'Manual mode: automatic canvas checks are disabled (use --check to enable).\n'
+    printf 'Instance: %s\nCtrl+Alt+O: overview; Ctrl+Alt+Super+arrows: monitor/canvas; Ctrl+Alt+Enter: terminal.\n' "$NESTED_INSTANCE"
+    follow_session
+    exit 0
+fi
+printf 'Running canvas create/return checks; wait for the result before interacting.\n'
 sleep 1
 INITIAL_MONITORS_JSON="$(hyprctl -i "$NESTED_INSTANCE" monitors -j)"
 INITIAL_SOURCE_WORKSPACE="$(printf '%s\n' "$INITIAL_MONITORS_JSON" | jq -r --arg monitor "$SOURCE_MONITOR" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
@@ -641,7 +693,8 @@ else
 fi
 
 OUTER_WINDOWS_JSON="$(collect_outer_windows_json)"
-[[ "$(printf '%s\n' "$OUTER_WINDOWS_JSON" | jq 'length')" -eq 5 ]] || die "could not resolve all outer nested output window state"
+OUTER_WINDOW_COUNT="$(jq 'length' <<<"$OUTER_WINDOWS_JSON")"
+[[ "$OUTER_WINDOW_COUNT" -eq 5 ]] || die "expected five preview windows owned by $NESTED_INSTANCE, found $OUTER_WINDOW_COUNT"
 OUTER_OUTPUT_EVENT_COUNT="$(hyprscroller_outer_output_position_event_count "$OUTER_OUTPUT_EVENT_STATE")"
 
 jq -n \
@@ -683,7 +736,7 @@ jq -n \
   }' >"$RESULT_PATH"
 
 if [[ "$KEEP_OPEN" -eq 1 ]]; then
-    printf 'Session kept open. Ctrl+Alt+O: overview/accept; Ctrl+Alt+Super+arrows: monitor/canvas; Ctrl+Alt+Enter: terminal; Ctrl+Alt+Shift+Q: exit.\n'
+    printf 'Session stays active until Ctrl+C. Ctrl+Alt+O: overview/accept; Ctrl+Alt+Super+arrows: monitor/canvas; Ctrl+Alt+Enter: terminal; Ctrl+Alt+Shift+Q: exit.\n'
 else
     hyprctl -i "$NESTED_INSTANCE" dispatch 'hl.dsp.exit()' >/dev/null 2>&1 || true
     wait_for_instance_exit || die "timed out waiting for nested Hyprland to exit"
@@ -822,8 +875,15 @@ if [[ "$NORMAL_FOCUS_OK" == "1" \
    && "$FINAL_TARGET_WORKSPACE" == "$INITIAL_TARGET_WORKSPACE" \
    && "$CANVAS_COUNT" -eq 1 ]]; then
     printf 'result:                  canvas workspace create/return flow passed\n'
+    if [[ "$KEEP_OPEN" -eq 1 ]]; then
+        follow_session
+    fi
     exit 0
 fi
 
 printf 'result:                  canvas workspace flow failed\n' >&2
+if [[ "$KEEP_OPEN" -eq 1 ]]; then
+    printf 'Checks failed; keeping the session open for inspection. Results: %s\n' "$RESULT_PATH" >&2
+    follow_session
+fi
 exit 1

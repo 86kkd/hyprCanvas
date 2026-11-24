@@ -272,6 +272,28 @@ with sock.makefile("r", encoding="utf-8", errors="replace") as stream:
 ' "$event_socket"
 }
 
+# Scope previews to the compositor launched with this run's unique config.
+# Other repro scripts may omit the filter and retain their existing behavior.
+hyprscroller_outer_output_clients() {
+    hyprctl clients -j | python3 -c '
+import json, pathlib, sys
+config = sys.argv[1].encode()
+clients = []
+for client in json.load(sys.stdin):
+    if client.get("class") != "aquamarine":
+        continue
+    if config:
+        try:
+            args = pathlib.Path("/proc", str(client["pid"]), "cmdline").read_bytes().split(b"\0")
+        except (OSError, KeyError):
+            continue
+        if config not in args:
+            continue
+    clients.append(client)
+print(json.dumps(clients))
+' "${HYPRSCROLLER_OUTER_OWNER_CONFIG:-}"
+}
+
 hyprscroller_position_outer_window_selector() {
     local selector="$1"
     local outer_monitor_x="$2"
@@ -297,8 +319,17 @@ hyprscroller_position_outer_window_index() {
     local -n index_widths_ref="$7"
     local -n index_heights_ref="$8"
 
+    local selector="title:^${index_titles_ref[$index]}$"
+    if [[ -n "${HYPRSCROLLER_OUTER_OWNER_CONFIG:-}" ]]; then
+        local address
+        address="$(hyprscroller_outer_output_clients | jq -r --arg title "${index_titles_ref[$index]}" '
+            map(select(.title == $title)) | if length == 1 then .[0].address else empty end
+        ')"
+        [[ -n "$address" ]] || return 1
+        selector="address:$address"
+    fi
     hyprscroller_position_outer_window_selector \
-        "title:^${index_titles_ref[$index]}$" \
+        "$selector" \
         "$outer_monitor_x" \
         "$outer_monitor_y" \
         "$index" \
@@ -355,6 +386,11 @@ hyprscroller_start_outer_output_event_watcher() {
             payload="${event#openwindow>>}"
             IFS=',' read -r address workspace class title <<<"$payload"
             [[ "$class" == "aquamarine" ]] || continue
+            if [[ -n "${HYPRSCROLLER_OUTER_OWNER_CONFIG:-}" ]]; then
+                hyprscroller_outer_output_clients | jq -e --arg address "${address#0x}" '
+                    any(.[]; (.address | ltrimstr("0x")) == $address)
+                ' >/dev/null || continue
+            fi
 
             index=-1
             for candidate_index in "${!titles[@]}"; do
