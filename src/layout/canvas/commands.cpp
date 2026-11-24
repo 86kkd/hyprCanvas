@@ -256,6 +256,22 @@ void CanvasLayout::move_window(int workspace, Direction direction) {
     persistSnapshot();
 }
 
+// Bypass local topology so a monitor shortcut always transfers directly to the
+// neighboring screen. Reuse the handoff transaction to preserve stack ownership
+// and focus; a missing destination must leave the current layout untouched.
+void CanvasLayout::move_window_to_monitor(int workspace, Direction direction) {
+    withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [&](Lane *lane) {
+        const auto window = lane->get_active_window();
+        if (!window)
+            return;
+        const auto sourceMonitor = ScrollerCore::HyprlandRuntime::monitorById(window->monitorID());
+        const auto targetMonitor = directionalMoveTargetMonitor(sourceMonitor, direction);
+        if (!targetMonitor || targetMonitor == sourceMonitor)
+            return;
+        handoffMoveWindowAcrossMonitor(workspace, direction, lane, window, sourceMonitor, targetMonitor);
+    });
+}
+
 void CanvasLayout::swap_window(int workspace, Direction direction) {
     (void)workspace;
     bool swapped = false;

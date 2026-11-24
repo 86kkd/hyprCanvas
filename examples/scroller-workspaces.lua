@@ -90,4 +90,9 @@ for _, spec in ipairs({ {"n", "l"}, {"m", "d"}, {"comma", "u"}, {"period", "r"} 
       hl.dispatch(hl.dsp.focus({ workspace = spec[1] == "comma" and "e-1" or "e+1" }))
     end
   end, "focus monitor / preview global canvas (scroller)")
+  bind("SUPER + SHIFT + " .. spec[1], function()
+    if scroller() then
+      hl.plugin.scroller.move_window_to_monitor(spec[2])
+    end
+  end, "move window to adjacent monitor (scroller)")
 end

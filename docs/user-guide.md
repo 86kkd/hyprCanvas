@@ -59,6 +59,9 @@ The module binds `Ctrl + Shift + H / J / K / L` to `swap_window`
 (left / down / up / right). In row mode, adjacent-stack swaps use H/L; in
 column mode they use J/K. Other layouts use native directional swapping.
 
+`Super + Shift + N / M / comma / period` moves the focused window directly
+to the left / down / up / right monitor in scroller, with focus following it.
+
 Read the module before installing it. It replaces Tab, number, and wheel
 workspace shortcuts, adds directional movement and monitor/overview controls,
 and disables numbered window transfers and whole-workspace monitor moves while
@@ -139,6 +142,17 @@ visible area.
 Moving toward an expanded stack creates a separate stack instead of joining
 it. Directional movement can cross physical monitors within the visible canvas.
 
+`move_window_to_monitor(direction)` moves the active tiled window directly to
+the adjacent physical monitor's visible workspace, even when there are local
+windows in that direction. Focus follows the transferred window. It accepts
+only cardinal directions and does nothing if there is no adjacent monitor or
+overview is open.
+
+```lua
+hl.bind("SUPER + SHIFT + N", function() hl.plugin.scroller.move_window_to_monitor("l") end)
+hl.bind("SUPER + SHIFT + period", function() hl.plugin.scroller.move_window_to_monitor("r") end)
+```
+
 `swap_window(direction)` exchanges the active windows of adjacent stacks in
 the same lane. Focus follows the original window; stack sizes, membership
 counts, and expansion states are preserved. It does not wrap, accept
@@ -185,6 +199,7 @@ callbacks after the plugin has loaded.
 | --- | --- |
 | `move_focus(direction)` | Move layout focus or overview selection. |
 | `move_window(direction)` | Reorder, join, split, or move a window. |
+| `move_window_to_monitor(direction)` | Move a tiled window directly to an adjacent monitor and follow focus. |
 | `swap_window(direction)` | Exchange active windows in adjacent stacks. |
 | `focus_monitor(direction)` | Focus another monitor or change the overview canvas selection. |
 | `switch_workspace(target)` | Switch the whole canvas by direction or `"1"`–`"10"`. |
