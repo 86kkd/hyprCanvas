@@ -25,6 +25,15 @@ hl.bind("SUPER + 1", function()
 end)
 ```
 
+Canvas switches slide according to the source and destination positions in the
+canvas grid. A canvas to the right enters from the right while the current one
+exits left; vertical and diagonal jumps follow their corresponding directions.
+All monitors share that direction, with travel scaled to each monitor's logical
+size. Numbered jumps use the same spatial rule rather than creation order.
+Native workspace animation timing and the animations-enabled setting still apply.
+Selecting the current canvas or cancelling an unchanged overview does not start
+a canvas slide.
+
 Numbers `"1"` through `"10"` address canvas creation order, **not native
 Hyprland workspace IDs**. Missing canvases are created with separate backing
 workspaces for each monitor. During overview, switching changes the preview;

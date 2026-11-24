@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "core/direction.h"
+#include "core/canvas_transition.h"
 #include "core/span_scale.h"
 #include "core/interval.h"
 #include "core/layout_math.h"
@@ -54,6 +55,29 @@ void expect_reserved_workarea(std::string_view label,
     expect_near(workarea.y, expectedWorkarea.y, 1e-9, std::string(label) + " workarea y");
     expect_near(workarea.w, expectedWorkarea.w, 1e-9, std::string(label) + " workarea width");
     expect_near(workarea.h, expectedWorkarea.h, 1e-9, std::string(label) + " workarea height");
+}
+
+void test_canvas_transition() {
+    using ScrollerCore::canvas_transition_offset;
+    const Hyprutils::Math::Vector2D size{1200, 800};
+    const auto check = [&](int x, int y, double expectedX, double expectedY) {
+        const auto offset = canvas_transition_offset(4, -2, x, y, size);
+        expect_near(offset.x, expectedX, 1e-9, "canvas transition x follows tile coordinates");
+        expect_near(offset.y, expectedY, 1e-9, "canvas transition y follows tile coordinates");
+        const auto reverse = canvas_transition_offset(x, y, 4, -2, size);
+        expect_near(reverse.x, -expectedX, 1e-9, "return transition reverses x");
+        expect_near(reverse.y, -expectedY, 1e-9, "return transition reverses y");
+    };
+    check(5, -2, 1200, 0);
+    check(3, -2, -1200, 0);
+    check(4, -3, 0, -800);
+    check(4, -1, 0, 800);
+    check(4, -2, 0, 0);
+    check(104, -2, 1200, 0);
+    check(6, -1, 1200, 400);
+    check(3, -4, -600, -800);
+    const auto portrait = canvas_transition_offset(0, 0, 0, 1, {600, 1000});
+    expect_near(portrait.y, 1000, 1e-9, "each monitor uses its own logical extent");
 }
 
 void test_interval() {
@@ -624,6 +648,7 @@ void test_stack_visible_hit_boxes() {
 } // namespace
 
 void run_core_logic_tests() {
+    test_canvas_transition();
     test_interval();
     test_direction_helpers();
     test_parse_helpers();

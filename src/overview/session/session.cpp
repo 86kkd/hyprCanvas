@@ -16,10 +16,13 @@
 #include "overview/session/session.h"
 
 #include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/animation/WorkspaceAnimationController.hpp>
+#include <hyprland/src/workspace/HLWorkspace.hpp>
 #include <hyprland/src/render/Renderer.hpp>
 #include <spdlog/spdlog.h>
 
 #include "core/hyprland_runtime.h"
+#include "core/canvas_transition.h"
 #include "layout/canvas/internal.h"
 #include "overview/render/state.h"
 #include "overview/navigation/logic.h"
@@ -357,6 +360,10 @@ bool Session::activateCanvas(int canvasId, int selectedMonitorId, bool requireSe
     if (canvasIt == previewCanvases.end())
         return false;
 
+    // Capture the origin before activating any member: native workspace change
+    // events can update repository state while the remaining monitors switch.
+    const auto sourceCanvas = canvasRepo.find(canvasRepo.activeCanvasId());
+
     std::vector<CanvasLayoutState::CanvasWorkspaceMember> members;
     for (const auto& monitor : ScrollerCore::HyprlandRuntime::monitors()) {
         if (!monitor)
@@ -386,6 +393,9 @@ bool Session::activateCanvas(int canvasId, int selectedMonitorId, bool requireSe
             continue;
 
         const auto workspace = ScrollerCore::HyprlandRuntime::workspaceById(member.workspaceId);
+        const auto outgoingWorkspace = monitor->m_activeWorkspace;
+        const auto outgoingOffset = outgoingWorkspace && outgoingWorkspace->m_renderOffset
+            ? outgoingWorkspace->m_renderOffset->value() : Vector2D{};
         const auto selectedMember = member.monitorId == selectedMonitorId;
         const auto requireMonitorFocus = selectedMember && requireSelectedMonitorFocus;
         visitedSelectedMonitor = visitedSelectedMonitor || selectedMember;
@@ -395,6 +405,29 @@ bool Session::activateCanvas(int canvasId, int selectedMonitorId, bool requireSe
                                                            requireMonitorFocus,
                                                            context))
             return false;
+
+        const auto incomingWorkspace = monitor->m_activeWorkspace;
+        if (sourceCanvas && sourceCanvas->canvasId != canvasId && incomingWorkspace &&
+            outgoingWorkspace != incomingWorkspace) {
+            const auto offset = ScrollerCore::canvas_transition_offset(sourceCanvas->tileX, sourceCanvas->tileY,
+                                                                       canvasIt->tileX, canvasIt->tileY, monitor->m_size);
+            if (offset.x == 0.0 && offset.y == 0.0)
+                continue;
+
+            // Keep native timing, damage callbacks and disabled-animation behavior.
+            // Override only this transition, without changing the user's config.
+            using namespace Animation::Workspace;
+            if (outgoingWorkspace) {
+                startAnimation(outgoingWorkspace, ANIMATION_TYPE_OUT, true, false, "slide");
+                outgoingWorkspace->m_renderOffset->setValue(outgoingOffset);
+                *outgoingWorkspace->m_renderOffset = -offset;
+            }
+            startAnimation(incomingWorkspace, ANIMATION_TYPE_IN, true, false, "slide");
+            incomingWorkspace->m_renderOffset->setValue(offset);
+            *incomingWorkspace->m_renderOffset = Vector2D{};
+            spdlog::debug("canvas_transition: source={} target={} monitor={} offset=({}, {})",
+                          sourceCanvas->canvasId, canvasId, member.monitorId, offset.x, offset.y);
+        }
     }
 
     if (visitedSelectedMonitor)
