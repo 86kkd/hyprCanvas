@@ -7,6 +7,7 @@
 #include <lua.hpp>
 
 #include "core/core.h"
+#include "overview/minimap/runtime.h"
 #include "model/stack/width.h"
 
 namespace dispatchers::detail {
@@ -179,9 +180,16 @@ int lua_switch_workspace(lua_State* state) {
         overview.open();
     if (overview.active()) {
         overview.markInputHandled();
+        auto& canvasRepo = CanvasLayoutState::canvasRepository();
+        const int previousCanvas = canvasRepo.activeCanvasId();
         const bool moved = direction ? overview.moveCanvasSelection(*direction) : overview.selectCanvasNumber(number);
-        if (!wasActive)
+        if (!wasActive) {
             overview.close(moved);
+            // Only direct desktop switching shows a transient HUD. Accepting
+            // an already visible overview must dismiss its map with the overlay.
+            if (moved)
+                Overview::Minimap::notifySwitch(previousCanvas, canvasRepo.activeCanvasId());
+        }
     }
     return 0;
 }

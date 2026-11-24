@@ -16,6 +16,8 @@
 #include <spdlog/spdlog.h>
 
 #include "core/hyprland_runtime.h"
+#include "overview/minimap/runtime.h"
+#include <linux/input-event-codes.h>
 #include "overview/render/pass_element.h"
 #include "overview/render/draw.h"
 #include "overview/render/state.h"
@@ -29,6 +31,8 @@ namespace {
 CHyprSignalListener g_renderPreListener = nullptr;
 CHyprSignalListener g_renderStageListener = nullptr;
 CHyprSignalListener g_keyboardKeyListener = nullptr;
+CHyprSignalListener g_mapButtonListener = nullptr;
+bool g_mapPressed = false;
 
 bool no_overview_modifiers_remaining() {
     constexpr Input::ModifierMask kTransientModifierMask =
@@ -138,7 +142,14 @@ bool initializeRendererHooksImpl(HANDLE handle) {
         });
 
         g_renderStageListener = Event::bus()->m_events.render.stage.listen([](const Event::SRenderStageEvent& event) {
-            if (event.stage != RENDER_POST_WINDOWS || !event.context)
+            if (!event.context)
+                return;
+            if (event.stage == RENDER_LAST_MOMENT) {
+                if (Minimap::visible(event.monitor, std::chrono::steady_clock::now()))
+                    g_pHyprRenderer->addPassElement(event.context->get(), makeUnique<CanvasMapPassElement>(event.monitor));
+                return;
+            }
+            if (event.stage != RENDER_POST_WINDOWS)
                 return;
 
             auto& ctx = event.context->get();
@@ -150,6 +161,29 @@ bool initializeRendererHooksImpl(HANDLE handle) {
                 enqueueMonitorBackdrop(ctx, monitor, renderState());
                 g_pHyprRenderer->addPassElement(ctx, makeUnique<OverviewPassElement>(monitor));
             }
+        });
+
+        g_mapButtonListener = Event::bus()->m_events.input.mouse.button.listen([](IPointer::SButtonEvent event, Event::SCallbackInfo& info) {
+            if (event.button != BTN_LEFT)
+                return;
+            if (event.state == WL_POINTER_BUTTON_STATE_RELEASED && g_mapPressed) {
+                g_mapPressed = false;
+                info.cancelled = true;
+                return;
+            }
+            if (!session().active() || event.state != WL_POINTER_BUTTON_STATE_PRESSED)
+                return;
+            const auto monitor = ScrollerCore::HyprlandRuntime::monitorById(session().model().origin().monitorId);
+            if (!Minimap::visible(monitor, std::chrono::steady_clock::now()))
+                return;
+            const auto pointer = Pointer::mgr()->position();
+            const auto map = Minimap::mapForMonitor(monitor);
+            const double x = pointer.x - monitor->m_position.x, y = pointer.y - monitor->m_position.y;
+            if (x < map.panel.x || y < map.panel.y || x >= map.panel.x + map.panel.w || y >= map.panel.y + map.panel.h)
+                return;
+            info.cancelled = true;
+            g_mapPressed = true;
+            Minimap::click(pointer.x, pointer.y);
         });
 
         g_keyboardKeyListener = Event::bus()->m_events.input.keyboard.key.listen([](IKeyboard::SKeyEvent event, Event::SCallbackInfo& info) {
@@ -173,6 +207,8 @@ bool initializeRendererHooksImpl(HANDLE handle) {
         g_renderPreListener = nullptr;
         g_renderStageListener = nullptr;
         g_keyboardKeyListener = nullptr;
+        g_mapButtonListener = nullptr;
+        Minimap::reset();
         renderState().clearAll();
         spdlog::warn("overview_renderer_init: disabled after exception: {}", e.what());
         return false;
@@ -184,10 +220,15 @@ void shutdownRendererHooksImpl(HANDLE handle) {
     g_renderPreListener = nullptr;
     g_renderStageListener = nullptr;
     g_keyboardKeyListener = nullptr;
+    g_mapButtonListener = nullptr;
+    g_mapPressed = false;
+    Minimap::reset();
     renderState().clearAll();
     auto& ctx = g_pHyprRenderer->context();
-    if (ctx.active())
+    if (ctx.active()) {
         ctx.m_pass.removeAllOfType("OverviewPassElement");
+        ctx.m_pass.removeAllOfType("CanvasMapPassElement");
+    }
     spdlog::info("overview_renderer_shutdown");
 }
 

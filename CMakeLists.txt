@@ -70,6 +70,8 @@ add_library(hyprCanvas SHARED
             src/overview/navigation/selection.h
             src/overview/navigation/selection.cpp
             src/overview/render/render.h
+            src/overview/minimap/logic.cpp
+            src/overview/minimap/runtime.cpp
             src/overview/render/render.cpp
             src/overview/render/state.h
             src/overview/render/state.cpp
@@ -129,6 +131,8 @@ set_target_properties(hyprCanvas PROPERTIES PREFIX "")
 if(BUILD_TESTING)
     add_executable(hyprscroller_logic_tests
                    tests/test_main.cpp
+                   tests/minimap_tests.cpp
+                   src/overview/minimap/logic.cpp
                    tests/core_logic_tests.cpp
                    tests/layout_snapshot_tests.cpp
                    tests/layout_logic_tests.cpp

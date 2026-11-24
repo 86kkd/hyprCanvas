@@ -484,7 +484,9 @@ hyprctl -i <instance-signature> eval 'hl.plugin.scroller.cancel_overview()'
 ./scripts/hsctl exit
 ```
 
-也可以先固定目标实例，后面就不用每次带 `-i`：
+同时存在手工和自动回归实例时，`hsctl` 默认的“最新实例”会变化。
+建议固定测试脚本打印的 instance，或每次显式传 `-i`；不要在自动回归启动后才运行 `which` 来选择手工实例。
+也可以在仅有目标测试实例时先固定它，后面就不用每次带 `-i`：
 
 ```bash
 export HYPRSCROLLER_INSTANCE="$(./scripts/hsctl which)"
@@ -746,3 +748,45 @@ python3 scripts/repro-canvas-ephemeral.py
 在独立双屏实例检查：空临时 canvas 不连续扩展、编号不能跳过空页、离开与取消
 overview 回收临时页面、任意成员屏幕的新窗口或移入窗口让 canvas 转正。测试也
 覆盖浮动窗口及最后一个窗口关闭后正式 canvas 的保留；结束时关闭测试实例。
+
+## Canvas 小地图（A + C）
+
+开发约定：地图格子代表整套多屏 canvas，坐标只消费 repository / overview
+preview 的 `tileX / tileY`；不另存一套地图布局。HUD 的显示时间和显示器属于
+插件运行态，桌面直接切换 canvas 后显示约 1.5 秒；overview 中始终显示在打开 overview 的屏幕，
+接受或取消时随 overview 一起消失，并清除此前的 HUD 计时，不再触发切换提示。
+点击仅改变 session preview，接受和取消仍由现有 overview 事务处理。
+地图默认开启，可通过 `plugin:scroller:canvas_map = 0` 关闭。
+
+自动回归：
+
+```sh
+cmake --build Debug -j 2
+ctest --test-dir Debug --output-on-failure
+python3 scripts/repro-canvas-map.py
+```
+
+脚本需要 `Hyprland`、`hyprctl`、`grim`、Python Pillow、C 编译器及
+`wayland-client` 开发文件。它启动独立 compositor，按进程 PID 确定实例，
+创建横屏和 1.5 倍缩放竖屏，通过测试专用 virtual pointer 验证点击，保存 PNG
+和日志，完成后退出；不热加载主桌面的插件。
+
+覆盖：切换提示、无输入自动消失、仅当前操作屏显示、overview 常显、点击新建
+与点击当前页、预览不修改真实 workspace、接受/取消、缩放竖屏、配置开关、卸载。
+纯测试另覆盖稀疏坐标、负坐标、编号顺序、裁剪提示、小尺寸、临时页面边界及淡出时间。
+
+人工补充观察：窗口内容较密时的遮挡、不同主题下的可读性，以及连续快速切换
+时 HUD 的阅读体验。独立可缩放的世界地图 B 仍在 `planned-work.md` 中规划。
+
+
+### 空临时 canvas 启动终端与 HUD 空闲超时
+
+```sh
+python3 scripts/repro-empty-canvas-focus.py
+```
+
+保留真实 Wayland 输出和动画，先打开 tiled kitty，再通过显式指定实例的
+`hsctl workspace d` 切到临时 canvas。等待期间不截图、不注入输入，检查
+事件循环的 HUD 到期记录；然后通过 `hsctl kitty` 确认新窗口归属目标 workspace，
+并使临时 canvas 转为正式页面。HUD 定时器在 1.3 秒时启动淡出帧，到期主动重绘，
+不依赖空桌面持续产生渲染帧。此脚本读取共享插件日志，请串行运行回归。

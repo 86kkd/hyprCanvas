@@ -5,6 +5,7 @@
 #pragma once
 
 #include "overview/model/model.h"
+#include "overview/minimap/logic.h"
 #include "overview/render/state.h"
 #include "overview/scene/scene.h"
 
@@ -14,6 +15,7 @@ class CRenderContext;
 
 namespace Overview {
 
+void drawCanvasMap(Render::CRenderContext& ctx, const Minimap::Map& map, double alpha, double scale, RenderState& state);
 void snapshotWindowTargets(const Model& model);
 void snapshotBackdropLayers(const Model& model, RenderState& state);
 void enqueueMonitorBackdrop(Render::CRenderContext& ctx, PHLMONITOR monitor, const RenderState& state);

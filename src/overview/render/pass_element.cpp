@@ -9,6 +9,8 @@
 #include "overview/render/pass_element.h"
 
 #include "overview/render/render.h"
+#include "overview/render/draw.h"
+#include "overview/minimap/runtime.h"
 
 namespace Overview {
 
@@ -49,6 +51,17 @@ std::optional<CBox> OverviewPassElement::boundingBox(Render::CRenderContext&) {
 CRegion OverviewPassElement::opaqueRegion(Render::CRenderContext&) {
     // Returning an empty opaque region keeps compositor assumptions conservative:
     // overview should not claim it fully occludes underlying content.
+    return {};
+}
+
+std::optional<CBox> CanvasMapPassElement::boundingBox(Render::CRenderContext&) {
+    return monitor_ ? std::optional<CBox>{CBox{{}, monitor_->m_transformedSize}} : std::nullopt;
+}
+
+std::vector<UP<IPassElement>> CanvasMapPassElement::draw(Render::CRenderContext& ctx) {
+    const auto now = std::chrono::steady_clock::now();
+    if (Minimap::visible(monitor_, now))
+        drawCanvasMap(ctx, Minimap::mapForMonitor(monitor_), Minimap::alpha(now), monitor_->m_scale, renderState());
     return {};
 }
 

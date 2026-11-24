@@ -25,6 +25,7 @@
 #include "core/canvas_transition.h"
 #include "layout/canvas/internal.h"
 #include "overview/render/state.h"
+#include "overview/minimap/runtime.h"
 #include "overview/navigation/logic.h"
 #include "overview/session/effects.h"
 #include "overview/navigation/selection.h"
@@ -329,6 +330,25 @@ bool Session::moveCanvasSelection(Direction direction) {
     return true;
 }
 
+// Map clicks select an existing canvas by identity, never by native workspace
+// or by a number limited to ten. Accept/cancel remains owned by the session.
+bool Session::previewCanvas(int canvasId) {
+    if (!active_)
+        return false;
+    const auto& graph = model_.canvasGraph();
+    if (std::none_of(graph.begin(), graph.end(), [&](const auto& node) { return node.canvasId == canvasId; }))
+        return false;
+    const auto* selection = model_.selection();
+    const int monitorId = selection ? selection->monitorId : model_.origin().monitorId;
+    std::erase_if(pendingCanvases_, [&](const auto& pending) { return pending.canvas.canvasId != canvasId; });
+    viewCanvasId_ = canvasId;
+    model_.rebuild(pendingCanvases_, viewCanvasId_);
+    renderState().rebuildPreviewAnimations(model_);
+    const bool selected = selectCanvas(canvasId, monitorId);
+    damageMonitors();
+    return selected;
+}
+
 bool Session::selectCanvasNumber(int number) {
     if (!active_ || number < 1 || number > 10)
         return false;
@@ -576,9 +596,12 @@ void Session::close(bool acceptSelectionFlag) {
                  static_cast<const void*>(selection && selection->window ? selection->window.get() : nullptr));
     damageMonitors();
     clear();
+    // Explicit overview exit also ends its map, including any earlier HUD timer.
+    Minimap::reset();
 }
 
 void Session::dismiss() {
+    Minimap::reset();
     if (!active_)
         return;
 
