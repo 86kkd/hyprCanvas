@@ -456,6 +456,14 @@ hyprctl -i <instance-signature> eval 'hl.plugin.scroller.cancel_overview()'
 ./scripts/hsctl focus l
 ./scripts/hsctl focus r
 ./scripts/hsctl move d
+./scripts/hsctl swap r
+./scripts/hsctl monitor r     # 普通模式切 monitor，overview 中切 canvas 预览
+./scripts/hsctl workspace r   # 直接切下一个 canvas（也可用 canvas r）
+./scripts/hsctl workspace 2   # 切到第 2 个 canvas
+./scripts/hsctl marks add editor
+./scripts/hsctl marks visit editor
+./scripts/hsctl marks delete editor
+./scripts/hsctl marks reset
 ./scripts/hsctl size 3
 ./scripts/hsctl size 2
 ./scripts/hsctl mode col
@@ -700,3 +708,22 @@ canvas 测试，验证跨屏移动保持目标窗口焦点、鼠标同步到目�
 窗口；其他组的重复引用分配新的空 workspace ID，已有唯一隐藏成员保持不变。
 脚本现在还实际在旧第 1/2 组间切换，断言每块 monitor 的 workspace ID 都变化，
 再返回原组。纯测试覆盖主会话这组三组旧映射和重复迁移的幂等性。
+
+### hsctl 的 fish 自动补全
+
+在仓库根目录执行，给当前 fish 会话加载补全（支持 `hsctl` 和 `./scripts/hsctl`）：
+
+```fish
+source scripts/completions/hsctl.fish
+```
+
+永久启用：
+
+```fish
+mkdir -p ~/.config/fish/completions
+cp scripts/completions/hsctl.fish ~/.config/fish/completions/hsctl.fish
+```
+
+输入 `./scripts/hsctl ` 后按 Tab 可补全命令；`monitor`、`canvas`、`size`、
+`mode`、`overview`、`marks` 会提供对应参数。`-i` / `--instance` 后按 Tab
+会通过 `hyprctl instances -j` 列出当前实例（需要 jq）。标记名称由用户输入。

@@ -35,6 +35,13 @@ Commands:
   focus <l|r|u|d|...>     hl.plugin.scroller.move_focus
   move  <l|r|u|d|...>     hl.plugin.scroller.move_window
   swap  <l|r|u|d|...>     hl.plugin.scroller.swap_window (adjacent stack)
+  monitor <l|r|u|d>      focus monitor / select canvas in overview
+  workspace <l|r|u|d|1-10>
+                          switch canvas workspace (alias: canvas)
+  marks add <name>        mark the focused window
+  marks visit <name>      focus a marked window
+  marks delete <name>     delete a mark
+  marks reset             clear all marks (alias: mark)
   size  <1-8>             hl.plugin.scroller.set_window_size
   mode  <row|col>         hl.plugin.scroller.set_mode
   fullscreen              hl.plugin.scroller.toggle_fullscreen
@@ -42,7 +49,7 @@ Commands:
   overview accept         accept selection and leave overview
   overview cancel         leave overview without accepting
   exec  <cmd...>          dispatch exec in the nested instance
-  kitty|foot|alacritty    shorthand for exec <term>
+  kitty|foot|alacritty|ghostty  shorthand for exec <term>
   clients|monitors|activeworkspace|activewindow|workspaces
                           hyprctl -j queries
   plugins                 hyprctl plugin list
@@ -51,6 +58,9 @@ Commands:
   which                   print the chosen instance signature
   exit                    exit the nested instance
   help                    this text
+
+Directions also accept left/right/up/down/dn.
+Focus/move additionally accept begin/b/beginning and end/e.
 
 Options:
   -i, --instance SIG      target a specific Hyprland instance
@@ -96,11 +106,32 @@ scroller() {
     if [[ $# -eq 0 ]]; then
         run_eval "hl.plugin.scroller.${fn}()"
     else
-        # Quote a single string arg for Lua.
-        local arg="${1//\\/\\\\}"
-        arg="${arg//\"/\\\"}"
-        run_eval "hl.plugin.scroller.${fn}(\"${arg}\")"
+        # Encode control characters as well as quotes without evaluating input.
+        local arg
+        arg="$(lua_string "$1")"
+        run_eval "hl.plugin.scroller.${fn}(${arg})"
     fi
+}
+
+lua_string() {
+    local arg="$1"
+    arg="${arg//\\/\\\\}"
+    arg="${arg//\"/\\\"}"
+    arg="${arg//$'\n'/\\n}"
+    arg="${arg//$'\r'/\\r}"
+    arg="${arg//$'\t'/\\t}"
+    printf '"%s"' "$arg"
+}
+
+one_arg() {
+    [[ $# -eq 1 ]] || die "$cmd needs exactly one argument (try: hsctl help)"
+}
+
+cardinal_direction() {
+    case "$1" in
+        l|r|u|d|left|right|up|down|dn) ;;
+        *) die "invalid direction: $1 (use l/r/u/d)" ;;
+    esac
 }
 
 while [[ $# -gt 0 ]]; do
@@ -151,24 +182,57 @@ case "$cmd" in
         [[ $# -ge 1 ]] || die "swap needs a direction"
         scroller swap_window "$1"
         ;;
+    monitor|focusmonitor)
+        one_arg "$@"
+        cardinal_direction "$1"
+        scroller focus_monitor "$1"
+        ;;
+    workspace|canvas)
+        one_arg "$@"
+        case "$1" in
+            [1-9]|10) ;;
+            *) cardinal_direction "$1" ;;
+        esac
+        scroller switch_workspace "$1"
+        ;;
+    marks|mark)
+        [[ $# -ge 1 ]] || die "marks needs add, visit, delete, or reset"
+        action="$1"
+        shift
+        case "$action" in
+            add|visit|delete)
+                one_arg "$@"
+                [[ -n "$1" ]] || die "mark name must not be empty"
+                scroller "marks_${action}" "$1"
+                ;;
+            reset)
+                [[ $# -eq 0 ]] || die "marks reset takes no arguments"
+                scroller marks_reset
+                ;;
+            *) die "unknown marks action: $action" ;;
+        esac
+        ;;
     size)
-        [[ $# -ge 1 ]] || die "size needs an integer 1-8"
-        scroller set_window_size "$1"
+        one_arg "$@"
+        [[ "$1" =~ ^[1-8]$ ]] || die "size needs an integer 1-8"
+        run_eval "hl.plugin.scroller.set_window_size($1)"
         ;;
     mode)
-        [[ $# -ge 1 ]] || die "mode needs row or col"
+        one_arg "$@"
+        [[ "$1" == row || "$1" == col ]] || die "mode needs row or col"
         scroller set_mode "$1"
         ;;
     fullscreen)
         scroller toggle_fullscreen
         ;;
     overview|ov)
+        [[ $# -le 1 ]] || die "overview takes at most one action"
         case "${1:-}" in
             "")
                 scroller toggle_overview
                 ;;
             accept|confirm|enter)
-                scroller toggle_overview "$1"
+                scroller toggle_overview accept
                 ;;
             cancel|abort|close)
                 scroller cancel_overview
