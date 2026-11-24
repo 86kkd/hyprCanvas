@@ -280,6 +280,35 @@ void test_special_members_are_not_exclusive_pages() {
     expect_eq(repository.canvases[1].members[1].workspaceId, -98, "a shared special member keeps its workspace");
 }
 
+void test_temporary_canvas_lifecycle() {
+    using namespace ScrollerCanvasSnapshot;
+    RepositorySnapshot repository;
+    repository.activeCanvasId = 1;
+    repository.canvases = {
+        {0, 0, 0, {{0, 1, false}, {1, 2, false}}},
+        {1, 1, 0, {{0, 3, false}, {1, 4, false}}, true},
+    };
+    auto restored = deserialize_repository(serialize_repository(repository));
+    expect_true(restored && restored->canvases[1].ephemeral, "temporary status survives plugin reload");
+    if (!restored)
+        return;
+    expect_true(!reconcile_temporary_canvases(repository, {}, true), "active blank insertion page remains visible");
+    repository.activeCanvasId = 0;
+    expect_true(reconcile_temporary_canvases(repository, {}, true), "leaving unused temporary canvas removes it");
+    expect_eq(repository.canvases.size(), size_t{1}, "no empty canvas left between populated canvases");
+
+    repository = *restored;
+    expect_true(reconcile_temporary_canvases(repository, {4}, false), "window on any member promotes whole canvas");
+    expect_true(!repository.canvases[1].ephemeral, "promoted canvas is permanent");
+    repository.activeCanvasId = 0;
+    expect_true(!reconcile_temporary_canvases(repository, {}, true), "closing its last window does not undo promotion");
+    expect_eq(repository.canvases.size(), size_t{2}, "previously populated canvas remains");
+
+    const auto legacy = deserialize_repository("VERSION 1\nACTIVE 0\nCANVAS 0 0 0 1\nMEMBER 0 1 0\n");
+    expect_true(legacy && !legacy->canvases[0].ephemeral, "legacy canvases remain permanent");
+    expect_true(!deserialize_repository("VERSION 1\nACTIVE 0\nCANVAS 0 0 0 0 2\n"), "invalid temporary flag is rejected");
+}
+
 void test_canvas_workspace_snapshot_rejects_missing_active_line() {
     const auto parsed = ScrollerCanvasSnapshot::deserialize_repository(
         "VERSION 1\n"
@@ -298,6 +327,7 @@ void run_layout_snapshot_tests() {
     test_snapshot_rejects_invalid_version();
     test_snapshot_rejects_malformed_stack_line();
     test_canvas_workspace_snapshot_round_trip();
+    test_temporary_canvas_lifecycle();
     test_legacy_canvas_members_become_exclusive();
     test_canvas_members_follow_monitors();
     test_special_members_are_not_exclusive_pages();

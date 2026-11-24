@@ -24,6 +24,7 @@ struct CanvasWorkspaceSnapshot {
     int                               tileX = 0;
     int                               tileY = 0;
     std::vector<MonitorMemberSnapshot> members;
+    bool                              ephemeral = false;
 };
 
 struct RepositorySnapshot {
@@ -51,6 +52,9 @@ bool fill_monitor_members(CanvasWorkspaceSnapshot& canvas, const std::vector<int
 // Preserve the visible canvas; replace other references to the same ordinary
 // workspace with fresh IDs. No windows or compositor workspaces are mutated.
 bool make_members_exclusive(RepositorySnapshot& snapshot, int preferredCanvasId, int nextWorkspaceId);
+
+// Promote occupied temporary canvases; discard empty inactive ones on departure.
+bool reconcile_temporary_canvases(RepositorySnapshot& snapshot, const std::vector<int>& occupiedWorkspaceIds, bool dropInactive);
 
 std::string                      serialize_repository(const RepositorySnapshot& snapshot);
 std::optional<RepositorySnapshot> deserialize_repository(std::string_view data);

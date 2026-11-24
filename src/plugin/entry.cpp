@@ -177,7 +177,7 @@ APICALL EXPORT void PLUGIN_EXIT() {
             layout->persistCurrentSnapshot();
     }
     CanvasLayoutState::repository().flush();
-    CanvasLayoutState::canvasRepository().flush();
+    CanvasLayoutState::canvasRepository().shutdown();
     Overview::shutdownRendererHooks(PHANDLE);
     spdlog::info("pluginExit");
 }

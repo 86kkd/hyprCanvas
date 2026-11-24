@@ -289,6 +289,7 @@ bool Session::moveCanvasSelection(Direction direction) {
 
     const auto preferredMonitorId = currentSelection->monitorId;
     if (const auto nextCanvasId = model_.findAdjacentCanvas(*currentCanvasId, direction)) {
+        std::erase_if(pendingCanvases_, [&](const auto& pending) { return pending.canvas.canvasId != *nextCanvasId; });
         viewCanvasId_ = *nextCanvasId;
         model_.rebuild(pendingCanvases_, viewCanvasId_);
         renderState().rebuildPreviewAnimations(model_);
@@ -305,6 +306,13 @@ bool Session::moveCanvasSelection(Direction direction) {
     }
 
     auto& canvasRepo = CanvasLayoutState::canvasRepository();
+    canvasRepo.refreshTemporaryCanvases();
+    const auto current = canvasRepo.find(*currentCanvasId);
+    // A blank provisional page is already the insertion point. Extending it
+    // again would leave an empty hole when a later page receives a window.
+    if (!current || current->ephemeral)
+        return false;
+    pendingCanvases_.clear();
     pendingCanvases_.push_back(canvasRepo.buildSyntheticCanvas(direction, *currentCanvasId, pendingCanvases_));
     viewCanvasId_ = pendingCanvases_.back().canvas.canvasId;
     model_.rebuild(pendingCanvases_, viewCanvasId_);
@@ -334,13 +342,23 @@ bool Session::selectCanvasNumber(int number) {
     if (canvases.empty())
         return false;
     auto& repo = CanvasLayoutState::canvasRepository();
+    repo.refreshTemporaryCanvases();
     int targetId = canvases.back().canvasId;
-    for (int count = static_cast<int>(canvases.size()); count < number; ++count) {
+    if (number > static_cast<int>(canvases.size())) {
+        // Numbered navigation cannot bypass the one-empty-page boundary.
+        if (number != static_cast<int>(canvases.size()) + 1)
+            return false;
+        const auto anchor = repo.find(targetId);
+        const auto currentId = model_.selectionCanvasId();
+        const auto current = currentId ? repo.find(*currentId) : std::nullopt;
+        if (!anchor || anchor->ephemeral || !current || current->ephemeral)
+            return false;
         pendingCanvases_.push_back(repo.buildSyntheticCanvas(Direction::Right, targetId, pendingCanvases_));
         targetId = pendingCanvases_.back().canvas.canvasId;
-    }
-    if (number <= static_cast<int>(canvases.size()))
+    } else {
         targetId = canvases[number - 1].canvasId;
+        std::erase_if(pendingCanvases_, [&](const auto& pending) { return pending.canvas.canvasId != targetId; });
+    }
     const auto* selection = model_.selection();
     const auto monitorId = selection ? selection->monitorId : model_.origin().monitorId;
     viewCanvasId_ = targetId;

@@ -154,7 +154,7 @@ overview”这条固定链路，优先直接用仓库里的脚本：
 它会先验证 normal-mode `scroller:focusmonitor` 只切 monitor focus，
 再在 overview 里执行 `focusmonitor r -> toggleoverview(close-accept)`，并检查
 5 块 nested monitor 是否一起切到新的空白 canvas workspace，再验证可以切回原
-来的 canvas。脚本会把 nested 输出摆成“上中下三个横屏，左右各一个竖屏”的十字
+来的 canvas，且未创建窗口的临时 canvas 被回收。脚本会把 nested 输出摆成“上中下三个横屏，左右各一个竖屏”的十字
 形拓扑，并同时断言 outer `aquamarine - WAYLAND-1..5` 预览窗口的几何都符合预期。
 虚拟屏幕使用实际预览窗口的像素尺寸（竖屏直接使用竖向尺寸，不额外旋转），避免
 Wayland configure 更新后屏幕缩小而终端仍停留在旧坐标。默认不创建终端窗口；传入 `--with-test-windows` 时，两个测试终端按各屏尺寸
@@ -727,3 +727,13 @@ cp scripts/completions/hsctl.fish ~/.config/fish/completions/hsctl.fish
 输入 `./scripts/hsctl ` 后按 Tab 可补全命令；`monitor`、`canvas`、`size`、
 `mode`、`overview`、`marks` 会提供对应参数。`-i` / `--instance` 后按 Tab
 会通过 `hyprctl instances -j` 列出当前实例（需要 jq）。标记名称由用户输入。
+
+### 临时 canvas 生命周期回归
+
+```bash
+python3 scripts/repro-canvas-ephemeral.py
+```
+
+在独立双屏实例检查：空临时 canvas 不连续扩展、编号不能跳过空页、离开与取消
+overview 回收临时页面、任意成员屏幕的新窗口或移入窗口让 canvas 转正。测试也
+覆盖浮动窗口及最后一个窗口关闭后正式 canvas 的保留；结束时关闭测试实例。

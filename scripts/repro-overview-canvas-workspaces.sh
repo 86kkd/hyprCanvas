@@ -820,7 +820,7 @@ if [[ "$NORMAL_FOCUS_OK" == "1" \
    && "$CLIENTS_ON_FINAL_TARGET" == "$WITH_TEST_WINDOWS" \
    && "$FINAL_SOURCE_WORKSPACE" == "$INITIAL_SOURCE_WORKSPACE" \
    && "$FINAL_TARGET_WORKSPACE" == "$INITIAL_TARGET_WORKSPACE" \
-   && "$CANVAS_COUNT" -ge 2 ]]; then
+   && "$CANVAS_COUNT" -eq 1 ]]; then
     printf 'result:                  canvas workspace create/return flow passed\n'
     exit 0
 fi

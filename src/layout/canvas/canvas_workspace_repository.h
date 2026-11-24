@@ -5,6 +5,7 @@
 #include <vector>
 
 #include <hyprland/src/SharedDefs.hpp>
+#include <hyprland/src/helpers/signal/Signal.hpp>
 
 #include "../../core/canvas_workspace_snapshot.h"
 #include "../../core/direction.h"
@@ -23,6 +24,7 @@ struct CanvasWorkspaceRecord {
     int                                tileX = 0;
     int                                tileY = 0;
     std::vector<CanvasWorkspaceMember> members;
+    bool                               ephemeral = false;
 };
 
 struct SyntheticCanvasWorkspace {
@@ -35,6 +37,9 @@ class CanvasWorkspaceRepository {
   public:
     void initialize();
     void flush() const;
+    void shutdown();
+    void refreshTemporaryCanvases(bool dropInactive = false);
+    void promoteWorkspace(WORKSPACEID workspaceId);
 
     int activeCanvasId() const;
     std::vector<CanvasWorkspaceRecord> canvases() const;
@@ -57,6 +62,8 @@ class CanvasWorkspaceRepository {
     void loadFromDisk();
     void flushToDisk() const;
 
+    CHyprSignalListener windowOpen_;
+    CHyprSignalListener windowMove_;
     bool initialized_ = false;
     ScrollerCanvasSnapshot::RepositorySnapshot snapshot_;
 };

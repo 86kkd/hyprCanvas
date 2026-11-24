@@ -35,8 +35,14 @@ Selecting the current canvas or cancelling an unchanged overview does not start
 a canvas slide.
 
 Numbers `"1"` through `"10"` address canvas creation order, **not native
-Hyprland workspace IDs**. Missing canvases are created with separate backing
-workspaces for each monitor. During overview, switching changes the preview;
+Hyprland workspace IDs**. Only the next missing canvas can be created; jumping
+past it does not allocate a chain of empty pages. A new canvas has separate
+backing workspaces for each monitor and stays temporary until a window is opened
+or moved into any member (including floating windows). An empty temporary canvas
+cannot create another page beyond it. Leaving it removes it; once populated, it
+remains a regular canvas even if its last window later closes.
+
+During overview, switching changes the preview;
 accepting the selection switches the actual desktop. Outside overview, it
 switches immediately.
 

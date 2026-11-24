@@ -10,6 +10,7 @@
 #include <system_error>
 
 #include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/event/EventBus.hpp>
 #include <hyprland/src/workspace/HLWorkspace.hpp>
 #include <hyprland/src/output/Monitor.hpp>
 
@@ -39,6 +40,7 @@ CanvasWorkspaceRecord from_snapshot(const SnapshotCanvas& canvas) {
     record.canvasId = canvas.canvasId;
     record.tileX = canvas.tileX;
     record.tileY = canvas.tileY;
+    record.ephemeral = canvas.ephemeral;
     record.members.reserve(canvas.members.size());
     for (const auto& member : canvas.members) {
         record.members.push_back({
@@ -58,6 +60,7 @@ SnapshotCanvas to_snapshot(const CanvasWorkspaceRecord& canvas) {
     snapshot.canvasId = canvas.canvasId;
     snapshot.tileX = canvas.tileX;
     snapshot.tileY = canvas.tileY;
+    snapshot.ephemeral = canvas.ephemeral;
     snapshot.members.reserve(canvas.members.size());
     for (const auto& member : canvas.members)
         snapshot.members.push_back({
@@ -219,6 +222,40 @@ void CanvasWorkspaceRepository::initialize() {
 
     initialized_ = true;
     loadFromDisk();
+    windowOpen_ = Event::bus()->m_events.window.openLate.listen([this](PHLWINDOW window) {
+        if (window)
+            promoteWorkspace(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window));
+    });
+    windowMove_ = Event::bus()->m_events.window.moveToWorkspace.listen([this](PHLWINDOW window, PHLWORKSPACE workspace) {
+        if (window)
+            promoteWorkspace(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window));
+        if (workspace)
+            promoteWorkspace(ScrollerCore::HyprlandRuntime::workspaceId(workspace));
+    });
+}
+
+void CanvasWorkspaceRepository::shutdown() {
+    windowOpen_.reset();
+    windowMove_.reset();
+    flush();
+}
+
+void CanvasWorkspaceRepository::promoteWorkspace(WORKSPACEID workspaceId) {
+    if (ScrollerCanvasSnapshot::reconcile_temporary_canvases(snapshot_, {static_cast<int>(workspaceId)}, false))
+        flushToDisk();
+}
+
+void CanvasWorkspaceRepository::refreshTemporaryCanvases(bool dropInactive) {
+    std::vector<int> occupied;
+    for (const auto& canvas : snapshot_.canvases) {
+        for (const auto& member : canvas.members) {
+            const auto workspace = ScrollerCore::HyprlandRuntime::workspaceById(member.workspaceId);
+            if (workspace && workspace->getWindowCount() > 0)
+                occupied.push_back(member.workspaceId);
+        }
+    }
+    if (ScrollerCanvasSnapshot::reconcile_temporary_canvases(snapshot_, occupied, dropInactive))
+        flushToDisk();
 }
 
 void CanvasWorkspaceRepository::flush() const {
@@ -285,8 +322,10 @@ int CanvasWorkspaceRepository::ensureCurrentVisibleCanvas() {
             // own empty backing workspaces before exposing the canvas graph.
             ScrollerCanvasSnapshot::make_members_exclusive(snapshot_, canvas.canvasId,
                                                            static_cast<int>(next_workspace_id(snapshot_)));
+            const auto id = canvas.canvasId;
+            refreshTemporaryCanvases(true);
             flushToDisk();
-            return canvas.canvasId;
+            return id;
         }
     }
 
@@ -308,6 +347,7 @@ int CanvasWorkspaceRepository::ensureCurrentVisibleCanvas() {
     snapshot_.activeCanvasId = nextId;
     ScrollerCanvasSnapshot::make_members_exclusive(snapshot_, nextId,
                                                    static_cast<int>(next_workspace_id(snapshot_)));
+    refreshTemporaryCanvases(true);
     flushToDisk();
     return nextId;
 }
@@ -325,6 +365,7 @@ SyntheticCanvasWorkspace CanvasWorkspaceRepository::buildSyntheticCanvas(Directi
     auto synthetic = SyntheticCanvasWorkspace{};
     synthetic.anchorCanvasId = anchor ? anchor->canvasId : -1;
     synthetic.direction = direction;
+    synthetic.canvas.ephemeral = true;
     synthetic.canvas.canvasId = next_canvas_id(snapshot_, existingSynthetics);
     synthetic.canvas.members = blank_members_for_visible_monitors(snapshot_, existingSynthetics);
     synthetic.canvas.tileX = anchor ? anchor->tileX : 0;
@@ -362,12 +403,14 @@ void CanvasWorkspaceRepository::commitSyntheticCanvases(const std::vector<Synthe
     for (const auto& canvas : records)
         snapshot_.canvases.push_back(to_snapshot(canvas));
     snapshot_.activeCanvasId = activeCanvasId;
+    refreshTemporaryCanvases(true);
     flushToDisk();
 }
 
 void CanvasWorkspaceRepository::markActive(int canvasId) {
     initialize();
     snapshot_.activeCanvasId = canvasId;
+    refreshTemporaryCanvases(true);
     flushToDisk();
 }
 
