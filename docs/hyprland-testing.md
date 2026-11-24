@@ -156,6 +156,21 @@ overview”这条固定链路，优先直接用仓库里的脚本：
 5 块 nested monitor 是否一起切到新的空白 canvas workspace，再验证可以切回原
 来的 canvas。脚本会把 nested 输出摆成“上中下三个横屏，左右各一个竖屏”的十字
 形拓扑，并同时断言 outer `aquamarine - WAYLAND-1..5` 预览窗口的几何都符合预期。
+虚拟屏幕使用实际预览窗口的像素尺寸（竖屏直接使用竖向尺寸，不额外旋转），避免
+Wayland configure 更新后屏幕缩小而终端仍停留在旧坐标。默认不创建终端窗口；传入 `--with-test-windows` 时，两个测试终端按各屏尺寸
+留出边距并居中，回归也会检查切换 canvas 返回后终端仍完整可见且居中。
+
+脚本使用 Lua 配置和 dispatcher，并在启动时输出目标 monitor、运行目录和日志路径。
+默认自动验证后关闭嵌套会话；需要继续手动测试时运行：
+
+```bash
+./scripts/repro-overview-canvas-workspaces.sh --keep-open
+```
+
+保留会话的快捷键以 `Ctrl+Alt` 为前缀：`Enter` 新建终端，`O` 打开 / 确认
+退出 overview，`Escape` 取消 overview，`Super+方向键` 在普通模式切 monitor、
+在 overview 切 canvas 预览，`Tab` / `Shift+Tab` 切换 canvas，`Shift+Q` 退出
+嵌套会话。普通方向键移动焦点，`Shift+方向键` 移动窗口。
 
 ### 2.1 复用 5 屏布局 Helper
 

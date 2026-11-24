@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 
 # Launch a nested Hyprland session and verify the canvas-workspace overview flow:
-# - outside overview, `scroller:focusmonitor r/l` only moves monitor focus
-# - inside overview, `scroller:focusmonitor r/l` only changes the focused canvas
+# - outside overview, `focus_monitor("r"/"l")` only moves monitor focus
+# - inside overview, `focus_monitor("r"/"l")` only changes the focused canvas
 #   preview while overview stays open
 # - closing overview accepts the focused canvas and switches every visible
 #   monitor together
@@ -11,6 +11,10 @@ set -euo pipefail
 
 die() {
     printf 'error: %s\n' "$*" >&2
+    if [[ -n ${LOG_PATH:-} ]]; then
+        printf 'Nested log: %s\n' "$LOG_PATH" >&2
+        [[ ! -f $LOG_PATH ]] || tail -n 30 "$LOG_PATH" >&2
+    fi
     exit 1
 }
 
@@ -22,15 +26,21 @@ Options:
   --outer-monitor NAME   Place the floating nested output windows on NAME.
   --window-size WxH      Base outer landscape output size. Default: 1800x1200.
   --plugin PATH          Plugin .so to load. Default: ./Debug/hyprCanvas.so.
+  --with-test-windows    Create two terminals for floating-window regression checks.
   --keep-open            Leave the nested Hyprland instance running after setup.
   --hold-seconds N       Delay after opening overview before navigation. Default: 1.
   -h, --help             Show this help text.
 
-The script exits non-zero when the nested test windows are not floating, when
+No terminal windows are created by default. With --with-test-windows, the script
+also checks terminal floating state and centering. It exits non-zero when
 the outer nested output windows are not handled by the event watcher, floating,
 and fixed to the expected size/position, or when overview close fails to switch
 all visible monitors to the focused canvas workspace and back again.
 EOF
+}
+
+lua_string() {
+    jq -Rn --arg value "$1" '$value'
 }
 
 require_cmd() {
@@ -69,7 +79,7 @@ pick_terminal_kind() {
 launch_nested_exec() {
     local command
     command="$(quote_command "$@")"
-    hyprctl -i "$NESTED_INSTANCE" dispatch exec "$command" >/dev/null
+    hyprctl -i "$NESTED_INSTANCE" dispatch "hl.dsp.exec_cmd($(lua_string "$command"))" >/dev/null
 }
 
 launch_nested_exec_with_rules() {
@@ -78,7 +88,7 @@ launch_nested_exec_with_rules() {
 
     local command
     command="$(quote_command "$@")"
-    hyprctl -i "$NESTED_INSTANCE" dispatch exec "$rules $command" >/dev/null
+    hyprctl -i "$NESTED_INSTANCE" dispatch "hl.dsp.exec_cmd($(lua_string "$command"), $rules)" >/dev/null
 }
 
 nested_client_count() {
@@ -156,7 +166,7 @@ wait_for_instance_exit() {
 
 focus_nested_window() {
     local selector="$1"
-    hyprctl -i "$NESTED_INSTANCE" dispatch focuswindow "$selector" >/dev/null
+    hyprctl -i "$NESTED_INSTANCE" dispatch "hl.dsp.focus({ window = $(lua_string "$selector") })" >/dev/null
 }
 
 client_is_floating_by_class() {
@@ -174,7 +184,7 @@ ensure_window_floating() {
     local floating_state
     floating_state="$(client_is_floating_by_class "$class")"
     if [[ "$floating_state" != "true" ]]; then
-        hyprctl -i "$NESTED_INSTANCE" dispatch togglefloating >/dev/null
+        hyprctl -i "$NESTED_INSTANCE" dispatch 'hl.dsp.window.float({ action = "toggle" })' >/dev/null
         sleep 0.2
         floating_state="$(client_is_floating_by_class "$class")"
     fi
@@ -187,7 +197,13 @@ launch_terminal_window() {
     local class="$1"
     local title="$2"
     local body="printf '%s\\n' '$title'; exec bash"
-    local rules='[float; size 960 720; center]'
+    local monitor="$3"
+    local geometry width height
+    geometry="$(hyprctl -i "$NESTED_INSTANCE" monitors -j | jq -c --arg monitor "$monitor" '
+        .[] | select(.name == $monitor) | {width, height}')"
+    width="$(jq '.width - 40 | [., 960] | min' <<<"$geometry")"
+    height="$(jq '.height - 40 | [., 720] | min' <<<"$geometry")"
+    local rules="{ monitor = $(lua_string "$monitor"), floating = true, size = {$width, $height}, center = true }"
 
     case "$TERMINAL_KIND" in
         kitty)
@@ -279,6 +295,7 @@ PLUGIN_PATH="$REPO_ROOT/Debug/hyprCanvas.so"
 WINDOW_WIDTH=1800
 WINDOW_HEIGHT=1200
 KEEP_OPEN=0
+WITH_TEST_WINDOWS=0
 OVERVIEW_HOLD_SECONDS=1
 OUTER_MONITOR=""
 NESTED_INSTANCE=""
@@ -315,11 +332,14 @@ cleanup() {
     fi
 
     if [[ -n "${NESTED_INSTANCE:-}" ]]; then
-        hyprctl -i "$NESTED_INSTANCE" dispatch exit >/dev/null 2>&1 || true
+        hyprctl -i "$NESTED_INSTANCE" dispatch 'hl.dsp.exit()' >/dev/null 2>&1 || true
     fi
 }
 
-trap cleanup EXIT INT TERM
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+trap 'die "command failed at line $LINENO: $BASH_COMMAND"' ERR
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -339,6 +359,10 @@ while [[ $# -gt 0 ]]; do
             [[ $# -ge 2 ]] || die "--plugin requires a path"
             PLUGIN_PATH="$2"
             shift 2
+            ;;
+        --with-test-windows)
+            WITH_TEST_WINDOWS=1
+            shift
             ;;
         --keep-open)
             KEEP_OPEN=1
@@ -368,7 +392,12 @@ require_cmd python3
 [[ -n "${HYPRLAND_INSTANCE_SIGNATURE:-}" ]] || die "run this inside an existing Hyprland session"
 [[ -f "$PLUGIN_PATH" ]] || die "plugin not found: $PLUGIN_PATH (run 'cmake --build ./Debug -j' first)"
 
-pick_terminal_kind
+TERMINAL_KIND=kitty
+if [[ "$WITH_TEST_WINDOWS" -eq 1 ]]; then
+    pick_terminal_kind
+elif command -v alacritty >/dev/null 2>&1 && ! command -v kitty >/dev/null 2>&1; then
+    TERMINAL_KIND=alacritty
+fi
 
 if [[ -z "$OUTER_MONITOR" ]]; then
     OUTER_MONITOR="$(detect_outer_monitor)"
@@ -378,7 +407,8 @@ fi
 prepare_outer_output_layout
 
 RUN_DIR="$(mktemp -d /tmp/hyprscroller-overview-canvas.XXXXXX)"
-CONFIG_PATH="$RUN_DIR/hyprland.conf"
+CONFIG_PATH="$RUN_DIR/hyprland.lua"
+printf 'Preparing five-monitor test on %s\nRun directory: %s\nPlugin: %s\n' "$OUTER_MONITOR" "$RUN_DIR" "$PLUGIN_PATH"
 LOG_PATH="$RUN_DIR/hyprland.log"
 LAUNCHER_PATH="$RUN_DIR/launch-nested.sh"
 RESULT_PATH="$RUN_DIR/result.json"
@@ -390,44 +420,35 @@ hyprscroller_install_outer_output_map_time_float_rules OUTER_OUTPUT_TITLES \
 OUTER_OUTPUT_MAP_TIME_RULES_INSTALLED=1
 
 cat >"$CONFIG_PATH" <<EOF
-monitor = , preferred, auto, 1
-
-plugin = $PLUGIN_PATH
-
-env = XCURSOR_SIZE,24
-
-windowrulev2 = float,class:^($SOURCE_CLASS|$TARGET_CLASS)$
-windowrulev2 = center,class:^($SOURCE_CLASS|$TARGET_CLASS)$
-
-general {
-    layout = scroller
-    gaps_in = 4
-    gaps_out = 8
-    border_size = 2
-}
-
-decoration {
-    rounding = 6
-}
-
-misc {
-    disable_hyprland_logo = true
-    disable_splash_rendering = true
-    force_default_wallpaper = 0
-}
-
-input {
-    kb_layout = us
-}
-
-debug {
-    disable_logs = false
-}
+hl.plugin.load($(lua_string "$PLUGIN_PATH"))
+hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
+hl.config({
+    general = { layout = "scroller", gaps_in = 4, gaps_out = 8, border_size = 2 },
+    decoration = { rounding = 6 },
+    misc = { disable_hyprland_logo = true, disable_splash_rendering = true },
+    input = { kb_layout = "us" },
+    debug = { disable_logs = false },
+})
+local function bind(key, action)
+    hl.bind("CTRL + ALT + " .. key, action)
+end
+bind("RETURN", function() hl.exec_cmd($(lua_string "$TERMINAL_KIND")) end)
+bind("SHIFT + Q", hl.dsp.exit())
+bind("O", function() hl.plugin.scroller.toggle_overview() end)
+bind("ESCAPE", function() hl.plugin.scroller.cancel_overview() end)
+bind("TAB", function() hl.plugin.scroller.switch_workspace("r") end)
+bind("SHIFT + TAB", function() hl.plugin.scroller.switch_workspace("l") end)
+for _, spec in ipairs({ {"LEFT", "l"}, {"RIGHT", "r"}, {"UP", "u"}, {"DOWN", "d"} }) do
+    local key, direction = spec[1], spec[2]
+    bind(key, function() hl.plugin.scroller.move_focus(direction) end)
+    bind("SHIFT + " .. key, function() hl.plugin.scroller.move_window(direction) end)
+    bind("SUPER + " .. key, function() hl.plugin.scroller.focus_monitor(direction) end)
+end
 EOF
 
 cat >"$LAUNCHER_PATH" <<EOF
 #!/usr/bin/env bash
-exec env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c "$CONFIG_PATH" >"$LOG_PATH" 2>&1
+exec $(quote_command env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c "$CONFIG_PATH") >$(quote_command "$LOG_PATH") 2>&1
 EOF
 chmod +x "$LAUNCHER_PATH"
 
@@ -449,8 +470,8 @@ hyprscroller_wait_for_outer_output_event_watcher_ready "$OUTER_OUTPUT_EVENT_READ
     || die "timed out waiting for outer output event watcher"
 
 BEFORE_INSTANCES="$(hyprctl instances -j | jq -c 'map(.instance)')"
-LAUNCH_RULES="[monitor $OUTER_MONITOR; float; size ${OUTER_OUTPUT_WIDTHS[0]} ${OUTER_OUTPUT_HEIGHTS[0]}; center]"
-hyprctl dispatch exec "$LAUNCH_RULES $LAUNCHER_PATH" >/dev/null
+printf 'Starting nested Hyprland (log: %s)...\n' "$LOG_PATH"
+hyprctl dispatch "hl.dsp.exec_cmd($(lua_string "$(quote_command "$LAUNCHER_PATH")"), { monitor = $(lua_string "$OUTER_MONITOR"), floating = true, size = {${OUTER_OUTPUT_WIDTHS[0]}, ${OUTER_OUTPUT_HEIGHTS[0]}}, center = true })"
 
 for ((attempt = 0; attempt < 80; ++attempt)); do
     NESTED_INSTANCE="$(hyprctl instances -j | jq -r --argjson before "$BEFORE_INSTANCES" '
@@ -487,6 +508,7 @@ hyprscroller_position_outer_window_index \
     OUTER_OUTPUT_WIDTHS \
     OUTER_OUTPUT_HEIGHTS \
     || die "failed to apply first outer nested output geometry"
+printf 'Creating the remaining four Wayland outputs...\n'
 hyprscroller_create_positioned_wayland_outputs \
     "$NESTED_INSTANCE" \
     1 \
@@ -516,7 +538,23 @@ hyprscroller_position_outer_windows \
     || die "failed to apply outer nested output geometry"
 sleep 0.5
 
-hyprscroller_apply_five_monitor_cross_layout "$NESTED_INSTANCE" "$WINDOW_WIDTH" "$WINDOW_HEIGHT"
+# A Wayland output follows its outer window's pixel size. Requesting a larger
+# mode only works until the next configure event, leaving centered clients offscreen.
+# Portrait previews already have portrait dimensions, so no output rotation is needed.
+# Keep internal neighbors touching; outer preview spacing is only decoration.
+center_x=${OUTER_OUTPUT_WIDTHS[0]}
+center_y=${OUTER_OUTPUT_HEIGHTS[1]}
+side_y=$(( center_y + (OUTER_OUTPUT_HEIGHTS[2] - OUTER_OUTPUT_HEIGHTS[0]) / 2 ))
+NESTED_XS=(0 "$center_x" "$center_x" "$(( center_x + OUTER_OUTPUT_WIDTHS[2] ))" "$center_x")
+NESTED_YS=("$side_y" 0 "$center_y" "$side_y" "$(( center_y + OUTER_OUTPUT_HEIGHTS[2] ))")
+for index in "${!NESTED_MONITOR_NAMES[@]}"; do
+    hyprctl -i "$NESTED_INSTANCE" eval "hl.monitor({
+        output = $(lua_string "${NESTED_MONITOR_NAMES[$index]}"),
+        mode = '${OUTER_OUTPUT_WIDTHS[$index]}x${OUTER_OUTPUT_HEIGHTS[$index]}@60',
+        position = '${NESTED_XS[$index]}x${NESTED_YS[$index]}',
+        scale = 1, transform = 0
+    })" >/dev/null
+done
 sleep 0.5
 
 for monitor_name in "${NESTED_MONITOR_NAMES[@]}"; do
@@ -524,18 +562,23 @@ for monitor_name in "${NESTED_MONITOR_NAMES[@]}"; do
         || die "could not resolve nested monitor $monitor_name"
 done
 
+printf 'Five monitors ready; running canvas create/return checks...\n'
 SOURCE_MONITOR="WAYLAND-1"
 TARGET_MONITOR="WAYLAND-3"
 
-hyprctl -i "$NESTED_INSTANCE" dispatch focusmonitor "$SOURCE_MONITOR" >/dev/null
-launch_terminal_window "$SOURCE_CLASS" "canvas-source"
+if [[ "$WITH_TEST_WINDOWS" -eq 1 ]]; then
+
+hyprctl -i "$NESTED_INSTANCE" dispatch "hl.dsp.focus({ monitor = $(lua_string "$SOURCE_MONITOR") })" >/dev/null
+launch_terminal_window "$SOURCE_CLASS" "canvas-source" "$SOURCE_MONITOR"
 wait_for_nested_client_count 1 || die "timed out waiting for source window"
 ensure_window_floating "$SOURCE_CLASS"
 
-hyprctl -i "$NESTED_INSTANCE" dispatch focusmonitor "$TARGET_MONITOR" >/dev/null
-launch_terminal_window "$TARGET_CLASS" "canvas-target"
+hyprctl -i "$NESTED_INSTANCE" dispatch "hl.dsp.focus({ monitor = $(lua_string "$TARGET_MONITOR") })" >/dev/null
+launch_terminal_window "$TARGET_CLASS" "canvas-target" "$TARGET_MONITOR"
 wait_for_nested_client_count 2 || die "timed out waiting for target window"
 ensure_window_floating "$TARGET_CLASS"
+
+fi
 
 sleep 1
 INITIAL_MONITORS_JSON="$(hyprctl -i "$NESTED_INSTANCE" monitors -j)"
@@ -544,10 +587,12 @@ INITIAL_TARGET_WORKSPACE="$(printf '%s\n' "$INITIAL_MONITORS_JSON" | jq -r --arg
 INITIAL_SOURCE_TRANSFORM="$(printf '%s\n' "$INITIAL_MONITORS_JSON" | jq -r --arg monitor "$SOURCE_MONITOR" '.[] | select(.name == $monitor) | .transform')"
 INITIAL_TARGET_TRANSFORM="$(printf '%s\n' "$INITIAL_MONITORS_JSON" | jq -r --arg monitor "$TARGET_MONITOR" '.[] | select(.name == $monitor) | .transform')"
 
-hyprctl -i "$NESTED_INSTANCE" dispatch focusmonitor "$SOURCE_MONITOR" >/dev/null
-focus_nested_window "class:$SOURCE_CLASS"
+hyprctl -i "$NESTED_INSTANCE" dispatch "hl.dsp.focus({ monitor = $(lua_string "$SOURCE_MONITOR") })" >/dev/null
+if [[ "$WITH_TEST_WINDOWS" -eq 1 ]]; then
+    focus_nested_window "class:$SOURCE_CLASS"
+fi
 sleep 0.3
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:focusmonitor r >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.focus_monitor("r")' >/dev/null
 wait_for_nested_focused_monitor "$TARGET_MONITOR" || true
 NORMAL_FOCUSED_MONITOR="$(nested_focused_monitor)"
 NORMAL_FOCUS_OK=0
@@ -555,33 +600,35 @@ if [[ "$NORMAL_FOCUSED_MONITOR" == "$TARGET_MONITOR" ]]; then
     NORMAL_FOCUS_OK=1
 fi
 
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:focusmonitor l >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.focus_monitor("l")' >/dev/null
 wait_for_nested_focused_monitor "$SOURCE_MONITOR" || true
-hyprctl -i "$NESTED_INSTANCE" dispatch focusmonitor "$SOURCE_MONITOR" >/dev/null
-focus_nested_window "class:$SOURCE_CLASS"
+hyprctl -i "$NESTED_INSTANCE" dispatch "hl.dsp.focus({ monitor = $(lua_string "$SOURCE_MONITOR") })" >/dev/null
+if [[ "$WITH_TEST_WINDOWS" -eq 1 ]]; then
+    focus_nested_window "class:$SOURCE_CLASS"
+fi
 sleep 0.3
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:toggleoverview >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.toggle_overview()' >/dev/null
 sleep "$OVERVIEW_HOLD_SECONDS"
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:focusmonitor r >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.focus_monitor("r")' >/dev/null
 sleep 0.4
 DURING_CREATE_PREVIEW_MONITORS_JSON="$(hyprctl -i "$NESTED_INSTANCE" monitors -j)"
 DURING_CREATE_SOURCE_WORKSPACE="$(printf '%s\n' "$DURING_CREATE_PREVIEW_MONITORS_JSON" | jq -r --arg monitor "$SOURCE_MONITOR" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
 DURING_CREATE_TARGET_WORKSPACE="$(printf '%s\n' "$DURING_CREATE_PREVIEW_MONITORS_JSON" | jq -r --arg monitor "$TARGET_MONITOR" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:toggleoverview >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.toggle_overview()' >/dev/null
 sleep 0.7
 
 AFTER_CREATE_MONITORS_JSON="$(hyprctl -i "$NESTED_INSTANCE" monitors -j)"
 AFTER_CREATE_SOURCE_WORKSPACE="$(printf '%s\n' "$AFTER_CREATE_MONITORS_JSON" | jq -r --arg monitor "$SOURCE_MONITOR" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
 AFTER_CREATE_TARGET_WORKSPACE="$(printf '%s\n' "$AFTER_CREATE_MONITORS_JSON" | jq -r --arg monitor "$TARGET_MONITOR" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
 
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:toggleoverview >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.toggle_overview()' >/dev/null
 sleep "$OVERVIEW_HOLD_SECONDS"
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:focusmonitor l >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.focus_monitor("l")' >/dev/null
 sleep 0.4
 DURING_RETURN_PREVIEW_MONITORS_JSON="$(hyprctl -i "$NESTED_INSTANCE" monitors -j)"
 DURING_RETURN_SOURCE_WORKSPACE="$(printf '%s\n' "$DURING_RETURN_PREVIEW_MONITORS_JSON" | jq -r --arg monitor "$SOURCE_MONITOR" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
 DURING_RETURN_TARGET_WORKSPACE="$(printf '%s\n' "$DURING_RETURN_PREVIEW_MONITORS_JSON" | jq -r --arg monitor "$TARGET_MONITOR" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
-hyprctl -i "$NESTED_INSTANCE" dispatch scroller:toggleoverview >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.toggle_overview()' >/dev/null
 sleep 0.7
 
 RUNTIME_BASE_DIR="${XDG_RUNTIME_DIR:-/tmp}"
@@ -636,9 +683,9 @@ jq -n \
   }' >"$RESULT_PATH"
 
 if [[ "$KEEP_OPEN" -eq 1 ]]; then
-    :
+    printf 'Session kept open. Ctrl+Alt+O: overview/accept; Ctrl+Alt+Super+arrows: monitor/canvas; Ctrl+Alt+Enter: terminal; Ctrl+Alt+Shift+Q: exit.\n'
 else
-    hyprctl -i "$NESTED_INSTANCE" dispatch exit >/dev/null 2>&1 || true
+    hyprctl -i "$NESTED_INSTANCE" dispatch 'hl.dsp.exit()' >/dev/null 2>&1 || true
     wait_for_instance_exit || die "timed out waiting for nested Hyprland to exit"
 fi
 
@@ -658,10 +705,10 @@ OUTER_OUTPUT_MAP_TIME_RULES_INSTALLED_RESULT="$(jq -r '.outerOutputMapTimeRulesI
 OUTER_OUTPUT_EVENT_COUNT="$(jq -r '.outerOutputEventCount' "$RESULT_PATH")"
 INITIAL_MONITOR_COUNT="$(jq -r '.initialMonitors | length' "$RESULT_PATH")"
 ALL_INITIAL_TRANSFORMS_OK="$(jq -r '
-    ((.initialMonitors[] | select(.name == "WAYLAND-1") | .transform) == 3) and
+    ((.initialMonitors[] | select(.name == "WAYLAND-1") | .transform) == 0) and
     ((.initialMonitors[] | select(.name == "WAYLAND-2") | .transform) == 0) and
     ((.initialMonitors[] | select(.name == "WAYLAND-3") | .transform) == 0) and
-    ((.initialMonitors[] | select(.name == "WAYLAND-4") | .transform) == 1) and
+    ((.initialMonitors[] | select(.name == "WAYLAND-4") | .transform) == 0) and
     ((.initialMonitors[] | select(.name == "WAYLAND-5") | .transform) == 0)
 ' "$RESULT_PATH")"
 PREVIEW_CREATE_UNCHANGED_ALL="$(jq -r '
@@ -685,6 +732,15 @@ FINAL_RETURNED_ALL="$(jq -r '
         ((.monitors[] | select(.name == $m.name) | .activeWorkspace.id) == $m.activeWorkspace.id)
     ] | all
 ' "$RESULT_PATH")"
+CLIENTS_CENTERED="$(jq --argjson expected "$(( WITH_TEST_WINDOWS * 2 ))" '
+    [(.clients[] | select(.class == "hs-canvas-source" or .class == "hs-canvas-target")) as $c |
+        .monitors[] | select(.id == $c.monitor) |
+        ($c.size[0] <= .width and $c.size[1] <= .height and
+         (($c.at[0] + $c.size[0] / 2 - .x - .width / 2) | fabs) <= 2 and
+         (($c.at[1] + $c.size[1] / 2 - .y - .height / 2) | fabs) <= 2)
+    ] | length == $expected and all
+' "$RESULT_PATH")"
+printf 'test clients centered:   %s\n' "$CLIENTS_CENTERED"
 OUTER_WINDOW_LAYOUT_OK=1
 CANVAS_COUNT="$(grep -c '^CANVAS ' "$RUNTIME_STATE_COPY" || true)"
 
@@ -747,19 +803,21 @@ for index in "${!OUTER_OUTPUT_TITLES[@]}"; do
     fi
 done
 
-if [[ "$INITIAL_MONITOR_COUNT" == "5" \
+if [[ "$NORMAL_FOCUS_OK" == "1" \
+   && "$INITIAL_MONITOR_COUNT" == "5" \
    && "$ALL_INITIAL_TRANSFORMS_OK" == "true" \
    && "$PREVIEW_CREATE_UNCHANGED_ALL" == "true" \
    && "$AFTER_CREATE_CHANGED_ALL" == "true" \
    && "$PREVIEW_RETURN_MATCHES_CREATE_ALL" == "true" \
    && "$FINAL_RETURNED_ALL" == "true" \
-   && "$SOURCE_FLOATING" == "true" \
-   && "$TARGET_FLOATING" == "true" \
+   && "$CLIENTS_CENTERED" == "true" \
+   && ( "$WITH_TEST_WINDOWS" == "0" || "$SOURCE_FLOATING" == "true" ) \
+   && ( "$WITH_TEST_WINDOWS" == "0" || "$TARGET_FLOATING" == "true" ) \
    && "$OUTER_OUTPUT_MAP_TIME_RULES_INSTALLED_RESULT" == "true" \
    && "$OUTER_OUTPUT_EVENT_COUNT" -ge 5 \
    && "$OUTER_WINDOW_LAYOUT_OK" == "1" \
-   && "$CLIENTS_ON_FINAL_SOURCE" == "1" \
-   && "$CLIENTS_ON_FINAL_TARGET" == "1" \
+   && "$CLIENTS_ON_FINAL_SOURCE" == "$WITH_TEST_WINDOWS" \
+   && "$CLIENTS_ON_FINAL_TARGET" == "$WITH_TEST_WINDOWS" \
    && "$FINAL_SOURCE_WORKSPACE" == "$INITIAL_SOURCE_WORKSPACE" \
    && "$FINAL_TARGET_WORKSPACE" == "$INITIAL_TARGET_WORKSPACE" \
    && "$CANVAS_COUNT" -ge 2 ]]; then

@@ -250,7 +250,7 @@ hyprscroller_install_outer_output_map_time_float_rules() {
     local title
 
     for title in "${titles_ref[@]}"; do
-        hyprctl keyword windowrulev2 "float,title:^${title}$" >/dev/null || return 1
+        hyprctl eval "hl.window_rule({ match = { class = '^aquamarine$', title = $(jq -Rn --arg value "^${title}$" '$value') }, float = true })" >/dev/null || return 1
     done
 }
 
@@ -282,7 +282,9 @@ hyprscroller_position_outer_window_selector() {
     local -n selector_widths_ref="$7"
     local -n selector_heights_ref="$8"
 
-    hyprctl --batch "dispatch setfloating ${selector}; dispatch resizewindowpixel exact ${selector_widths_ref[$index]} ${selector_heights_ref[$index]},${selector}; dispatch movewindowpixel exact $(( outer_monitor_x + selector_xs_ref[$index] )) $(( outer_monitor_y + selector_ys_ref[$index] )),${selector}" >/dev/null
+    local selector_lua
+    selector_lua="$(jq -Rn --arg value "$selector" '$value')"
+    hyprctl eval "hl.dispatch(hl.dsp.window.float({ window = $selector_lua, action = 'set' })); hl.dispatch(hl.dsp.window.resize({ window = $selector_lua, x = ${selector_widths_ref[$index]}, y = ${selector_heights_ref[$index]}, relative = false })); hl.dispatch(hl.dsp.window.move({ window = $selector_lua, x = $(( outer_monitor_x + selector_xs_ref[$index] )), y = $(( outer_monitor_y + selector_ys_ref[$index] )), relative = false }))" >/dev/null
 }
 
 hyprscroller_position_outer_window_index() {
@@ -529,16 +531,16 @@ hyprscroller_apply_five_monitor_cross_layout() {
     local right_x=$(( portrait_width + landscape_width ))
     local bottom_y=$(( middle_y + landscape_height + row_gap ))
 
-    hyprctl -i "$instance" keyword monitor \
-        "WAYLAND-1,${landscape_width}x${landscape_height}@60,0x${side_y},1,transform,3" >/dev/null
-    hyprctl -i "$instance" keyword monitor \
-        "WAYLAND-2,${landscape_width}x${landscape_height}@60,${middle_x}x0,1,transform,0" >/dev/null
-    hyprctl -i "$instance" keyword monitor \
-        "WAYLAND-3,${landscape_width}x${landscape_height}@60,${middle_x}x${middle_y},1,transform,0" >/dev/null
-    hyprctl -i "$instance" keyword monitor \
-        "WAYLAND-4,${landscape_width}x${landscape_height}@60,${right_x}x${side_y},1,transform,1" >/dev/null
-    hyprctl -i "$instance" keyword monitor \
-        "WAYLAND-5,${landscape_width}x${landscape_height}@60,${middle_x}x${bottom_y},1,transform,0" >/dev/null
+    hyprctl -i "$instance" eval \
+        "hl.monitor({ output = 'WAYLAND-1', mode = '${landscape_width}x${landscape_height}@60', position = '0x${side_y}', scale = 1, transform = 3 })" >/dev/null
+    hyprctl -i "$instance" eval \
+        "hl.monitor({ output = 'WAYLAND-2', mode = '${landscape_width}x${landscape_height}@60', position = '${middle_x}x0', scale = 1, transform = 0 })" >/dev/null
+    hyprctl -i "$instance" eval \
+        "hl.monitor({ output = 'WAYLAND-3', mode = '${landscape_width}x${landscape_height}@60', position = '${middle_x}x${middle_y}', scale = 1, transform = 0 })" >/dev/null
+    hyprctl -i "$instance" eval \
+        "hl.monitor({ output = 'WAYLAND-4', mode = '${landscape_width}x${landscape_height}@60', position = '${right_x}x${side_y}', scale = 1, transform = 1 })" >/dev/null
+    hyprctl -i "$instance" eval \
+        "hl.monitor({ output = 'WAYLAND-5', mode = '${landscape_width}x${landscape_height}@60', position = '${middle_x}x${bottom_y}', scale = 1, transform = 0 })" >/dev/null
 }
 
 hyprscroller_apply_two_orientation_layout() {
