@@ -280,6 +280,8 @@ with (run / 'hyprland.log').open('w') as log:
                   'reverse move subsequent keyboard action stays on destination')
         # Switching every monitor must preserve each outgoing workspace's
         # remembered window, even when the pointer is over a different window.
+        # Remember the last window: choosing the first one would hide a return
+        # path that incorrectly resets selection to the first overview target.
         lua('hl.config({input={follow_mouse=0}})')
         lua('hl.plugin.scroller.switch_workspace("r")')
         remembered = {}
@@ -287,31 +289,33 @@ with (run / 'hyprland.log').open('w') as log:
             dispatch('hl.dsp.focus({monitor=' + json.dumps(output) + '})')
             launch('remember-' + output + '-a', '#aa2222')
             launch('remember-' + output + '-b', '#22aa22')
-            lua('hl.plugin.scroller.move_focus("begin")')
+            lua('hl.plugin.scroller.move_focus("end")')
             time.sleep(.3)
             win = json.loads(ctl('activewindow', '-j'))
             remembered[win['workspace']['id']] = win['address']
-        peer = next(c for c in json.loads(ctl('clients', '-j')) if c['class'] == 'remember-TEST-1-b')
+        peer = next(c for c in json.loads(ctl('clients', '-j')) if c['class'] == 'remember-TEST-1-a')
         check(remembered[peer['workspace']['id']] != peer['address'],
               'pointer target differs from the remembered window')
         dispatch('hl.dsp.cursor.move({x=' + str(peer['at'][0] + peer['size'][0] // 2)
                  + ',y=' + str(peer['at'][1] + peer['size'][1] // 2) + '})')
         lua('hl.config({input={follow_mouse=1}})')
-        for _ in range(3):
+        for outward, backward in (('r', 'l'), ('d', 'u'), ('l', 'r'), ('u', 'd')):
             visible_before = workspaces()
-            lua('hl.plugin.scroller.switch_workspace("r")')
+            lua('hl.plugin.scroller.switch_workspace(' + json.dumps(outward) + ')')
             time.sleep(.3)
             check(all(ws not in workspaces().values() for ws in remembered),
                   'focus regression actually leaves every source workspace')
             hidden = {w['id']: w for w in json.loads(ctl('workspaces', '-j'))}
             check(all(hidden[ws]['lastwindow'] == address for ws, address in remembered.items()),
                   'departing canvas preserves remembered focus on every monitor')
-            lua('hl.plugin.scroller.switch_workspace("l")')
+            lua('hl.plugin.scroller.switch_workspace(' + json.dumps(backward) + ')')
             time.sleep(.3)
             check(workspaces() == visible_before, 'focus regression returns to the source canvas')
             restored = {w['id']: w for w in json.loads(ctl('workspaces', '-j'))}
             check(all(restored[ws]['lastwindow'] == address for ws, address in remembered.items()),
                   'returning canvas restores remembered focus on every monitor')
+            check(json.loads(ctl('activewindow', '-j')).get('address') in remembered.values(),
+                  f'{outward}/{backward} canvas navigation restores a remembered keyboard focus')
         lua('hl.config({input={follow_mouse=0}})')
         # Exercise scale changes on live windows, using logical rather than
         # framebuffer bounds for containment.

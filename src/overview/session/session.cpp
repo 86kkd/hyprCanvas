@@ -168,6 +168,18 @@ bool Session::selectCanvas(int canvasId, std::optional<int> preferredMonitorId) 
     if (!ref)
         return false;
 
+    // Canvas navigation should restore the workspace's remembered window,
+    // not arbitrarily select the first stack after a transfer or departure.
+    if (const auto* target = model_.resolve(*ref)) {
+        const auto workspace = ScrollerCore::HyprlandRuntime::workspaceById(target->workspaceId);
+        const auto remembered = workspace ? workspace->getLastFocusedWindow() : nullptr;
+        if (remembered && ScrollerCore::HyprlandRuntime::windowWorkspaceId(remembered) == target->workspaceId) {
+            if (const auto rememberedRef = model_.findByWindow(remembered, canvasId)) {
+                model_.setSelection(*rememberedRef);
+                return true;
+            }
+        }
+    }
     model_.setSelection(*ref);
     return true;
 }
