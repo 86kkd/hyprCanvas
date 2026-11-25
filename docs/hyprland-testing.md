@@ -810,4 +810,4 @@ python3 scripts/repro-canvas-window-transfer.py
 延迟指针同步的位置。脚本打印测试目录，保存 `focus-events.json` 和 compositor 日志。
 
 手工测试入口：`scripts/hsctl -i <测试实例> move-workspace l`（也支持 r/u/d）。
-示例绑定为 `Super + Ctrl + Alt + H/J/K/L`，需先加载包含新 Lua 接口的插件。
+示例绑定为 `Super + Ctrl + Alt + N/M/comma/period`，需先加载包含新 Lua 接口的插件。

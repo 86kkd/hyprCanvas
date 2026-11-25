@@ -59,14 +59,14 @@ for _, spec in ipairs({
     hl.plugin.scroller.move_window(direction)
   end, "move window " .. native .. " (scroller)",
     hl.dsp.window.swap({ direction = native }), "swap window " .. native)
-  layout_bind("SUPER + CTRL + " .. key, function()
-    hl.plugin.scroller.switch_workspace(direction)
-  end, "canvas workspace " .. native .. " (scroller)",
-    hl.dsp.window.move({ direction = native }), "move window " .. native)
-
-  layout_bind("SUPER + CTRL + ALT + " .. key, function()
-    hl.plugin.scroller.move_window_to_workspace(direction)
-  end, "move window to canvas " .. native .. " (scroller)")
+  -- Retire workspace actions from the individual-window row. Native layouts
+  -- retain their original Ctrl+Super window movement.
+  hl.unbind("SUPER + CTRL + " .. key)
+  hl.unbind("SUPER + CTRL + ALT + " .. key)
+  if not scroller() then
+    bind("SUPER + CTRL + " .. key, hl.dsp.window.move({ direction = native }),
+      "move window " .. native)
+  end
 
   -- The user's native H/L bindings transfer a window between workspaces.
   -- J/K have no native binding: remove the shortcut outside scroller entirely.
@@ -129,6 +129,12 @@ local native_monitor_keys = {
 }
 for _, spec in ipairs({ {"n", "l"}, {"m", "d"}, {"comma", "u"}, {"period", "r"} }) do
   local key, direction = spec[1], spec[2]
+  layout_bind("SUPER + CTRL + " .. key, function()
+    hl.plugin.scroller.switch_workspace(direction)
+  end, "canvas workspace " .. direction .. " (scroller)")
+  layout_bind("SUPER + CTRL + ALT + " .. key, function()
+    hl.plugin.scroller.move_window_to_workspace(direction)
+  end, "move window to canvas " .. direction .. " (scroller)")
   layout_bind("SUPER + " .. key, function()
     hl.plugin.scroller.focus_monitor(direction)
   end, "focus monitor " .. direction .. " (scroller)", native_monitor_keys[key],

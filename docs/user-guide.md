@@ -63,12 +63,15 @@ left / down / up / right order:
 | `Super + H / J / K / L` | Focus a window. |
 | `Super + Alt + H / J / K / L` | Move a window. |
 | `Ctrl + Shift + H / J / K / L` | Swap windows. |
-| `Super + Ctrl + H / J / K / L` | Switch the canvas workspace in four directions. |
-| `Super + Ctrl + Alt + H / J / K / L` | Move the focused window to the adjacent canvas and follow it. |
+| `Super + Ctrl + N / M / comma / period` | Switch the canvas workspace in four directions. |
+| `Super + Ctrl + Alt + N / M / comma / period` | Move the focused window to the adjacent canvas and follow it. |
 | `Super + N / M / comma / period` | Focus a physical monitor. |
 | `Super + Alt + N / M / comma / period` | Move a window directly to an adjacent monitor and follow it. |
 | `Super + I` | Open overview or accept its selection and exit. |
 | `Super + F` | Expand or restore the active stack. |
+
+H/J/K/L address individual windows; N/M/comma/period address monitors and
+canvas workspaces. Ctrl selects the workspace layer, and Alt carries the window.
 
 Keep the left little finger on Super when navigating; add Alt with the ring
 finger to move the selected window, including across monitors.
@@ -202,7 +205,7 @@ history. Floating/special-workspace windows, invalid directions and calls during
 overview are ignored. Native numbered transfers remain disabled in the example.
 
 ```lua
-hl.bind("SUPER + CTRL + ALT + H", function() hl.plugin.scroller.move_window_to_workspace("l") end)
+hl.bind("SUPER + CTRL + ALT + N", function() hl.plugin.scroller.move_window_to_workspace("l") end)
 ```
 
 `swap_window(direction)` exchanges the active windows of adjacent stacks in
