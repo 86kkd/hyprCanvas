@@ -23,6 +23,7 @@ class Session {
     void dismiss();
     bool moveSelection(Direction direction);
     bool moveCanvasSelection(Direction direction);
+    bool moveWindowToCanvas(Direction direction);
     bool selectCanvasNumber(int number);
     bool previewCanvas(int canvasId);
     void markInputHandled();

@@ -16,6 +16,7 @@
 #include "overview/session/session.h"
 
 #include <hyprland/src/Compositor.hpp>
+#include <hyprland/src/desktop/state/GlobalWindowController.hpp>
 #include <hyprland/src/animation/WorkspaceAnimationController.hpp>
 #include <hyprland/src/workspace/HLWorkspace.hpp>
 #include <hyprland/src/render/Renderer.hpp>
@@ -24,6 +25,7 @@
 #include "core/hyprland_runtime.h"
 #include "core/canvas_transition.h"
 #include "layout/canvas/internal.h"
+#include "layout/canvas/layout.h"
 #include "overview/render/state.h"
 #include "overview/minimap/runtime.h"
 #include "overview/navigation/logic.h"
@@ -340,6 +342,82 @@ bool Session::moveCanvasSelection(Direction direction) {
                  selection ? selection->workspaceId : INVALID_WORKSPACE_ID);
     damageMonitors();
     return true;
+}
+
+// Move the focused tiled window to the same physical monitor in an adjacent
+// canvas. Reuse preview routing without accepting the old target window first:
+// activating it would briefly steal focus and rewrite source focus history.
+bool Session::moveWindowToCanvas(Direction direction) {
+    if (active_ || (direction != Direction::Left && direction != Direction::Right &&
+                    direction != Direction::Up && direction != Direction::Down))
+        return false;
+    const auto window = Desktop::focusState()->window();
+    if (!window || !window->mapped() || window->isFloating() || window->onSpecialWorkspace())
+        return false;
+    const auto sourceId = ScrollerCore::HyprlandRuntime::windowWorkspaceId(window);
+    const auto source = ScrollerCore::HyprlandRuntime::workspaceById(sourceId);
+    auto* sourceLayout = CanvasLayoutInternal::get_canvas_for_workspace(sourceId);
+    if (!source || !sourceLayout || !sourceLayout->isWindowTiled(window))
+        return false;
+    const auto monitor = ScrollerCore::HyprlandRuntime::monitorById(window->monitorID());
+    if (!monitor)
+        return false;
+
+    open();
+    if (!active_ || !moveCanvasSelection(direction) || !model_.selection()) {
+        dismiss();
+        return false;
+    }
+    const auto destination = *model_.selection();
+    if (destination.monitorId != monitor->m_id || destination.workspaceId == sourceId) {
+        dismiss();
+        return false;
+    }
+    auto target = ScrollerCore::HyprlandRuntime::workspaceById(destination.workspaceId);
+    if (!target)
+        target = State::workspaceState()->createNumbered(
+            Workspace::SWorkspaceNumberedID(static_cast<Workspace::WorkspaceIDContainer>(destination.workspaceId)), monitor);
+    if (!target || target->monitorID() != monitor->m_id ||
+        !CanvasLayoutInternal::get_canvas_for_workspace(destination.workspaceId)) {
+        dismiss();
+        return false;
+    }
+
+    const auto previousTargetWindow = target->getLastFocusedWindow();
+    // The native silent dispatcher deliberately refocuses another source
+    // window. Transfer ownership directly, then perform one canvas activation.
+    Desktop::globalWindowController()->moveWindowToWorkspace(window, target);
+    if (ScrollerCore::HyprlandRuntime::windowWorkspaceId(window) != destination.workspaceId) {
+        dismiss();
+        return false;
+    }
+    const auto remaining = sourceLayout->getNextCandidate(nullptr);
+    source->rememberFocusedWindow(remaining ? remaining->window() : nullptr);
+    target->rememberFocusedWindow(window);
+
+    model_.rebuild(pendingCanvases_, viewCanvasId_);
+    const auto moved = model_.findByWindow(window, destination.canvasId);
+    if (!moved) {
+        Desktop::globalWindowController()->moveWindowToWorkspace(window, source);
+        source->rememberFocusedWindow(window);
+        target->rememberFocusedWindow(previousTargetWindow);
+        restoreOrigin();
+        dismiss();
+        return false;
+    }
+    model_.setSelection(*moved);
+    const int previousCanvas = originCanvasId_;
+    const bool accepted = acceptSelection();
+    if (!accepted) {
+        Desktop::globalWindowController()->moveWindowToWorkspace(window, source);
+        source->rememberFocusedWindow(window);
+        target->rememberFocusedWindow(previousTargetWindow);
+        restoreOrigin();
+    }
+    dismiss();
+    if (accepted)
+        Minimap::notifySwitch(previousCanvas, destination.canvasId);
+    return accepted;
 }
 
 // Map clicks select an existing canvas by identity, never by native workspace

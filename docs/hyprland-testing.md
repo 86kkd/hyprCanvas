@@ -790,3 +790,24 @@ python3 scripts/repro-empty-canvas-focus.py
 事件循环的 HUD 到期记录；然后通过 `hsctl kitty` 确认新窗口归属目标 workspace，
 并使临时 canvas 转为正式页面。HUD 定时器在 1.3 秒时启动淡出帧，到期主动重绘，
 不依赖空桌面持续产生渲染帧。此脚本读取共享插件日志，请串行运行回归。
+
+## 跨 canvas 搬窗口与焦点回归
+
+```bash
+cmake --build Debug -j 2
+ctest --test-dir Debug --output-on-failure
+lua tests/scroller_keybinds_tests.lua
+python3 scripts/repro-canvas-window-transfer.py
+```
+
+专用脚本在独立 Hyprland 实例中创建两个 headless 输出和 kitty 窗口，不重载主桌面插件。
+覆盖 `move_window_to_workspace` 四方向、已有/新建目标、移走源页最后一个窗口、
+快速往返，以及浮动窗口、特殊工作区、空源页和 overview 中的无操作保护。
+
+焦点检查同时覆盖最终状态和 IPC `activewindowv2` 事件：一次搬动最多允许一次指向原
+窗口的焦点通知，不能短暂聚焦源页其他窗口、目标页旧窗口或空窗口。还检查源页剩余
+窗口的焦点记忆、其他显示器的记忆、返回后的实际焦点，以及 `no_warps` 与鼠标跟随下
+延迟指针同步的位置。脚本打印测试目录，保存 `focus-events.json` 和 compositor 日志。
+
+手工测试入口：`scripts/hsctl -i <测试实例> move-workspace l`（也支持 r/u/d）。
+示例绑定为 `Super + Ctrl + Alt + H/J/K/L`，需先加载包含新 Lua 接口的插件。

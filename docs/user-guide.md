@@ -64,6 +64,7 @@ left / down / up / right order:
 | `Super + Alt + H / J / K / L` | Move a window. |
 | `Ctrl + Shift + H / J / K / L` | Swap windows. |
 | `Super + Ctrl + H / J / K / L` | Switch the canvas workspace in four directions. |
+| `Super + Ctrl + Alt + H / J / K / L` | Move the focused window to the adjacent canvas and follow it. |
 | `Super + N / M / comma / period` | Focus a physical monitor. |
 | `Super + Alt + N / M / comma / period` | Move a window directly to an adjacent monitor and follow it. |
 | `Super + I` | Open overview or accept its selection and exit. |
@@ -192,6 +193,18 @@ hl.bind("SUPER + SHIFT + N", function() hl.plugin.scroller.move_window_to_monito
 hl.bind("SUPER + SHIFT + period", function() hl.plugin.scroller.move_window_to_monitor("r") end)
 ```
 
+`move_window_to_workspace(direction)` transfers the focused tiled window to an
+adjacent canvas, keeping its physical monitor. All monitors switch to the target
+canvas and focus follows the transferred window. A missing neighbor is created
+using the same spatial routing as `switch_workspace`. Returning to the source
+restores its remaining selected window; background monitors retain their focus
+history. Floating/special-workspace windows, invalid directions and calls during
+overview are ignored. Native numbered transfers remain disabled in the example.
+
+```lua
+hl.bind("SUPER + CTRL + ALT + H", function() hl.plugin.scroller.move_window_to_workspace("l") end)
+```
+
 `swap_window(direction)` exchanges the active windows of adjacent stacks in
 the same lane. Focus follows the original window; stack sizes, membership
 counts, and expansion states are preserved. It does not wrap, accept
@@ -238,6 +251,7 @@ callbacks after the plugin has loaded.
 | --- | --- |
 | `move_focus(direction)` | Move layout focus or overview selection. |
 | `move_window(direction)` | Reorder, join, split, or move a window. |
+| `move_window_to_workspace(direction)` | Move a tiled window to the adjacent canvas on the same physical monitor and follow it. |
 | `move_window_to_monitor(direction)` | Move a tiled window directly to an adjacent monitor and follow focus. |
 | `swap_window(direction)` | Exchange active windows in adjacent stacks. |
 | `focus_monitor(direction)` | Focus another monitor or change the overview canvas selection. |

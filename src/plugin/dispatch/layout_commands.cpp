@@ -210,6 +210,13 @@ int lua_move_window_to_monitor(lua_State* state) {
     return 0;
 }
 
+int lua_move_window_to_workspace(lua_State* state) {
+    const auto direction = parsedDirectionArg(luaStringArg(state));
+    if (direction)
+        Overview::session().moveWindowToCanvas(*direction);
+    return 0;
+}
+
 int lua_swap_window(lua_State* state) {
     if (Overview::session().active())
         return 0;
@@ -245,6 +252,7 @@ void registerLayoutLuaFunctions() {
     registerLuaFunction("switch_workspace", lua_switch_workspace);
     registerLuaFunction("move_window", lua_move_window);
     registerLuaFunction("move_window_to_monitor", lua_move_window_to_monitor);
+    registerLuaFunction("move_window_to_workspace", lua_move_window_to_workspace);
     registerLuaFunction("swap_window", lua_swap_window);
     registerLuaFunction("set_mode", lua_set_mode);
     registerLuaFunction("toggle_fullscreen", lua_toggle_fullscreen);

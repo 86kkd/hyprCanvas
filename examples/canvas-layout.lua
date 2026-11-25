@@ -64,6 +64,10 @@ for _, spec in ipairs({
   end, "canvas workspace " .. native .. " (scroller)",
     hl.dsp.window.move({ direction = native }), "move window " .. native)
 
+  layout_bind("SUPER + CTRL + ALT + " .. key, function()
+    hl.plugin.scroller.move_window_to_workspace(direction)
+  end, "move window to canvas " .. native .. " (scroller)")
+
   -- The user's native H/L bindings transfer a window between workspaces.
   -- J/K have no native binding: remove the shortcut outside scroller entirely.
   local transfer = direction == "l" and "-1" or direction == "r" and "+1" or nil
@@ -96,8 +100,8 @@ for number = 1, 10 do
     local follow = mods == "SHIFT"
     bind("SUPER + " .. mods .. " + " .. code, function()
       -- A numbered destination means another global canvas, not a monitor.
-      -- This shortcut is intentionally inactive in scroller's monitor-only
-      -- window movement model. Use directional window movement instead.
+      -- Numbered native transfers bypass canvas membership. Use the
+      -- directional move_window_to_workspace shortcut in scroller instead.
       if not scroller() then
         hl.dispatch(hl.dsp.window.move({ workspace = native, follow = follow }))
       end

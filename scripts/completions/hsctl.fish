@@ -68,6 +68,7 @@ complete -c hsctl -n __hsctl_option_scope -s h -l help -d 'Show help'
 
 for entry in \
     'focus:Move window focus' 'move:Move window' 'swap:Swap adjacent windows' \
+    'move-workspace:Move window to adjacent canvas and follow' \
     'move-monitor:Move window to adjacent monitor and follow' \
     'monitor:Focus monitor or overview canvas' 'focusmonitor:Alias for monitor' \
     'workspace:Switch canvas workspace' 'canvas:Alias for workspace' \
@@ -84,7 +85,7 @@ for entry in \
     complete -c hsctl -n __hsctl_at_command -a $parts[1] -d $parts[2]
 end
 
-complete -c hsctl -n '__hsctl_argument focus move move-monitor swap monitor focusmonitor workspace canvas' -a 'l r u d left right up down dn'
+complete -c hsctl -n '__hsctl_argument focus move move-monitor move-workspace swap monitor focusmonitor workspace canvas' -a 'l r u d left right up down dn'
 complete -c hsctl -n '__hsctl_argument focus move' -a 'begin b beginning end e'
 complete -c hsctl -n '__hsctl_argument workspace canvas' -a '1 2 3 4 5 6 7 8 9 10'
 complete -c hsctl -n '__hsctl_argument size' -a '1 2 3 4 5 6 7 8'

@@ -55,6 +55,7 @@ for _, mode in ipairs({'scroller', 'scroller', 'master', 'dwindle', 'scroller'})
       press('SUPER + '..key, 'move_focus', dir)
       press('SUPER + ALT + '..key, 'move_window', dir)
       press('SUPER + CTRL + '..key, 'switch_workspace', dir)
+      press('SUPER + CTRL + ALT + '..key, 'move_window_to_workspace', dir)
       press('CTRL + SHIFT + '..key, 'swap_window', dir)
       press('SUPER + '..monitor, 'focus_monitor', dir)
       press('SUPER + ALT + '..monitor, 'move_window_to_monitor', dir)
@@ -63,6 +64,7 @@ for _, mode in ipairs({'scroller', 'scroller', 'master', 'dwindle', 'scroller'})
       assert(press('SUPER + ALT + '..key, 'swap').direction == native)
       assert(press('SUPER + CTRL + '..key, 'move').direction == native)
       assert(not bindings[normalize('SUPER + ALT + '..monitor)])
+      assert(not bindings[normalize('SUPER + CTRL + ALT + '..key)])
     end
   end
   if mode == 'scroller' then
