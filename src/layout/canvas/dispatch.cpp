@@ -104,17 +104,24 @@ public:
         if (!monitor)
             return false;
 
-        if (!Config::Actions::focusMonitor(monitor))
+        auto target = workspace;
+        if (!target && fallbackWorkspaceId != WORKSPACE_INVALID) {
+            target = ScrollerCore::HyprlandRuntime::workspaceById(fallbackWorkspaceId);
+            if (!target && fallbackWorkspaceId >= 0)
+                target = State::workspaceState()->createNumbered(
+                    Workspace::SWorkspaceNumberedID(static_cast<Workspace::WorkspaceIDContainer>(fallbackWorkspaceId)), monitor);
+        }
+        if (!target || target->monitorID() != monitor->m_id)
             return false;
 
-        if (workspace) {
-            if (!Config::Actions::changeWorkspace(workspace))
-                return false;
-        } else if (fallbackWorkspaceId != WORKSPACE_INVALID) {
-            const auto fallbackWorkspace = ScrollerCore::HyprlandRuntime::workspaceById(fallbackWorkspaceId);
-            if (!fallbackWorkspace || !Config::Actions::changeWorkspace(fallbackWorkspace))
-                return false;
-        }
+        // Focusing the monitor first refocuses its outgoing workspace and can
+        // overwrite the window it remembers. Switch in place, without synthetic
+        // pointer movement; background canvas members must not acquire focus.
+        const bool noFocus = getFocusedMonitor() != monitor;
+        if (ScrollerCore::HyprlandRuntime::isSpecialWorkspace(target))
+            monitor->setSpecialWorkspace(target, noFocus);
+        else
+            monitor->changeWorkspace(target, false, true, noFocus);
 
         return isWorkspaceActiveOnMonitor(monitor, workspace, fallbackWorkspaceId);
     }

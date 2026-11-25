@@ -339,6 +339,10 @@ void test_focus_monitor_workspace_logic() {
               "focus_monitor_workspace updates focused monitor");
     expect_true(runtime.isWorkspaceActiveOnMonitor(targetMonitor, targetWorkspace, INVALID_WORKSPACE_ID),
                 "focus_monitor_workspace leaves the requested workspace active");
+    expect_eq(runtime.invocations.size(), std::size_t{1},
+              "successful direct switch only focuses the destination monitor");
+    expect_eq(runtime.invocations.front().first, std::string("focusmonitor"),
+              "successful direct switch does not replay workspace dispatch");
 
     FakeDispatcherRuntime missingFocusRuntime;
     missingFocusRuntime.knownDispatchers = {"focusmonitor", "workspace"};
@@ -354,7 +358,6 @@ void test_focus_monitor_workspace_logic() {
 
     FakeDispatcherRuntime workspaceOnlyRuntime;
     workspaceOnlyRuntime.knownDispatchers = {"focusmonitor", "workspace"};
-    workspaceOnlyRuntime.focusMonitorSuccessOnAttempt = 0;
     const auto sourceMonitorForWindow = workspaceOnlyRuntime.addMonitor(1, "HDMI-A-1", 1);
     const auto targetMonitorForWindow = workspaceOnlyRuntime.addMonitor(2, "DP-1", 3);
     const auto targetWorkspaceForWindow = workspaceOnlyRuntime.addWorkspace(11, "11");
@@ -367,6 +370,8 @@ void test_focus_monitor_workspace_logic() {
               "relaxed window handoff does not require focused monitor movement");
     expect_true(workspaceOnlyRuntime.isWorkspaceActiveOnMonitor(targetMonitorForWindow, targetWorkspaceForWindow, INVALID_WORKSPACE_ID),
                 "relaxed window handoff still activates the destination workspace");
+    expect_true(workspaceOnlyRuntime.invocations.empty(),
+                "background workspace activation never refocuses the outgoing workspace");
 
     FakeDispatcherRuntime missingWorkspaceRuntime;
     missingWorkspaceRuntime.knownDispatchers = {"focusmonitor", "workspace"};

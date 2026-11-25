@@ -64,6 +64,14 @@ bool focus_monitor_workspace(const DispatcherRuntime& runtime,
                       ctx,
                       targetMonitorName,
                       targetWorkspaceId);
+        // Do not replay workspace dispatch after a successful direct switch:
+        // it can refocus under the pointer (or trigger workspace back-and-forth).
+        if (!require_monitor_focus)
+            return runtime.isWorkspaceActiveOnMonitor(monitor, workspace, fallback_workspace_id);
+        if (!is_focused_monitor(runtime, monitor))
+            (void)invoke_dispatcher(runtime, "focusmonitor", targetMonitorName, ctx);
+        return is_focused_monitor(runtime, monitor) &&
+            runtime.isWorkspaceActiveOnMonitor(monitor, workspace, fallback_workspace_id);
     }
 
     if (!is_focused_monitor(runtime, monitor))
