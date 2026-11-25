@@ -47,26 +47,42 @@ accepting the selection switches the actual desktop. Outside overview, it
 switches immediately.
 
 For a fuller set of bindings, copy
-[`examples/scroller-workspaces.lua`](../examples/scroller-workspaces.lua) into
-`~/.config/hypr/lua/scroller-workspaces.lua`, then load it after your normal
+[`examples/canvas-layout.lua`](../examples/canvas-layout.lua) into
+`~/.config/hypr/lua/canvas-layout.lua`, then load it after your normal
 keybinding modules:
 
 ```lua
-dofile(os.getenv("HOME") .. "/.config/hypr/lua/scroller-workspaces.lua")
+dofile(os.getenv("HOME") .. "/.config/hypr/lua/canvas-layout.lua")
 ```
 
-The module binds `Ctrl + Shift + H / J / K / L` to `swap_window`
-(left / down / up / right). In row mode, adjacent-stack swaps use H/L; in
-column mode they use J/K. Other layouts use native directional swapping.
+The module installs these bindings in scroller. Both direction groups use
+left / down / up / right order:
 
-`Super + Shift + N / M / comma / period` moves the focused window directly
-to the left / down / up / right monitor in scroller, with focus following it.
+| Keys | Action |
+| --- | --- |
+| `Super + H / J / K / L` | Focus a window. |
+| `Super + Alt + H / J / K / L` | Move a window. |
+| `Ctrl + Shift + H / J / K / L` | Swap windows. |
+| `Super + Ctrl + H / J / K / L` | Switch the canvas workspace in four directions. |
+| `Super + N / M / comma / period` | Focus a physical monitor. |
+| `Super + Alt + N / M / comma / period` | Move a window directly to an adjacent monitor and follow it. |
+| `Super + I` | Open overview or accept its selection and exit. |
+| `Super + F` | Expand or restore the active stack. |
 
-Read the module before installing it. It replaces Tab, number, and wheel
-workspace shortcuts, adds directional movement and monitor/overview controls,
-and disables numbered window transfers and whole-workspace monitor moves while
-using `scroller`. Other layouts retain native behavior. It also overrides the
-README's `SUPER + 2` / `SUPER + 3` sizing shortcuts; choose different sizing keys.
+Keep the left little finger on Super when navigating; add Alt with the ring
+finger to move the selected window, including across monitors.
+
+Read the module before installing it: its native fallbacks match the local
+user configuration. Outside scroller it restores Super+Alt+H/J/K/L swapping,
+Super+Ctrl+H/J/K/L movement, Ctrl+Shift+H/L workspace transfers, Super+N night
+light, Super+M split ratio, and Super+comma/period workspace navigation.
+Plugin-only shortcuts are removed. The old Super+Shift+N/M monitor movement
+aliases are retired; those keys retain the notification panel and music launcher.
+
+It also replaces Tab, number, and wheel workspace shortcuts, and disables
+numbered window transfers and whole-workspace monitor moves while using scroller.
+Other layouts retain native behavior. Number keys select workspaces; configure
+visible-stack counts in Lua rather than binding the README's sizing examples.
 
 Native workspace commands, gestures, and external workspace widgets still use
 Hyprland's per-monitor semantics. Route ordinary canvas switching through

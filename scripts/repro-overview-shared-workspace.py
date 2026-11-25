@@ -24,7 +24,7 @@ assert plugin.is_file(), f'Missing plugin: {plugin}'
 run = Path(tempfile.mkdtemp(prefix='hyprscroller-shared-workspace.'))
 print(f'Artifacts: {run}', flush=True)
 config = run / 'hyprland.lua'
-bindings = Path(__file__).resolve().parents[1] / 'examples/scroller-workspaces.lua'
+bindings = Path(__file__).resolve().parents[1] / 'examples/canvas-layout.lua'
 config.write_text('hl.plugin.load(' + json.dumps(str(plugin)) + ')\n' + 'hl.config({general={layout="scroller"}, misc={disable_hyprland_logo=true,disable_splash_rendering=true}})\n' + 'dofile(' + json.dumps(str(bindings)) + ')\n' + ('hl.config({cursor={no_warps=true},input={follow_mouse=0}})\n' if args.no_warps else ''))
 env = dict(os.environ)
 env.pop('HYPRLAND_INSTANCE_SIGNATURE', None)

@@ -685,7 +685,7 @@ workspace、不热加载主会话插件，结束时只关闭自己的实例。
 方向移动不产生新 workspace、最终窗口仍在当前可见 canvas。
 历史原生 workspace 组合仍可被读取，不迁移或删除用户窗口。
 
-配套快捷键见 `examples/scroller-workspaces.lua`，需要在用户绑定之后加载。
+配套快捷键见 `examples/canvas-layout.lua`，需要在用户绑定之后加载。
 主会话配置和运行中的插件不会由回归脚本自动更新。
 
 ### no_warps 下的跨屏焦点与鼠标同步

@@ -2,7 +2,7 @@
 # Local Hyprland layout-switch helper tracked in this repository for reference.
 # Supports both legacy and Lua config providers.
 # Lua keybinds are installed by the Lua config and refreshed after layout changes.
-# Load examples/scroller-workspaces.lua after user_keybinds.lua to replace native
+# Load examples/canvas-layout.lua after user_keybinds.lua to replace native
 # per-monitor workspace shortcuts with global canvas switching.
 # Source path on the maintainer machine:
 #   ~/.config/hypr/scripts/ChangeLayout.sh
@@ -22,6 +22,16 @@ config_provider() {
 }
 
 CONFIG_PROVIDER="$(config_provider)"
+
+# Validate the binding module before changing the live layout. Lua is the
+# supported provider for the current scroller plugin; the legacy branch below
+# remains available for older Hyprland installations.
+bindings_path="$HOME/.config/hypr/lua/canvas-layout.lua"
+if [ "$CONFIG_PROVIDER" = "lua" ] && [ ! -f "$bindings_path" ]; then
+  printf 'Missing canvas layout bindings: %s\n' "$bindings_path" >&2
+  exit 1
+fi
+
 
 is_lua_provider() {
   [ "${CONFIG_PROVIDER:-}" = "lua" ]
@@ -254,12 +264,12 @@ case "$target_layout" in
     ;;
 esac
 
-# Lua bindings are closures that inspect the current layout at invocation time.
-# Reinstall after a layout change to clear conflicting native workspace binds.
+# Reinstall after every layout change, including init. The module removes
+# conflicting defaults in scroller and restores native actions in other layouts.
 if is_lua_provider; then
-  bindings_path="$HOME/.config/hypr/lua/scroller-workspaces.lua"
+  bindings_path="$HOME/.config/hypr/lua/canvas-layout.lua"
   if [ ! -f "$bindings_path" ]; then
-    printf 'Missing scroller workspace bindings: %s\n' "$bindings_path" >&2
+    printf 'Missing canvas layout bindings: %s\n' "$bindings_path" >&2
     exit 1
   fi
   bindings_result=$(hyprctl eval "dofile($(lua_quote "$bindings_path"))")
