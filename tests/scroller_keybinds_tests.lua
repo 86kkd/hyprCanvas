@@ -38,36 +38,38 @@ local function press(key, name, arg)
   return calls[1].args
 end
 -- Seed old/default conflicts and unrelated shortcuts.
-for _, mods in ipairs({'SUPER', 'SUPER ALT', 'SUPER CTRL', 'CTRL SHIFT'}) do
+for _, mods in ipairs({'SUPER', 'SUPER ALT', 'SUPER CTRL', 'SUPER SHIFT', 'CTRL SHIFT'}) do
   for _, key in ipairs({'H','J','K','L','N','M','comma','period'}) do
     hl.bind(mods:gsub(' ', ' + ') .. ' + ' .. key, function() error('stale binding') end)
   end
 end
 local untouched = function() end
-hl.bind('SUPER + SHIFT + K', untouched)
 hl.bind('SUPER + Y', untouched)
 for _, mode in ipairs({'scroller', 'scroller', 'master', 'dwindle', 'scroller'}) do
   layout = mode
   dofile('examples/canvas-layout.lua')
   for _, spec in ipairs({{'H','N','l','left'},{'J','M','d','down'},{'K','comma','u','up'},{'L','period','r','right'}}) do
-    local key, monitor, dir, native = table.unpack(spec)
+    local key, space, dir, native = table.unpack(spec)
     if mode == 'scroller' then
       press('SUPER + '..key, 'move_focus', dir)
       press('SUPER + ALT + '..key, 'move_window', dir)
-      press('SUPER + CTRL + '..monitor, 'switch_workspace', dir)
+      press('SUPER + SHIFT + '..key, 'swap_window', dir)
       assert(not bindings[normalize('SUPER + CTRL + '..key)])
       assert(not bindings[normalize('SUPER + CTRL + ALT + '..key)])
-      press('SUPER + CTRL + ALT + '..monitor, 'move_window_to_workspace', dir)
-      press('CTRL + SHIFT + '..key, 'swap_window', dir)
-      press('SUPER + '..monitor, 'focus_monitor', dir)
-      press('SUPER + ALT + '..monitor, 'move_window_to_monitor', dir)
+      assert(not bindings[normalize('CTRL + SHIFT + '..key)])
+      press('SUPER + '..space, 'switch_workspace', dir)
+      press('SUPER + ALT + '..space, 'move_window_to_workspace', dir)
+      press('SUPER + CTRL + '..space, 'focus_monitor', dir)
+      press('SUPER + CTRL + ALT + '..space, 'move_window_to_monitor', dir)
+      assert(not bindings[normalize('SUPER + SHIFT + '..space)])
     else
       assert(press('SUPER + '..key, 'focus').direction == native)
       assert(press('SUPER + ALT + '..key, 'swap').direction == native)
       assert(press('SUPER + CTRL + '..key, 'move').direction == native)
-      assert(not bindings[normalize('SUPER + ALT + '..monitor)])
-      assert(not bindings[normalize('SUPER + CTRL + '..monitor)])
-      assert(not bindings[normalize('SUPER + CTRL + ALT + '..monitor)])
+      assert(not bindings[normalize('SUPER + ALT + '..space)])
+      assert(not bindings[normalize('SUPER + CTRL + '..space)])
+      assert(not bindings[normalize('SUPER + CTRL + ALT + '..space)])
+      assert(not bindings[normalize('SUPER + SHIFT + '..space)])
       assert(not bindings[normalize('SUPER + CTRL + ALT + '..key)])
     end
   end
@@ -82,14 +84,15 @@ for _, mode in ipairs({'scroller', 'scroller', 'master', 'dwindle', 'scroller'})
     assert(press('CTRL + SHIFT + L', 'move').workspace == '+1')
     assert(not bindings[normalize('CTRL + SHIFT + J')])
     assert(not bindings[normalize('CTRL + SHIFT + K')])
+    assert(not bindings[normalize('SUPER + SHIFT + H')])
+    assert(not bindings[normalize('SUPER + SHIFT + J')])
+    press('SUPER + SHIFT + K', 'exec')
+    assert(not bindings[normalize('SUPER + SHIFT + L')])
     press('SUPER + N', 'exec')
     press('SUPER + M', 'layout', 'splitratio 0.3 exact')
     assert(press('SUPER + comma', 'focus').workspace == 'e-1')
     assert(press('SUPER + period', 'focus').workspace == 'e+1')
   end
-  press('SUPER + SHIFT + N', 'exec')
-  press('SUPER + SHIFT + M', 'exec')
-  assert(bindings[normalize('SUPER + SHIFT + K')][1].action == untouched)
   assert(bindings[normalize('SUPER + Y')][1].action == untouched)
   print('PASS: ' .. mode)
 end

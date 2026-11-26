@@ -46,6 +46,10 @@ local function layout_bind(key, action, description, native, native_description)
   end
 end
 
+local native_shift_window_keys = {
+  K = hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/KeyBinds.sh"),
+}
+
 for _, spec in ipairs({
   { "H", "l", "left" }, { "J", "d", "down" },
   { "K", "u", "up" }, { "L", "r", "right" },
@@ -59,8 +63,13 @@ for _, spec in ipairs({
     hl.plugin.scroller.move_window(direction)
   end, "move window " .. native .. " (scroller)",
     hl.dsp.window.swap({ direction = native }), "swap window " .. native)
-  -- Retire workspace actions from the individual-window row. Native layouts
-  -- retain their original Ctrl+Super window movement.
+  layout_bind("SUPER + SHIFT + " .. key, function()
+    hl.plugin.scroller.swap_window(direction)
+  end, "swap window " .. native .. " (scroller)",
+    native_shift_window_keys[key], "search keybinds")
+
+  -- Keep Ctrl+Super reserved for the secondary spatial layer on the lower row.
+  -- Native layouts retain their original Ctrl+Super window movement.
   hl.unbind("SUPER + CTRL + " .. key)
   hl.unbind("SUPER + CTRL + ALT + " .. key)
   if not scroller() then
@@ -68,14 +77,15 @@ for _, spec in ipairs({
       "move window " .. native)
   end
 
-  -- The user's native H/L bindings transfer a window between workspaces.
-  -- J/K have no native binding: remove the shortcut outside scroller entirely.
+  -- Release Ctrl+Shift+H/J/K/L back to applications in scroller.
+  -- Native layouts restore the user's H/L workspace transfer shortcuts.
   local transfer = direction == "l" and "-1" or direction == "r" and "+1" or nil
-  layout_bind("CTRL + SHIFT + " .. key, function()
-    hl.plugin.scroller.swap_window(direction)
-  end, "swap window " .. native .. " (scroller)",
-    transfer and hl.dsp.window.move({ workspace = transfer, follow = true }) or nil,
-    "move window to " .. (transfer or "") .. " workspace")
+  hl.unbind("CTRL + SHIFT + " .. key)
+  if not scroller() and transfer then
+    bind("CTRL + SHIFT + " .. key,
+      hl.dsp.window.move({ workspace = transfer, follow = true }),
+      "move window to " .. transfer .. " workspace")
+  end
 end
 
 layout_bind("SUPER + F", function()
@@ -119,9 +129,9 @@ for _, spec in ipairs({ {"F9", "left"}, {"F10", "right"}, {"F11", "up"}, {"F12",
   end, "move native workspace (other layouts only)")
 end
 
--- Native defaults for the keys claimed by monitor navigation. These restore
+-- Native defaults for the keys claimed by spatial navigation. These restore
 -- the local desktop's night-light / split-ratio and workspace shortcuts.
-local native_monitor_keys = {
+local native_space_keys = {
   n = hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/scripts/Hyprsunset.sh toggle"),
   m = hl.dsp.layout("splitratio 0.3 exact"),
   comma = hl.dsp.focus({ workspace = "e-1" }),
@@ -129,26 +139,23 @@ local native_monitor_keys = {
 }
 for _, spec in ipairs({ {"n", "l"}, {"m", "d"}, {"comma", "u"}, {"period", "r"} }) do
   local key, direction = spec[1], spec[2]
-  layout_bind("SUPER + CTRL + " .. key, function()
-    hl.plugin.scroller.switch_workspace(direction)
-  end, "canvas workspace " .. direction .. " (scroller)")
-  layout_bind("SUPER + CTRL + ALT + " .. key, function()
-    hl.plugin.scroller.move_window_to_workspace(direction)
-  end, "move window to canvas " .. direction .. " (scroller)")
   layout_bind("SUPER + " .. key, function()
-    hl.plugin.scroller.focus_monitor(direction)
-  end, "focus monitor " .. direction .. " (scroller)", native_monitor_keys[key],
+    hl.plugin.scroller.switch_workspace(direction)
+  end, "canvas workspace " .. direction .. " (scroller)", native_space_keys[key],
     "native " .. key .. " shortcut")
   layout_bind("SUPER + ALT + " .. key, function()
+    hl.plugin.scroller.move_window_to_workspace(direction)
+  end, "move window to canvas " .. direction .. " (scroller)")
+  layout_bind("SUPER + CTRL + " .. key, function()
+    hl.plugin.scroller.focus_monitor(direction)
+  end, "focus monitor " .. direction .. " (scroller)")
+  layout_bind("SUPER + CTRL + ALT + " .. key, function()
     hl.plugin.scroller.move_window_to_monitor(direction)
   end, "move window to monitor " .. direction .. " (scroller)")
 end
 
--- Retire the former Shift+monitor movement aliases. Keep the desktop's normal
--- notification/music shortcuts available, including while using scroller.
+-- Unbind unused Shift+lower-row shortcuts (former monitor aliases and unused
+-- notification/music presets).
 for _, key in ipairs({ "n", "m", "comma", "period" }) do
   hl.unbind("SUPER + SHIFT + " .. key)
 end
-bind("SUPER + SHIFT + N", hl.dsp.exec_cmd("swaync-client -t -sw"), "notification panel")
-bind("SUPER + SHIFT + M",
-  hl.dsp.exec_cmd(os.getenv("HOME") .. "/.config/hypr/UserScripts/RofiBeats.sh"), "online music")
