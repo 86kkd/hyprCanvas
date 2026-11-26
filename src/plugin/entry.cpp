@@ -40,9 +40,13 @@
 #include "layout/canvas/layout.h"
 #include "layout/canvas/layout_repository.h"
 #include "layout/canvas/canvas_workspace_repository.h"
+#include "layout/canvas/workspace_controller.h"
+#include "core/core.h"
 #include "core/focus_pointer_sync.h"
 #include "model/stack/pointer.h"
 #include "overview/render/render.h"
+#include "overview/render/state.h"
+#include "overview/session/session.h"
 
 // Hyprland plugin handle used by config lookups and dispatcher registration.
 HANDLE PHANDLE = nullptr;
@@ -52,7 +56,7 @@ namespace {
 std::string log_file_path() {
     const char* home = std::getenv("HOME");
     const std::string base = home && home[0] != '\0' ? home : "/tmp";
-    return base + "/.hyprland/plugins/hyprscroller/hyprscroller.log";
+    return base + "/.hyprland/plugins/hyprCanvas/hyprCanvas.log";
 }
 
 bool ensure_directory(const std::string& path) {
@@ -78,7 +82,7 @@ bool ensure_directory(const std::string& path) {
 
 std::shared_ptr<spdlog::logger> make_stderr_logger() {
     auto sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
-    return std::make_shared<spdlog::logger>("hyprscroller", std::move(sink));
+    return std::make_shared<spdlog::logger>("hyprCanvas", std::move(sink));
 }
 
 // Initialize the plugin logger without letting filesystem setup abort plugin init.
@@ -87,7 +91,7 @@ void init_logging() {
     const auto split = path.find_last_of('/');
     const auto directory = split == std::string::npos ? std::string() : path.substr(0, split);
 
-    spdlog::drop("hyprscroller");
+    spdlog::drop("hyprCanvas");
 
     std::shared_ptr<spdlog::logger> logger;
     try {
@@ -95,18 +99,18 @@ void init_logging() {
             throw std::runtime_error(std::string("failed to create log directory: ") + directory + " (" + std::strerror(errno) + ")");
 
         auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path, true);
-        logger = std::make_shared<spdlog::logger>("hyprscroller", std::move(sink));
+        logger = std::make_shared<spdlog::logger>("hyprCanvas", std::move(sink));
     } catch (const std::exception& e) {
         logger = make_stderr_logger();
         spdlog::set_default_logger(logger);
-        spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [hyprscroller] [%^%l%$] %v");
+        spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [hyprCanvas] [%^%l%$] %v");
         spdlog::set_level(spdlog::level::debug);
         spdlog::error("logging fallback to stderr: {}", e.what());
         return;
     }
 
     spdlog::set_default_logger(std::move(logger));
-    spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [hyprscroller] [%^%l%$] %v");
+    spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [hyprCanvas] [%^%l%$] %v");
 #ifndef NDEBUG
     spdlog::set_level(spdlog::level::debug);
 #else
@@ -165,7 +169,8 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     return {"hyprCanvas", "canvas window layout", "86kkd", "1.0"};
 }
 
-// Plugin shutdown hook used for final logging only.
+// Plugin shutdown hook: flush snapshots and release all managed service slots
+// in reverse dependency order.
 APICALL EXPORT void PLUGIN_EXIT() {
     ScrollerCore::FocusPointerSync::shutdown();
     ScrollerModel::DeckPointer::shutdown();
@@ -176,8 +181,14 @@ APICALL EXPORT void PLUGIN_EXIT() {
         if (auto *layout = CanvasLayoutInternal::get_canvas_for_workspace(ScrollerCore::HyprlandRuntime::workspaceId(workspace)))
             layout->persistCurrentSnapshot();
     }
+    Overview::shutdownRendererHooks(PHANDLE);
+    Overview::sessionSlot().reset();
+    Overview::renderStateSlot().reset();
+    CanvasLayoutState::workspaceControllerSlot().reset();
     CanvasLayoutState::repository().flush();
     CanvasLayoutState::canvasRepository().shutdown();
-    Overview::shutdownRendererHooks(PHANDLE);
+    CanvasLayoutState::canvasRepositorySlot().reset();
+    CanvasLayoutState::repositorySlot().reset();
+    ScrollerCore::marksSlot().reset();
     spdlog::info("pluginExit");
 }

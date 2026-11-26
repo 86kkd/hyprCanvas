@@ -13,9 +13,9 @@
 #include <optional>
 #include <utility>
 
-#include "../../core/layout_snapshot.h"
-#include "../../core/owner_index.h"
-#include "../../core/types.h"
+#include "core/layout_snapshot.h"
+#include "core/owner_index.h"
+#include "core/types.h"
 #include "model/stack/stack.h"
 
 /**
@@ -86,7 +86,7 @@ public:
     template <typename Fn>
     void for_each_stack(Fn&& fn) const {
         for (auto col = stacks.first(); col != nullptr; col = col->next())
-            std::forward<Fn>(fn)(col->data());
+            std::forward<Fn>(fn)(col->data().get());
     }
     // Export every window's full logical box before compositor safety clipping.
     std::vector<ScrollerModel::WindowGeometryEntry> capture_window_boxes() const;
@@ -139,13 +139,15 @@ public:
     void toggle_maximize_active_stack();
     void recalculate_lane_geometry();
     void commit_restored_geometry();
-    void append_restored_stack(ScrollerModel::Stack *stack);
+    void append_restored_stack(std::unique_ptr<ScrollerModel::Stack> stack);
     void set_active_stack_by_index(size_t index);
     ScrollerSnapshot::LaneSnapshot capture_snapshot() const;
 
 private:
+    using StackNode = ListNode<std::unique_ptr<ScrollerModel::Stack>>;
+
     ScrollerModel::Stack *getStackForWindow(PHLWINDOW window) const;
-    ListNode<ScrollerModel::Stack *> *getStackNode(ScrollerModel::Stack *stack) const;
+    StackNode *getStackNode(ScrollerModel::Stack *stack) const;
     void rememberWindowStack(PHLWINDOW window, ScrollerModel::Stack *stack);
     void forgetWindowStack(PHLWINDOW window);
     void rememberStackWindows(ScrollerModel::Stack *stack);
@@ -153,13 +155,13 @@ private:
     void debugVerifyStackCache() const;
 
     // Calculate lateral gaps for a stack based on neighbor presence.
-    Vector2D calculate_gap_x(const ListNode<ScrollerModel::Stack *> *stack) const;
+    Vector2D calculate_gap_x(const StackNode *stack) const;
 
-    void adjust_stacks(ListNode<ScrollerModel::Stack *> *stack);
+    void adjust_stacks(StackNode *stack);
     // Return the stack span that should be preserved when moving a free-sized stack.
     double stack_primary_span_for_transfer(const ScrollerModel::Stack *stack) const;
     // Rebuild a single-window stack from a transferred payload using this lane's mode/bounds.
-    ScrollerModel::Stack *create_stack_from_payload(ActiveWindowPayload payload);
+    std::unique_ptr<ScrollerModel::Stack> create_stack_from_payload(ActiveWindowPayload payload);
     // Position a freshly inserted stack immediately before/after a reference stack on the lane axis.
     void position_stack_relative_to_reference(ScrollerModel::Stack *stack,
                                              const ScrollerModel::Stack *reference,
@@ -170,15 +172,15 @@ private:
     // Workarea bounds after reserved areas and gaps are applied.
     ScrollerCore::Box max;
     // Whether this lane is a temporary navigation-only lane.
-    bool ephemeral;
+    bool ephemeral = false;
     // Inner gap used between stacked windows.
-    int gap;
+    int gap = 0;
     // Current navigation/insertion mode for the lane.
-    Mode mode;
+    Mode mode = Mode::Row;
     // Active stack node inside this lane.
-    ListNode<ScrollerModel::Stack *> *active;
+    StackNode *active = nullptr;
     // Ordered stacks owned by this lane.
-    List<ScrollerModel::Stack *> stacks;
+    List<std::unique_ptr<ScrollerModel::Stack>> stacks;
     // Cached window -> stack index used to avoid repeated whole-lane scans.
     mutable ScrollerCore::OwnerIndex<uintptr_t, ScrollerModel::Stack> stackByWindow;
 };

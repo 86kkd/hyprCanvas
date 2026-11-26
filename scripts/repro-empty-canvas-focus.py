@@ -91,7 +91,7 @@ with (run / 'hyprland.log').open('w') as log:
         # Do not screenshot or inject input while waiting: either can wake
         # rendering and conceal a stale HUD on an otherwise idle output.
         time.sleep(2)
-        plugin_log = Path.home() / '.hyprland/plugins/hyprscroller/hyprscroller.log'
+        plugin_log = Path.home() / '.hyprland/plugins/hyprCanvas/hyprCanvas.log'
         check('canvas_minimap: expired' in plugin_log.read_text(),
               'HUD timer expires without input, screenshots, or client activity')
         current = next(m for m in json.loads(ctl('monitors', '-j')) if m['focused'])

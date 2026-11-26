@@ -355,7 +355,7 @@ ctest --test-dir Debug --output-on-failure
 - `hyprctl -i <instance> clients -j`
 - `hyprctl -i <instance> workspaces -j`
 - `hyprctl -i <instance> activeworkspace -j`
-- `~/.hyprland/plugins/hyprscroller/hyprscroller.log`
+- `~/.hyprland/plugins/hyprCanvas/hyprCanvas.log`
 
 原则：
 

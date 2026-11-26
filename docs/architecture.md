@@ -20,7 +20,7 @@ Most of the project can be understood as one pipeline:
 1. Hyprland loads the plugin through `PLUGIN_INIT` in
    [`src/plugin/entry.cpp`](../src/plugin/entry.cpp).
 2. `PLUGIN_INIT` registers:
-   - config values under `plugin:scroller:*`
+   - config values under `plugin:hyprCanvas:*` (with `plugin:scroller:*` aliases)
    - Lua commands under `hl.plugin.scroller.*` such as `move_focus`
    - `CanvasLayout` as the tiled algorithm named `scroller`
    - overview renderer hooks plus focus/deck pointer helpers
@@ -112,7 +112,7 @@ model.
 
 - owning the ordered list of `Lane` objects in one workspace
 - translating Hyprland callbacks into model operations
-- exposing command-facing methods such as `move_focus` and `move_window`
+- exposing command-facing methods such as `moveFocus` and `moveWindow`
 - coordinating cross-lane and cross-monitor handoff
 - keeping caches and active-lane state synchronized with Hyprland focus
 
@@ -199,7 +199,7 @@ Directional focus starts in a Lua command:
 1. A keybinding calls `hl.plugin.scroller.move_focus("l")` or similar.
 2. [`src/plugin/dispatch/layout_commands.cpp`](../src/plugin/dispatch/layout_commands.cpp)
    parses the direction and resolves the active `CanvasLayout`.
-3. `CanvasLayout::move_focus` builds a `TopologyIndex` (lane, stack, and
+3. `CanvasLayout::moveFocus` builds a `TopologyIndex` (lane, stack, and
    window coordinates of the focused item) and asks
    `CanvasLayoutInternal::neighbor` where the direction leads:
    - a local target inside the current lane
@@ -219,7 +219,7 @@ Directional window movement starts similarly:
 
 1. A keybinding calls `hl.plugin.scroller.move_window(...)`.
 2. The Lua command resolves the active `CanvasLayout`.
-3. `CanvasLayout::move_window` asks the same `neighbor` query with the
+3. `CanvasLayout::moveWindow` asks the same `neighbor` query with the
    move-window intent, which decides whether the window:
    - reorders its stack, joins a neighboring stack, or splits into a new one
    - moves into an adjacent lane or a new lane at the canvas edge
@@ -266,6 +266,10 @@ strongly typed layout methods.
 Workspace-level control plane for `scroller`.
 
 - `core.cpp`: target callbacks, workspace ownership, lane cache, lifecycle
+- `snapshot.cpp`: workspace layout snapshot capture, persistence, and restore
+- `workspace_controller.cpp` / `workspace_controller_logic.cpp`: multi-monitor
+  canvas workspace activation, direct desktop switching, and cross-canvas window
+  transfer (shared with overview acceptance so `Overview::Session` stays read-only)
 - `focus.cpp`: focus routing and cross-monitor focus handoff
 - `commands.cpp`: command-facing mutating operations such as movewindow
 - `topology_route.cpp`: the read-only topology index and the `neighbor`
@@ -338,8 +342,8 @@ If you are new to the project, use this order:
    the public methods on `CanvasLayout`.
 5. Trace one lifecycle end to end:
    - new window: `newTarget -> onWindowCreatedTiling`
-   - focus: `hl.plugin.scroller.move_focus -> dispatch_movefocus -> move_focus`
-   - move window: `hl.plugin.scroller.move_window -> dispatch_movewindow -> move_window`
+   - focus: `hl.plugin.scroller.move_focus -> dispatch_movefocus -> moveFocus`
+   - move window: `hl.plugin.scroller.move_window -> dispatch_movewindow -> moveWindow`
 6. Only then dive into lane and stack code.
 
 That order keeps the mental model top-down. If you start at `Stack` first, the
@@ -349,5 +353,5 @@ local code will make sense, but the overall runtime picture usually will not.
 
 Hyprland 0.57 no longer registers plugin dispatchers. Keybindings must call
 Lua functions under `hl.plugin.scroller`, not the older `scroller:movefocus`
-dispatcher style. Plugin config values such as `plugin:scroller:focus_wrap`
-are still registered separately through `addConfigValueV2`.
+dispatcher style. Plugin config values such as `plugin:hyprCanvas:focus_wrap`
+(and legacy `plugin:scroller:focus_wrap`) are still registered separately through `addConfigValueV2`.

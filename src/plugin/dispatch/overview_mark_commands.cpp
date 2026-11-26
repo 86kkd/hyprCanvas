@@ -6,6 +6,9 @@
 
 #include <lua.hpp>
 
+#include "core/core.h"
+#include "layout/canvas/internal.h"
+
 namespace dispatchers::detail {
 namespace {
 
@@ -45,30 +48,27 @@ void dispatch_canceloverview(std::string arg) {
 void dispatch_marksadd(std::string arg) {
     withWorkspaceLayout([&](CanvasLayout& layout, int workspace) {
         (void)workspace;
-        layout.marks_add(arg);
+        const auto candidate = layout.getNextCandidate(nullptr);
+        if (const auto window = candidate ? candidate->window() : nullptr)
+            ScrollerCore::marksRegistry().add(window, arg);
     });
 }
 
 // marksdelete <name>: remove a stored mark entry by name.
 void dispatch_marksdelete(std::string arg) {
-    withLayout([&](CanvasLayout& layout) {
-        layout.marks_delete(arg);
-    });
+    ScrollerCore::marksRegistry().del(arg);
 }
 
 // marksvisit <name>: focus and activate the marked window if present.
 void dispatch_marksvisit(std::string arg) {
-    withLayout([&](CanvasLayout& layout) {
-        layout.marks_visit(arg);
-    });
+    if (const auto window = ScrollerCore::marksRegistry().visit(arg))
+        (void)CanvasLayoutInternal::switch_to_window(window, false);
 }
 
 // marksreset: clear all marks.
 void dispatch_marksreset(std::string arg) {
     (void)arg;
-    withLayout([&](CanvasLayout& layout) {
-        layout.marks_reset();
-    });
+    ScrollerCore::marksRegistry().reset();
 }
 
 } // namespace

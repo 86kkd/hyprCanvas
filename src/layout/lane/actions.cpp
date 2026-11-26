@@ -11,8 +11,8 @@
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/output/Monitor.hpp>
 
-#include "../../core/interval.h"
-#include "../../core/layout_profile.h"
+#include "core/interval.h"
+#include "core/layout_profile.h"
 
 using ScrollerModel::Stack;
 using ScrollerModel::StackWidth;
@@ -23,8 +23,8 @@ void Lane::add_active_window(PHLWINDOW window) {
     if (singleWindowWorkspace)
         stacks.first()->data()->update_width(ScrollerModel::global_stack_width(), max.w, max.h);
 
-    active = stacks.emplace_after(active, new Stack(window, max.w, max.h, mode));
-    rememberWindowStack(window, active->data());
+    active = stacks.emplace_after(active, std::make_unique<Stack>(window, max.w, max.h, mode));
+    rememberWindowStack(window, active->data().get());
     if (singleWindowWorkspace)
         active->data()->update_width(ScrollerModel::global_stack_width(), max.w, max.h);
     recalculate_lane_geometry();
@@ -46,9 +46,7 @@ bool Lane::remove_window(PHLWINDOW window) {
             active = active != stacks.last() ? active->next() : active->prev();
 
         forgetStackWindows(col);
-        auto *doomed = col;
         stacks.erase(c);
-        delete doomed;
         if (stacks.empty()) {
             debugVerifyStackCache();
             return false;
@@ -193,8 +191,8 @@ bool Lane::swap_active_window_with_stack(size_t stackIndex) {
     if (!target || (target != active->prev() && target != active->next()))
         return false;
 
-    auto *sourceStack = active->data();
-    auto *targetStack = target->data();
+    auto *sourceStack = active->data().get();
+    auto *targetStack = target->data().get();
     const auto sourceWindow = sourceStack->get_active_window();
     const auto targetWindow = targetStack->get_active_window();
     if (!sourceStack->swap_active_window_with(*targetStack))
@@ -216,7 +214,7 @@ void Lane::move_active_window_to_adjacent_stack(Direction dir) {
     if (dir != backward && dir != forward)
         return;
 
-    auto *sourceStack = active->data();
+    auto *sourceStack = active->data().get();
     if (sourceStack->maximized() ||
         sourceStack->fullscreen())
         return;
@@ -238,7 +236,7 @@ void Lane::move_active_window_to_adjacent_stack(Direction dir) {
     active = target;
     payload.window->set_fullsize_before_join(payload.fullsize);
     active->data()->admit_window(payload.release_window());
-    rememberWindowStack(movedWindow, active->data());
+    rememberWindowStack(movedWindow, active->data().get());
 
     if (targetWindowCountBefore == 1 && !targetExpanded)
         active->data()->fit_windows_to_span(calculate_gap_x(active), gap, max);
@@ -255,7 +253,7 @@ void Lane::move_active_window_to_new_stack(Direction dir) {
     if (dir != backward && dir != forward)
         return;
 
-    auto *sourceStack = active->data();
+    auto *sourceStack = active->data().get();
     if (sourceStack->maximized() ||
         sourceStack->fullscreen() ||
         sourceStack->size() == 1)
@@ -264,28 +262,29 @@ void Lane::move_active_window_to_new_stack(Direction dir) {
     // The leftover deck keeps its fullsize flag; the expelled window gets back
     // the fullsize state it had before joining this stack.
     auto *sourceNode = active;
-    sourceStack = sourceNode->data();
+    sourceStack = sourceNode->data().get();
     auto payload = extract_active_window_payload();
     const auto movedWindow = payload.window ? payload.window->ptr().lock() : nullptr;
     if (!payload)
         return;
     const auto restoreFullsize = payload.fullsize;
-    auto *stack = create_stack_from_payload(std::move(payload));
+    auto stack = create_stack_from_payload(std::move(payload));
     if (!stack)
         return;
+    auto *stackPtr = stack.get();
 
-    ListNode<Stack *> *inserted = nullptr;
+    StackNode *inserted = nullptr;
     if (dir == backward) {
-        inserted = stacks.emplace_before(sourceNode, stack);
+        inserted = stacks.emplace_before(sourceNode, std::move(stack));
     } else {
-        inserted = stacks.emplace_after(sourceNode, stack);
+        inserted = stacks.emplace_after(sourceNode, std::move(stack));
     }
-    position_stack_relative_to_reference(stack, sourceStack, dir);
+    position_stack_relative_to_reference(stackPtr, sourceStack, dir);
     if (restoreFullsize)
-        (void)stack->toggle_fullscreen(max);
+        (void)stackPtr->toggle_fullscreen(max);
 
     active = inserted;
-    rememberWindowStack(movedWindow, stack);
+    rememberWindowStack(movedWindow, stackPtr);
     recalculate_lane_geometry();
     debugVerifyStackCache();
 }

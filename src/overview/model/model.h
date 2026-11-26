@@ -32,8 +32,8 @@ struct Target {
     int               monitorId = INVALID_MONITOR_ID;
     bool              specialWorkspace = false;
     PHLWINDOW         window = nullptr;
-    ScrollerCore::Box box;
-    ScrollerCore::Box sourceBox;
+    ScrollerCore::Box box{};
+    ScrollerCore::Box sourceBox{};
     bool              synthetic = false;
     PHLWINDOW         stackActiveWindow = nullptr;
 };

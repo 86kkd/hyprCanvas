@@ -1,6 +1,6 @@
 #include "topology_route.h"
 
-#include "../../core/layout_profile.h"
+#include "core/layout_profile.h"
 
 namespace CanvasLayoutInternal {
 namespace {

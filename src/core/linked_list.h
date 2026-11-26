@@ -1,6 +1,6 @@
 /**
- * @file core/intrusive_list.h
- * @brief Intrusive doubly-linked list primitives.
+ * @file core/linked_list.h
+ * @brief Node-based doubly-linked list primitives.
  *
  * Provides a lightweight `List` container with `ListNode` handles used by
  * lane/stack/window model code to store ordered collections with manual splice
@@ -21,6 +21,7 @@ public:
     ~ListNode() = default;
 
     //const T &operator*() const { return m_data; }
+    T &data() { return m_data; }
     const T &data() const { return m_data; }
     ListNode *next() const { return m_next; }
     ListNode *prev() const { return m_prev; }
@@ -73,10 +74,10 @@ public:
     bool empty() const { return m_size == 0; }
 
     void push_back(T value) {
-        emplace_after(m_last, value);
+        emplace_after(m_last, std::move(value));
     }
     void push_front(T value) {
-        emplace_before(m_first, value);
+        emplace_before(m_first, std::move(value));
     }
 
     void pop_back() {
@@ -89,17 +90,19 @@ public:
     }
 
     void insert_before(ListNode<T> *it, T value) {
-        emplace_before(it, value);
+        emplace_before(it, std::move(value));
     }
     void insert_after(ListNode<T> *it, T value) {
-        emplace_after(it, value);
+        emplace_after(it, std::move(value));
     }
 
     ListNode<T> *emplace_after(ListNode<T> *it, T value) {
-        auto next = new ListNode<T>(value);
+        if (!it && m_size > 0)
+            it = m_last;
+
+        auto next = new ListNode<T>(std::move(value));
         if (it == m_last) {
             m_last = next;
-            // check here to see if size is stil zero
             if (m_size == 0)
                 m_first = next;
         }
@@ -116,10 +119,12 @@ public:
     }
 
     ListNode<T> *emplace_before(ListNode<T> *it, T value) {
-        auto prev = new ListNode<T>(value);
+        if (!it && m_size > 0)
+            it = m_first;
+
+        auto prev = new ListNode<T>(std::move(value));
         if (it == m_first) {
             m_first = prev;
-            // check here to see if size is stil zero
             if (m_size == 0)
                 m_last = prev;
         }
@@ -136,22 +141,36 @@ public:
     }
 
     void erase(ListNode<T> *it) {
+        if (!it)
+            return;
+
         if (it->m_prev != nullptr) {
             it->m_prev->m_next = it->m_next;
         } else {
             m_first = it->m_next;
         }
-        if(it->m_next != nullptr) {
+        if (it->m_next != nullptr) {
             it->m_next->m_prev = it->m_prev;
         } else {
             m_last = it->m_prev;
         }
         delete it;
-        m_size--;
+        --m_size;
+    }
+
+    T extract(ListNode<T> *it) {
+        if (!it)
+            return T{};
+
+        T value = std::move(it->m_data);
+        erase(it);
+        return value;
     }
 
     // swaps the contents and the iterators
     void swap(ListNode<T> *&it1, ListNode<T> *&it2) {
+        if (!it1 || !it2 || it1 == it2)
+            return;
         std::swap(it1->m_data, it2->m_data);
         std::swap(it1, it2);
     }

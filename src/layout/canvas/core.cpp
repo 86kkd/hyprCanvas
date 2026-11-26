@@ -19,7 +19,7 @@
  */
 #include <algorithm>
 #include <cassert>
-#include <unordered_map>
+#include <memory>
 
 #include <hyprland/src/Compositor.hpp>
 #include <hyprland/src/config/ConfigManager.hpp>
@@ -32,66 +32,29 @@
 #include <hyprland/src/managers/fullscreen/handler/FullscreenHandler.hpp>
 #include <spdlog/spdlog.h>
 
-#include "../../core/core.h"
-#include "../../core/layout_snapshot.h"
-#include "../../core/layout_profile.h"
-#include "../../core/monitor_geometry_runtime.h"
-#include "../../core/window_key.h"
-#include "../lane/lane.h"
+#include "core/core.h"
+#include "core/layout_profile.h"
+#include "core/monitor_geometry_runtime.h"
+#include "core/window_key.h"
+#include "layout/lane/lane.h"
 #include "layout.h"
 #include "internal.h"
-#include "layout_repository.h"
 #include "route.h"
 
 using namespace ScrollerCore;
 
-// Global mark registry shared by all canvas instances.
-static Marks marks;
-
 namespace {
-// Destroy and clear all lanes owned by a canvas instance.
-void clear_lanes(List<Lane*>& lanes) {
-    for (auto lane = lanes.first(); lane != nullptr; lane = lane->next())
-        delete lane->data();
-    lanes.clear();
-}
 
-Mode restored_mode_or_default(int value, Mode fallback) {
-    switch (static_cast<Mode>(value)) {
-    case Mode::Row:
-    case Mode::Column:
-        return static_cast<Mode>(value);
-    default:
-        return fallback;
+void resize_unmanaged_window(PHLWINDOW window, const Vector2D &delta) {
+    if (!window)
+        return;
+
+    if (window->sizeAnimation()) {
+        *window->sizeAnimation() = Vector2D(
+            std::max((window->sizeAnimation()->goal() + delta).x, 20.0),
+            std::max((window->sizeAnimation()->goal() + delta).y, 20.0));
     }
-}
-
-ScrollerModel::WindowHeight restored_height_or_default(int value) {
-    switch (static_cast<ScrollerModel::WindowHeight>(value)) {
-    case ScrollerModel::WindowHeight::OneThird:
-    case ScrollerModel::WindowHeight::OneHalf:
-    case ScrollerModel::WindowHeight::TwoThirds:
-    case ScrollerModel::WindowHeight::One:
-    case ScrollerModel::WindowHeight::Free:
-    case ScrollerModel::WindowHeight::Auto:
-        return static_cast<ScrollerModel::WindowHeight>(value);
-    default:
-        return ScrollerModel::WindowHeight::One;
-    }
-}
-
-std::vector<PHLWINDOW> live_tiled_workspace_windows(PHLWORKSPACE workspace) {
-    std::vector<PHLWINDOW> windows;
-    if (!workspace)
-        return windows;
-
-    windows.reserve(ScrollerCore::HyprlandRuntime::windows().size());
-    for (const auto &window : ScrollerCore::HyprlandRuntime::windows()) {
-        if (!window || ScrollerCore::HyprlandRuntime::windowWorkspaceId(window) != ScrollerCore::HyprlandRuntime::workspaceId(workspace) || window->isFloating() || !window->mapped() || window->isHidden())
-            continue;
-        windows.push_back(window);
-    }
-    return windows;
+    window->presentation().updateDecorations();
 }
 
 } // namespace
@@ -119,10 +82,10 @@ void CanvasLayout::resetRuntimeState() {
     m_focusCallback = nullptr;
     m_workspaceActiveCallback = nullptr;
     workspaceRuntimeId = WORKSPACE_INVALID;
-    clear_lanes(lanes);
+    lanes.clear();
     activeLane = nullptr;
     laneByWindow.clear();
-    resetHandoffState();
+    handoffState.reset();
     specialEphemeralLaneRestorePending = false;
     restoringSnapshot = false;
     snapshotRestoreAttempted = false;
@@ -195,20 +158,20 @@ Lane *CanvasLayout::getActiveLane() {
     // default to the first lane so command paths have a stable current lane as
     // soon as the canvas contains anything.
     if (activeLane)
-        return activeLane->data();
+        return activeLane->data().get();
     if (lanes.first()) {
         activeLane = lanes.first();
-        return activeLane->data();
+        return activeLane->data().get();
     }
     return nullptr;
 }
 
-ListNode<Lane *> *CanvasLayout::getLaneNode(Lane *lane) const {
+CanvasLayout::LaneNode *CanvasLayout::getLaneNode(Lane *lane) const {
     if (!lane)
         return nullptr;
 
     for (auto node = lanes.first(); node != nullptr; node = node->next()) {
-        if (node->data() == lane)
+        if (node->data().get() == lane)
             return node;
     }
 
@@ -218,7 +181,7 @@ ListNode<Lane *> *CanvasLayout::getLaneNode(Lane *lane) const {
 int CanvasLayout::laneIndexOf(Lane *lane) const {
     auto index = 0;
     for (auto node = lanes.first(); node != nullptr; node = node->next(), ++index) {
-        if (node->data() == lane)
+        if (node->data().get() == lane)
             return index;
     }
 
@@ -226,12 +189,10 @@ int CanvasLayout::laneIndexOf(Lane *lane) const {
 }
 
 size_t CanvasLayout::laneCount() const {
-    size_t count = 0;
-    for (auto node = lanes.first(); node != nullptr; node = node->next(), ++count) { }
-    return count;
+    return lanes.size();
 }
 
-ListNode<Lane *> *CanvasLayout::laneNodeAt(size_t index) const {
+CanvasLayout::LaneNode *CanvasLayout::laneNodeAt(size_t index) const {
     auto *node = lanes.first();
     for (size_t i = 0; node != nullptr && i < index; ++i)
         node = node->next();
@@ -303,7 +264,7 @@ void CanvasLayout::debugVerifyLaneCache() const {
 #ifndef NDEBUG
     assert(laneByWindow.matches_expected([&](auto &&addExpected) {
         for (auto laneNode = lanes.first(); laneNode != nullptr; laneNode = laneNode->next()) {
-            auto *lane = laneNode->data();
+            auto *lane = laneNode->data().get();
             lane->for_each_window([&](PHLWINDOW window) {
                 addExpected(ScrollerCore::window_key(window), lane);
             });
@@ -312,18 +273,19 @@ void CanvasLayout::debugVerifyLaneCache() const {
 #endif
 }
 
-ListNode<Lane *> *CanvasLayout::insertLaneNode(Lane *lane, Direction direction, ListNode<Lane *> *anchor) {
+CanvasLayout::LaneNode *CanvasLayout::insertLaneNode(std::unique_ptr<Lane> lane, Direction direction, LaneNode *anchor) {
     if (!lane)
         return nullptr;
 
-    lanes.push_back(lane);
+    const auto mode = lane->get_mode();
+    lanes.push_back(std::move(lane));
     auto node = lanes.last();
     if (!anchor || anchor == node)
         return node;
 
     // Direction semantics are orientation-aware. "insert left" and "insert up"
     // both mean "before current lane" once the lane mode is resolved.
-    if (CanvasLayoutInternal::direction_inserts_before_current(lane->get_mode(), direction))
+    if (CanvasLayoutInternal::direction_inserts_before_current(mode, direction))
         lanes.move_before(anchor, node);
     else
         lanes.move_after(anchor, node);
@@ -335,39 +297,10 @@ Lane *CanvasLayout::ensureActiveLane(PHLMONITOR monitor, Mode mode) {
     if (auto *lane = getActiveLane())
         return lane;
 
-    auto *lane = new Lane(monitor, mode);
-    activeLane = insertLaneNode(lane, Direction::End);
-    return lane;
-}
-
-void CanvasLayout::rememberManualCrossMonitorInsertion(PHLWINDOW window) {
-    if (!window)
-        return;
-
-    handoffState.rememberManualCrossMonitorInsertion(ScrollerCore::window_key(window));
-}
-
-void CanvasLayout::forgetManualCrossMonitorInsertion(PHLWINDOW window) {
-    if (!window)
-        return;
-
-    handoffState.forgetManualCrossMonitorInsertion(ScrollerCore::window_key(window));
-}
-
-bool CanvasLayout::hasPendingManualCrossMonitorInsertion(PHLWINDOW window) const {
-    return window && handoffState.hasPendingManualCrossMonitorInsertion(ScrollerCore::window_key(window));
-}
-
-void CanvasLayout::requestWorkspaceFocusSyncSuppression() {
-    handoffState.requestWorkspaceFocusSyncSuppression();
-}
-
-ActiveLaneSyncPolicy CanvasLayout::consumeActiveLaneSyncPolicy() {
-    return handoffState.consumeActiveLaneSyncPolicy();
-}
-
-void CanvasLayout::resetHandoffState() {
-    handoffState.reset();
+    auto lane = std::make_unique<Lane>(monitor, mode);
+    auto *lanePtr = lane.get();
+    activeLane = insertLaneNode(std::move(lane), Direction::End);
+    return lanePtr;
 }
 
 bool CanvasLayout::focusManagedWindow(PHLWINDOW window, bool warpCursor, const char *context, bool suppressWorkspaceSync) {
@@ -375,13 +308,13 @@ bool CanvasLayout::focusManagedWindow(PHLWINDOW window, bool warpCursor, const c
         return false;
 
     if (suppressWorkspaceSync)
-        requestWorkspaceFocusSyncSuppression();
+        handoffState.requestWorkspaceFocusSyncSuppression();
 
     if (CanvasLayoutInternal::switch_to_window(window, warpCursor))
         return true;
 
     if (suppressWorkspaceSync)
-        (void)consumeActiveLaneSyncPolicy();
+        (void)handoffState.consumeActiveLaneSyncPolicy();
 
     const auto *ctx = context ? context : "focusManagedWindow";
     spdlog::warn("{}: failed to focus managed window canvas_ws={} window={} target_workspace={} target_monitor={}",
@@ -394,11 +327,11 @@ bool CanvasLayout::focusManagedWindow(PHLWINDOW window, bool warpCursor, const c
     return false;
 }
 
-void CanvasLayout::finishLaneTransfer(ListNode<Lane *> *sourceLaneNode, PHLMONITOR sourceMonitor, bool ephemeralOnly, bool warpCursor) {
+void CanvasLayout::finishLaneTransfer(LaneNode *sourceLaneNode, PHLMONITOR sourceMonitor, bool ephemeralOnly, bool warpCursor) {
     // Payload transfer helpers in focus/move-window paths call this as the last
     // phase: prune an empty source lane if needed, relayout the visible canvas,
     // then let Hyprland focus follow the lane's new active window.
-    if (!dropEmptyLane(sourceLaneNode, activeLane ? activeLane->data() : nullptr, sourceMonitor, ephemeralOnly))
+    if (!dropEmptyLane(sourceLaneNode, activeLane ? activeLane->data().get() : nullptr, sourceMonitor, ephemeralOnly))
         relayoutVisibleCanvas(sourceMonitor);
 
     if (const auto lane = getActiveLane()) {
@@ -423,8 +356,8 @@ Lane *CanvasLayout::getLaneForWindow(PHLWINDOW window) {
 
     for (auto lane = lanes.first(); lane != nullptr; lane = lane->next()) {
         if (lane->data()->has_window(window)) {
-            rememberWindowLane(window, lane->data());
-            return lane->data();
+            rememberWindowLane(window, lane->data().get());
+            return lane->data().get();
         }
     }
     return nullptr;
@@ -453,223 +386,6 @@ void CanvasLayout::prepareForActionContext() {
         relayoutCanvas(monitor, !ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace));
 }
 
-std::optional<ScrollerSnapshot::CanvasSnapshot> CanvasLayout::captureSnapshot() const {
-    const auto workspace = getLayoutWorkspace();
-    if (!workspace)
-        return std::nullopt;
-
-    ScrollerSnapshot::CanvasSnapshot snapshot;
-    snapshot.workspaceId = ScrollerCore::HyprlandRuntime::workspaceId(workspace);
-
-    size_t storedLaneIndex = 0;
-    bool foundActiveLane = false;
-    for (auto laneNode = lanes.first(); laneNode != nullptr; laneNode = laneNode->next()) {
-        auto *lane = laneNode->data();
-        if (!lane || lane->empty())
-            continue;
-
-        if (laneNode == activeLane) {
-            snapshot.activeLaneIndex = storedLaneIndex;
-            foundActiveLane = true;
-        }
-
-        snapshot.lanes.push_back(lane->capture_snapshot());
-        ++storedLaneIndex;
-    }
-
-    if (snapshot.lanes.empty())
-        return std::nullopt;
-
-    if (!foundActiveLane)
-        snapshot.activeLaneIndex = 0;
-    return snapshot;
-}
-
-void CanvasLayout::persistSnapshot() {
-    if (restoringSnapshot)
-        return;
-
-    const auto workspace = getLayoutWorkspace();
-    if (!workspace)
-        return;
-
-    const auto liveWindows = live_tiled_workspace_windows(workspace);
-    if (!liveWindows.empty()) {
-        const auto fullyManaged = std::all_of(liveWindows.begin(), liveWindows.end(), [this](const auto &window) {
-            return getLaneForWindow(window) != nullptr;
-        });
-        if (!fullyManaged) {
-            spdlog::debug("persistSnapshot: preserving last complete snapshot during partial detach workspace={} live_windows={}",
-                          ScrollerCore::HyprlandRuntime::workspaceId(workspace),
-                          liveWindows.size());
-            return;
-        }
-    }
-
-    if (const auto snapshot = captureSnapshot()) {
-        CanvasLayoutState::repository().upsert(*snapshot);
-        return;
-    }
-
-    clearPersistedSnapshot();
-}
-
-void CanvasLayout::persistCurrentSnapshot() {
-    persistSnapshot();
-}
-
-void CanvasLayout::clearPersistedSnapshot() {
-    const auto workspace = getLayoutWorkspace();
-    if (!workspace)
-        return;
-
-    CanvasLayoutState::repository().erase(ScrollerCore::HyprlandRuntime::workspaceId(workspace));
-}
-
-bool CanvasLayout::restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snapshot) {
-    const auto workspace = getLayoutWorkspace();
-    if (!workspace || snapshot.workspaceId != ScrollerCore::HyprlandRuntime::workspaceId(workspace))
-        return false;
-
-    const auto liveWindows = live_tiled_workspace_windows(workspace);
-    if (liveWindows.empty())
-        return false;
-
-    std::unordered_map<uintptr_t, PHLWINDOW> windowsByKey;
-    windowsByKey.reserve(liveWindows.size());
-    for (const auto &window : liveWindows)
-        windowsByKey.emplace(ScrollerCore::snapshot_window_key(
-                                 window,
-                                 snapshot.version,
-                                 ScrollerSnapshot::kStableWindowKeyFormatVersion),
-                             window);
-
-    const auto visibleMonitor = getVisibleCanvasMonitor();
-    const auto fallbackMonitor = visibleMonitor ? visibleMonitor : ScrollerCore::HyprlandRuntime::monitorById(liveWindows.front()->monitorID());
-    if (!fallbackMonitor)
-        return false;
-
-    restoredTargetsAwaitingCallback.clear();
-    for (const auto& window : liveWindows)
-        restoredTargetsAwaitingCallback.insert(ScrollerCore::window_key(window));
-    restoredGeometryActive = true;
-
-    const auto bounds = CanvasLayoutInternal::compute_canvas_bounds(fallbackMonitor);
-    restoringSnapshot = true;
-
-    clear_lanes(lanes);
-    activeLane = nullptr;
-    laneByWindow.clear();
-
-    Lane *restoredActiveLane = nullptr;
-    for (size_t laneIndex = 0; laneIndex < snapshot.lanes.size(); ++laneIndex) {
-        const auto &laneSnapshot = snapshot.lanes[laneIndex];
-        auto *lane = new Lane(fallbackMonitor, restored_mode_or_default(laneSnapshot.mode, ScrollerCore::default_mode_for_monitor(fallbackMonitor)));
-        lane->set_ephemeral(laneSnapshot.ephemeral);
-
-        for (size_t stackIndex = 0; stackIndex < laneSnapshot.stacks.size(); ++stackIndex) {
-            const auto &stackSnapshot = laneSnapshot.stacks[stackIndex];
-            auto *stack = new ScrollerModel::Stack(bounds.max.w, bounds.max.h, lane->get_mode());
-
-            for (const auto &windowSnapshot : stackSnapshot.windows) {
-                const auto it = windowsByKey.find(windowSnapshot.key);
-                if (it == windowsByKey.end())
-                    continue;
-
-                auto window = std::make_unique<ScrollerModel::Window>(it->second, windowSnapshot.geomH, lane->get_mode());
-                window->restore_state(restored_height_or_default(windowSnapshot.heightMode),
-                                      windowSnapshot.geomY,
-                                      windowSnapshot.geomH,
-                                      windowSnapshot.memY,
-                                      windowSnapshot.memH);
-                stack->append_restored_window(std::move(window));
-                windowsByKey.erase(it);
-            }
-
-            if (stack->size() == 0) {
-                delete stack;
-                continue;
-            }
-
-            stack->restore_state(ScrollerModel::StackWidth::from_snapshot(stackSnapshot.width),
-                                 stackSnapshot.geom,
-                                 stackSnapshot.memGeom,
-                                 stackSnapshot.fullscreened,
-                                 stackSnapshot.maximized);
-            if (stackSnapshot.activeWindowKey != 0) {
-                const auto activeWindowKey = stackSnapshot.activeWindowKey;
-                stack->for_each_window([&](PHLWINDOW window) {
-                    if (ScrollerCore::snapshot_window_key(
-                            window,
-                            snapshot.version,
-                            ScrollerSnapshot::kStableWindowKeyFormatVersion) == activeWindowKey)
-                        stack->focus_window(window);
-                });
-            }
-            lane->append_restored_stack(stack);
-        }
-
-        if (lane->empty()) {
-            delete lane;
-            continue;
-        }
-
-        lane->set_active_stack_by_index(laneSnapshot.activeStackIndex);
-        auto *laneNode = insertLaneNode(lane, Direction::End);
-        rememberLaneWindows(lane);
-        if (laneIndex == snapshot.activeLaneIndex)
-            restoredActiveLane = lane;
-        if (!activeLane)
-            activeLane = laneNode;
-    }
-
-    if (restoredActiveLane)
-        setActiveLane(restoredActiveLane);
-    else
-        (void)getActiveLane();
-
-    for (const auto &[_, extraWindow] : windowsByKey) {
-        auto *lane = getActiveLane();
-        if (!lane) {
-            lane = new Lane(extraWindow);
-            activeLane = insertLaneNode(lane, Direction::End);
-        }
-        lane->add_active_window(extraWindow);
-        rememberWindowLane(extraWindow, lane);
-    }
-
-    const auto restoredActiveWindow = activeLane && activeLane->data() ? activeLane->data()->get_active_window() : nullptr;
-    relayoutCanvas(fallbackMonitor, !ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace), true);
-    if (restoredActiveWindow)
-        focusManagedWindow(restoredActiveWindow, false, "restoreSnapshot");
-    debugVerifyLaneCache();
-
-    restoringSnapshot = false;
-    persistSnapshot();
-    spdlog::info("restore_snapshot: workspace={} restored_lanes={} live_windows={}",
-                 ScrollerCore::HyprlandRuntime::workspaceId(workspace),
-                 snapshot.lanes.size(),
-                 liveWindows.size());
-    return true;
-}
-
-bool CanvasLayout::maybeRestoreWorkspaceSnapshot() {
-    if (snapshotRestoreAttempted)
-        return false;
-
-    snapshotRestoreAttempted = true;
-    const auto workspace = getLayoutWorkspace();
-    if (!workspace || !lanes.empty())
-        return false;
-
-    CanvasLayoutState::repository().initialize();
-    const auto snapshot = CanvasLayoutState::repository().find(ScrollerCore::HyprlandRuntime::workspaceId(workspace));
-    if (!snapshot)
-        return false;
-
-    return restoreSnapshot(*snapshot);
-}
-
 // Relayout the canvas on the monitor currently showing it.
 void CanvasLayout::relayoutVisibleCanvas(PHLMONITOR fallbackMonitor) {
     const auto workspace = getLayoutWorkspace();
@@ -679,11 +395,11 @@ void CanvasLayout::relayoutVisibleCanvas(PHLMONITOR fallbackMonitor) {
 }
 
 // Remove an empty lane and repair active-lane state around the removal point.
-bool CanvasLayout::dropEmptyLane(ListNode<Lane *> *laneNode, Lane *preferredLane, PHLMONITOR fallbackMonitor, bool ephemeralOnly) {
+bool CanvasLayout::dropEmptyLane(LaneNode *laneNode, Lane *preferredLane, PHLMONITOR fallbackMonitor, bool ephemeralOnly) {
     if (!laneNode || !laneNode->data())
         return false;
 
-    auto *lane = laneNode->data();
+    auto *lane = laneNode->data().get();
     if (ephemeralOnly && !lane->is_ephemeral())
         return false;
     if (!lane->empty())
@@ -692,30 +408,24 @@ bool CanvasLayout::dropEmptyLane(ListNode<Lane *> *laneNode, Lane *preferredLane
     // Once a lane is removed we must still leave the canvas pointing at a valid
     // active lane. Prefer the explicit caller choice, otherwise pick an
     // adjacent lane when the removed lane used to be active.
-    Lane *fallbackLane = preferredLane;
+    Lane *fallbackLane = preferredLane == lane ? nullptr : preferredLane;
     if (!fallbackLane && activeLane == laneNode) {
         if (laneNode->next())
-            fallbackLane = laneNode->next()->data();
+            fallbackLane = laneNode->next()->data().get();
         else if (laneNode->prev())
-            fallbackLane = laneNode->prev()->data();
+            fallbackLane = laneNode->prev()->data().get();
     }
 
-    lanes.erase(laneNode);
     forgetLaneWindows(lane);
-    delete lane;
+    lanes.erase(laneNode);
     setActiveLane(fallbackLane);
     relayoutVisibleCanvas(fallbackMonitor);
     debugVerifyLaneCache();
     return true;
 }
 
-// Compatibility wrapper for call sites that only want to drop temporary lanes.
-bool CanvasLayout::dropEmptyEphemeralLane(ListNode<Lane *> *laneNode, Lane *preferredLane, PHLMONITOR fallbackMonitor) {
-    return dropEmptyLane(laneNode, preferredLane, fallbackMonitor, true);
-}
-
 // Choose the lane that should become active after a lane was removed.
-Lane *CanvasLayout::resolveActiveLaneAfterRemoval(ListNode<Lane *> *laneNode, PHLWINDOW removedWindow) {
+Lane *CanvasLayout::resolveActiveLaneAfterRemoval(LaneNode *laneNode, PHLWINDOW removedWindow) {
     const auto workspaceHandle = getLayoutWorkspace();
     if (workspaceHandle) {
         const auto focusedWindow = workspaceHandle->getLastFocusedWindow();
@@ -727,13 +437,13 @@ Lane *CanvasLayout::resolveActiveLaneAfterRemoval(ListNode<Lane *> *laneNode, PH
 
     if (activeLane == laneNode) {
         if (laneNode->next())
-            return laneNode->next()->data();
+            return laneNode->next()->data().get();
         if (laneNode->prev())
-            return laneNode->prev()->data();
+            return laneNode->prev()->data().get();
         return nullptr;
     }
 
-    return activeLane ? activeLane->data() : nullptr;
+    return activeLane ? activeLane->data().get() : nullptr;
 }
 
 // Recalculate every lane inside this canvas against one visible monitor.
@@ -758,7 +468,7 @@ void CanvasLayout::relayoutCanvas(PHLMONITOR monitor, bool honor_fullscreen, boo
             lanes.first()->data()->commit_restored_geometry();
             return;
         }
-        CanvasLayoutInternal::recalculate_workspace_lane(lanes.first()->data(), monitor, workspace, honor_fullscreen);
+        CanvasLayoutInternal::recalculate_workspace_lane(lanes.first()->data().get(), monitor, workspace, honor_fullscreen);
         return;
     }
 
@@ -767,36 +477,15 @@ void CanvasLayout::relayoutCanvas(PHLMONITOR monitor, bool honor_fullscreen, boo
     const auto& max = bounds.max;
 
     const auto mode = getActiveLane() ? getActiveLane()->get_mode() : Mode::Row;
-    // Lanes represent pages on the canvas. Once a canvas has more than one lane,
-    // keep each lane at full workarea size and page between them instead of
-    // splitting the monitor into shorter visible rows/columns.
-    const auto paged = lanes.size() > 1;
-    const auto count = static_cast<double>(lanes.size());
-    const auto activeIndex = static_cast<size_t>(std::max(0, laneIndexOf(activeLane ? activeLane->data() : lanes.first()->data())));
+    // Lanes represent full-workarea pages on the canvas, offset relative to the
+    // active lane so focus/move commands page between them predictably.
+    const auto activeIndex = static_cast<size_t>(std::max(0, laneIndexOf(activeLane ? activeLane->data().get() : lanes.first()->data().get())));
     size_t index = 0;
     for (auto lane = lanes.first(); lane != nullptr; lane = lane->next(), ++index) {
-        Box laneBox = max;
-        if (paged) {
-            // Page-mode keeps every lane full-sized and offsets it relative to
-            // the active lane. Only one page is visible at a time; the others
-            // stay laid out off-screen so focus/move commands can page between
-            // them predictably.
-            const auto delta = static_cast<double>(index) - static_cast<double>(activeIndex);
-            if (ScrollerCore::mode_pages_lanes_vertically(mode))
-                laneBox = Box(max.x, max.y + delta * full.h, max.w, max.h);
-            else
-                laneBox = Box(max.x + delta * full.w, max.y, max.w, max.h);
-        } else if (ScrollerCore::mode_pages_lanes_vertically(mode)) {
-            const auto unit = max.h / count;
-            const auto y = max.y + unit * index;
-            const auto h = index + 1 == lanes.size() ? max.y + max.h - y : unit;
-            laneBox = Box(max.x, y, max.w, h);
-        } else {
-            const auto unit = max.w / count;
-            const auto x = max.x + unit * index;
-            const auto w = index + 1 == lanes.size() ? max.x + max.w - x : unit;
-            laneBox = Box(x, max.y, w, max.h);
-        }
+        const auto delta = static_cast<double>(index) - static_cast<double>(activeIndex);
+        const Box laneBox = ScrollerCore::mode_pages_lanes_vertically(mode)
+            ? Box(max.x, max.y + delta * full.h, max.w, max.h)
+            : Box(max.x + delta * full.w, max.y, max.w, max.h);
 
         if (preserve_restored_geometry) {
             lane->data()->set_restored_canvas_geometry(full, laneBox, bounds.gap);
@@ -823,7 +512,7 @@ void CanvasLayout::newTarget(SP<Layout::ITarget> target) {
     if (!window)
         return;
 
-    if (hasPendingManualCrossMonitorInsertion(window)) {
+    if (handoffState.hasPendingManualCrossMonitorInsertion(ScrollerCore::window_key(window))) {
         spdlog::debug("newTarget: deferring manual cross-monitor registration window={} workspace={}",
                       static_cast<const void*>(window.get()),
                       ScrollerCore::HyprlandRuntime::windowWorkspaceId(window));
@@ -861,7 +550,7 @@ void CanvasLayout::movedTarget(SP<Layout::ITarget> target, std::optional<Vector2
     if (!window)
         return;
 
-    if (hasPendingManualCrossMonitorInsertion(window)) {
+    if (handoffState.hasPendingManualCrossMonitorInsertion(ScrollerCore::window_key(window))) {
         spdlog::debug("movedTarget: deferring manual cross-monitor registration window={} workspace={}",
                       static_cast<const void*>(window.get()),
                       ScrollerCore::HyprlandRuntime::windowWorkspaceId(window));
@@ -891,9 +580,7 @@ void CanvasLayout::resizeTarget(const Vector2D &delta, SP<Layout::ITarget> targe
 
     auto lane = getLaneForWindow(window);
     if (lane == nullptr) {
-        if (window->sizeAnimation())
-            *window->sizeAnimation() = Vector2D(std::max((window->sizeAnimation()->goal() + delta).x, 20.0), std::max((window->sizeAnimation()->goal() + delta).y, 20.0));
-        window->presentation().updateDecorations();
+        resize_unmanaged_window(window, delta);
         return;
     }
 
@@ -989,45 +676,23 @@ void CanvasLayout::moveTargetInDirection(SP<Layout::ITarget> t, Math::eDirection
     switch (direction) {
         case Math::DIRECTION_LEFT:
             onWindowFocusChange(window);
-            move_window(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Left);
+            moveWindow(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Left);
             break;
         case Math::DIRECTION_RIGHT:
             onWindowFocusChange(window);
-            move_window(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Right);
+            moveWindow(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Right);
             break;
         case Math::DIRECTION_UP:
             onWindowFocusChange(window);
-            move_window(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Up);
+            moveWindow(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Up);
             break;
         case Math::DIRECTION_DOWN:
             onWindowFocusChange(window);
-            move_window(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Down);
+            moveWindow(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Down);
             break;
         default:
             return;
     }
-}
-
-void CanvasLayout::switchWindows(PHLWINDOW a, PHLWINDOW b)
-{
-    auto *laneA = getLaneForWindow(a);
-    auto *laneB = getLaneForWindow(b);
-
-    if (a) {
-        if (laneB)
-            rememberWindowLane(a, laneB);
-        else
-            forgetWindowLane(a);
-    }
-
-    if (b) {
-        if (laneA)
-            rememberWindowLane(b, laneA);
-        else
-            forgetWindowLane(b);
-    }
-
-    debugVerifyLaneCache();
 }
 
 // Insert a newly mapped tiled window into the active lane, creating one if
@@ -1061,8 +726,9 @@ bool CanvasLayout::onWindowCreatedTiling(PHLWINDOW window, Math::eDirection)
 
     auto lane = getActiveLane();
     if (lane == nullptr) {
-        lane = new Lane(window);
-        activeLane = insertLaneNode(lane, Direction::End);
+        auto created = std::make_unique<Lane>(window);
+        lane = created.get();
+        activeLane = insertLaneNode(std::move(created), Direction::End);
     }
     lane->add_active_window(window);
     rememberWindowLane(window, lane);
@@ -1080,7 +746,7 @@ void CanvasLayout::onWindowRemovedTiling(PHLWINDOW window)
     restoredGeometryActive = false;
     spdlog::info("onWindowRemovedTiling: window={} workspace={}", windowPtr, workspace);
 
-    marks.remove(window);
+    ScrollerCore::marksRegistry().remove(window);
 
     auto s = getLaneForWindow(window);
     if (s == nullptr) {
@@ -1109,12 +775,11 @@ void CanvasLayout::onWindowRemovedTiling(PHLWINDOW window)
 
     auto *nextActiveLane = resolveActiveLaneAfterRemoval(lane, window);
 
-    auto doomed = lane->data();
+    auto *doomed = lane->data().get();
     spdlog::info("onWindowRemovedTiling: deleting empty lane={} workspace={}",
                  static_cast<const void*>(doomed), workspace);
-    lanes.erase(lane);
     forgetLaneWindows(doomed);
-    delete doomed;
+    lanes.erase(lane);
 
     setActiveLane(nextActiveLane);
     relayoutVisibleCanvas();
@@ -1136,84 +801,4 @@ void CanvasLayout::recalculateWindow(PHLWINDOW window)
         return;
 
     lane->recalculate_lane_geometry();
-}
-
-void CanvasLayout::resizeActiveWindow(PHLWINDOW window, const Vector2D &delta,
-                                        Layout::eRectCorner, PHLWINDOW pWindow)
-{
-    const auto PWINDOW = pWindow ? pWindow : window;
-    if (!PWINDOW)
-        return;
-
-    auto lane = getLaneForWindow(PWINDOW);
-    if (lane == nullptr) {
-        if (PWINDOW->sizeAnimation())
-            *PWINDOW->sizeAnimation() = Vector2D(std::max((PWINDOW->sizeAnimation()->goal() + delta).x, 20.0), std::max((PWINDOW->sizeAnimation()->goal() + delta).y, 20.0));
-        PWINDOW->presentation().updateDecorations();
-        return;
-    }
-
-    lane->resize_active_window(delta);
-    persistSnapshot();
-}
-
-void CanvasLayout::alterSplitRatio(PHLWINDOW, float, bool)
-{
-}
-
-Vector2D CanvasLayout::predictSizeForNewWindowTiled() {
-    ensureWorkspaceRuntime();
-
-    auto monitor = monitorForKeyboardAction();
-    if (!monitor)
-        return {};
-
-    auto lane = getActiveLane();
-    if (lane == nullptr) {
-        const auto bounds = CanvasLayoutInternal::compute_canvas_bounds(monitor);
-        return Vector2D(bounds.max.w, bounds.max.h);
-    }
-
-    return lane->predict_window_size();
-}
-
-void CanvasLayout::replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to)
-{
-    if (!from || !to)
-        return;
-
-    auto *lane = getLaneForWindow(from);
-    if (!lane)
-        return;
-
-    forgetWindowLane(from);
-    rememberWindowLane(to, lane);
-    debugVerifyLaneCache();
-    persistSnapshot();
-}
-
-void CanvasLayout::marks_add(const std::string &name) {
-    auto lane = getActiveLane();
-    if (!lane)
-        return;
-
-    PHLWINDOW w = lane->get_active_window();
-    if (!w)
-        return;
-
-    marks.add(w, name);
-}
-
-void CanvasLayout::marks_delete(const std::string &name) {
-    marks.del(name);
-}
-
-void CanvasLayout::marks_visit(const std::string &name) {
-    PHLWINDOW window = marks.visit(name);
-    if (window != nullptr)
-        focusManagedWindow(window, false, "marks_visit");
-}
-
-void CanvasLayout::marks_reset() {
-    marks.reset();
 }

@@ -14,6 +14,7 @@
 #include <hyprland/src/render/Framebuffer.hpp>
 #include <hyprland/src/render/OpenGL.hpp>
 
+#include "core/service_slot.h"
 #include "overview/render/animation.h"
 #include "overview/scene/scene.h"
 
@@ -75,6 +76,7 @@ class RenderState {
     bool                                            lastOverviewActive_ = false;
 };
 
+ScrollerCore::ServiceSlot<RenderState>& renderStateSlot();
 RenderState& renderState();
 
 } // namespace Overview

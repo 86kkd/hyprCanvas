@@ -281,15 +281,15 @@ bool draw_window_surface_tree(Render::CRenderContext& ctx, const SceneTarget& ta
             if (!clippedDrawBox)
                 return;
 
-            const auto surfaceUVTL = surface_uv_top_left(surface);
-            const auto surfaceUVBR = surface_uv_bottom_right(surface);
-            ctx.m_data.primarySurfaceUVTopLeft = surfaceUVTL;
-            ctx.m_data.primarySurfaceUVBottomRight = surfaceUVBR;
+            const auto subUVTL = surface_uv_top_left(surface);
+            const auto subUVBR = surface_uv_bottom_right(surface);
+            ctx.m_data.primarySurfaceUVTopLeft = subUVTL;
+            ctx.m_data.primarySurfaceUVBottomRight = subUVBR;
             ctx.m_data.currentWindow = nullptr;
 
             CHyprOpenGLImpl::STextureRenderData subsurfaceData;
             subsurfaceData.a = 1.0F;
-            subsurfaceData.allowCustomUV = surfaceUVTL.x >= 0.0 && surfaceUVBR.x >= 0.0;
+            subsurfaceData.allowCustomUV = subUVTL.x >= 0.0 && subUVBR.x >= 0.0;
             subsurfaceData.blockBlurOptimization = true;
             g_pHyprOpenGL->renderTexture(ctx, subsurfaceTexture, to_cbox(*clippedDrawBox), subsurfaceData);
         },
@@ -350,20 +350,7 @@ void draw_window_preview(Render::CRenderContext& ctx, RenderState& state, const 
               500);
 }
 
-void draw_empty_target(const SceneTarget& target, const Box& bounds, double overlayAlpha) {
-    (void)target;
-    (void)bounds;
-    (void)overlayAlpha;
-}
-
 } // namespace
-
-void snapshotWindowTargets(const Model& model) {
-    // Window previews are drawn from live surface textures. Keep this lifecycle
-    // hook so session setup remains explicit even though Hyprland no longer exposes
-    // the old renderer snapshot cache.
-    (void)model;
-}
 
 void snapshotBackdropLayers(const Model& model, RenderState& state) {
     // The backdrop is captured separately from window targets so overview can
@@ -436,25 +423,16 @@ void drawSceneMonitor(Render::CRenderContext& ctx, const SceneMonitor& scene, st
 
     std::optional<Box> selectionBox;
 
-    // Draw in increasing specificity:
-    // - workspace targets
-    // - synthetic empty target, if any
-    // - one monitor-local selection outline on top
+    // Draw window targets, then one monitor-local selection outline on top.
     for (const auto& workspace : scene.workspaces) {
         for (const auto& target : workspace.targets) {
-            if (target.type == TargetType::Window) {
-                const auto drawBox = animated_window_draw_box(state, scene.monitorId, target, progress);
-                draw_window_preview(ctx, state, target, drawBox, scene.box, progress);
-                if (target.selected)
-                    selectionBox = selectionBox ? unionBox(*selectionBox, drawBox) : drawBox;
-            } else {
-                draw_empty_target(target, scene.box, progress);
-            }
+            if (target.type != TargetType::Window)
+                continue;
+            const auto drawBox = animated_window_draw_box(state, scene.monitorId, target, progress);
+            draw_window_preview(ctx, state, target, drawBox, scene.box, progress);
+            if (target.selected)
+                selectionBox = selectionBox ? unionBox(*selectionBox, drawBox) : drawBox;
         }
-    }
-
-    if (scene.syntheticTarget) {
-        draw_empty_target(*scene.syntheticTarget, scene.box, progress);
     }
 
     if (!selectionBox && scene.selectionBox)

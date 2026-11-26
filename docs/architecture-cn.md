@@ -17,7 +17,7 @@ Hyprland 的事件或快捷键，是如何最终驱动 hyprscroller 移动窗口
 
 1. Hyprland 通过 [`src/plugin/entry.cpp`](../src/plugin/entry.cpp) 中的 `PLUGIN_INIT` 加载插件。
 2. `PLUGIN_INIT` 负责注册：
-   - `plugin:scroller:*` 配置项
+   - `plugin:hyprCanvas:*` 配置项（保留 `plugin:scroller:*` 兼容别名）
    - `hl.plugin.scroller.*` Lua 命令（例如 `move_focus`）
    - 名为 `scroller` 的平铺布局算法 `CanvasLayout`
    - overview 渲染钩子，以及焦点/卡片指针辅助逻辑
@@ -175,7 +175,7 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 1. 快捷键调用 `hl.plugin.scroller.move_focus("l")` 之类。
 2. [`src/plugin/dispatch/layout_commands.cpp`](../src/plugin/dispatch/layout_commands.cpp)
    解析方向，并解析出当前活动的 `CanvasLayout`。
-3. `CanvasLayout::move_focus` 生成 `TopologyIndex`（焦点所在的 lane / stack /
+3. `CanvasLayout::moveFocus` 生成 `TopologyIndex`（焦点所在的 lane / stack /
    window 坐标），再问 `CanvasLayoutInternal::neighbor` 这个方向通往哪里：
    - 当前 lane 内的本地目标
    - 相邻 lane
@@ -193,7 +193,7 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 
 1. 快捷键调用 `hl.plugin.scroller.move_window(...)`。
 2. Lua 命令解析出当前活动的 `CanvasLayout`。
-3. `CanvasLayout::move_window` 以“移动窗口”意图调用同一个 `neighbor` 查询，决定窗口：
+3. `CanvasLayout::moveWindow` 以“移动窗口”意图调用同一个 `neighbor` 查询，决定窗口：
    - 调整 stack 顺序、并入相邻 stack，或拆成新 stack
    - 进入相邻 lane，或进入画布边缘新建的 lane
    - 换到另一台显示器
@@ -236,6 +236,8 @@ Overview 是一层独立的只读导航层。
 `scroller` 的工作区级控制平面。
 
 - `core.cpp`：target 回调、工作区归属、lane 缓存、生命周期
+- `snapshot.cpp`：工作区布局快照采集、持久化与恢复
+- `workspace_controller.cpp` 与 `workspace_controller_logic.cpp`：多屏 Canvas 工作区切换、激活与跨 Canvas 移窗（与 Overview 确认复用同一事务层，保持 `Overview::Session` 纯只读边界）
 - `focus.cpp`：焦点路由与跨显示器焦点交接
 - `commands.cpp`：面向命令的变更操作，例如 movewindow
 - `topology_route.cpp`：只读拓扑索引与 `move_focus` / `move_window` 共用的
@@ -314,4 +316,4 @@ Overview 的 session、model、navigation、scene 与 render 钩子。
 
 Hyprland 0.57 不再注册插件 dispatcher。快捷键必须调用 `hl.plugin.scroller`
 下的 Lua 函数，而不是旧的 `scroller:movefocus` 风格。
-`plugin:scroller:focus_wrap` 这类插件配置项仍然通过 `addConfigValueV2` 单独注册。
+`plugin:hyprCanvas:focus_wrap`（兼容旧名 `plugin:scroller:focus_wrap`）这类插件配置项仍然通过 `addConfigValueV2` 单独注册。

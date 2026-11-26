@@ -1,5 +1,5 @@
 /**
- * @file stack_core.cpp
+ * @file model/stack/core.cpp
  * @brief Stack construction, preset sizing, and basic state accessors.
  *
  * This file introduces the coordinate vocabulary used by the rest of the stack
@@ -8,7 +8,7 @@
  * - in row mode, the local axis is vertical (`y` / `h`)
  * - in column mode, the local axis is horizontal (`x` / `w`)
  *
- * Later files (`stack_geometry.cpp`, `stack_membership.cpp`) build on that
+ * Later files (`geometry.cpp`, `membership.cpp`) build on that
  * vocabulary, so understanding the helpers below makes the rest of the stack
  * code much easier to follow.
  */
@@ -142,9 +142,9 @@ Stack::Stack(PHLWINDOW cwindow, double maxw, double maxh, Mode mode)
     width = preset.width;
     maxw = preset.maxw;
 
-    Window *window = new Window(cwindow, mode == Mode::Column ? maxw : maxh, mode);
+    auto window = std::make_unique<Window>(cwindow, mode == Mode::Column ? maxw : maxh, mode);
     update_width(width, maxw, maxh);
-    windows.push_back(window);
+    windows.push_back(std::move(window));
     active = windows.first();
 }
 
@@ -162,15 +162,12 @@ Stack::Stack(std::unique_ptr<Window> window, StackWidth width, double maxw, doub
         return;
 
     window->set_geom_h(StackInternal::stack_local_span(geom, mode));
-    windows.push_back(window.release());
+    windows.push_back(std::move(window));
     active = windows.first();
 }
 
 Stack::~Stack() {
     DeckPointer::forget(this);
-    for (auto win = windows.first(); win != nullptr; win = win->next())
-        delete win->data();
-    windows.clear();
 }
 
 bool Stack::get_init() const {
@@ -217,8 +214,8 @@ Vector2D Stack::get_height() const {
         return Vector2D(geom.y, geom.y + geom.h);
 
     Vector2D height;
-    auto *first = windows.first()->data();
-    auto *last = windows.last()->data();
+    auto *first = windows.first()->data().get();
+    auto *last = windows.last()->data().get();
     height.x = first->get_geom_y();
     height.y = last->get_geom_y() + last->get_geom_h();
     return height;
@@ -278,7 +275,7 @@ void Stack::shift_local_geometry(double delta) {
         return;
 
     for (auto win = windows.first(); win != nullptr; win = win->next()) {
-        auto *window = win->data();
+        auto *window = win->data().get();
         window->set_geom_y(window->get_geom_y() + delta);
     }
 }
@@ -346,7 +343,7 @@ void Stack::append_restored_window(std::unique_ptr<Window> window) {
     if (!window)
         return;
 
-    windows.push_back(window.release());
+    windows.push_back(std::move(window));
     if (!active)
         active = windows.first();
 }

@@ -1,5 +1,5 @@
 /**
- * @file stack_geometry.cpp
+ * @file model/stack/geometry.cpp
  * @brief Stack geometry transforms, relayout, and resize logic.
  *
  * A Stack owns one viewport-sized strip inside a lane. The functions here keep
@@ -88,9 +88,9 @@ std::vector<WindowGeometryEntry> Stack::capture_window_boxes(const Vector2D &gap
         for (auto node = windows.first(); node; node = node->next()) {
             if (node == active)
                 activeIndex = models.size();
-            if (node->data() == previousActive)
+            if (node->data().get() == previousActive)
                 previousIndex = models.size();
-            models.push_back(node->data());
+            models.push_back(node->data().get());
         }
         const auto cards = StackLogic::deck_cards(models.size(), activeIndex,
             StackInternal::stack_local_span(geom, mode), StackInternal::stack_cross_span(geom, mode), previousIndex, expanded());
@@ -259,7 +259,7 @@ void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const 
         return;
     }
 
-    Window *wactive = active->data();
+    Window *wactive = active->data().get();
     PHLWINDOW win = wactive->ptr().lock();
     if (!win)
         return;
@@ -292,8 +292,8 @@ void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const 
         return;
     }
 
-    Window *prev = active->prev() ? active->prev()->data() : nullptr;
-    Window *next = active->next() ? active->next()->data() : nullptr;
+    Window *prev = active->prev() ? active->prev()->data().get() : nullptr;
+    Window *next = active->next() ? active->next()->data().get() : nullptr;
     const bool prevVisible = StackInternal::is_window_fully_visible(prev, geom, mode);
     const bool nextVisible = StackInternal::is_window_fully_visible(next, geom, mode);
     // When at least one neighbor is still fully visible, keeping the current
@@ -327,11 +327,11 @@ void Stack::fit_windows_to_span(const Vector2D &gap_x, double gap, const Scrolle
             from,
             windows.last(),
             StackInternal::stack_local_span(geom, mode),
-            [](ListNode<Window *> *node) {
+            [](WindowNode *node) {
                 return node->data()->get_geom_h();
             },
-            [](ListNode<Window *> *node, double scaledSpan) {
-                auto *window = node->data();
+            [](WindowNode *node, double scaledSpan) {
+                auto *window = node->data().get();
                 window->set_height_free();
                 window->set_geom_h(scaledSpan);
             }))
@@ -341,7 +341,7 @@ void Stack::fit_windows_to_span(const Vector2D &gap_x, double gap, const Scrolle
     adjust_windows(from, gap_x, gap, visibleBox);
 }
 
-void Stack::adjust_windows(ListNode<Window *> *win, const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox) {
+void Stack::adjust_windows(WindowNode *win, const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox) {
     if (!win)
         return;
 
@@ -383,13 +383,13 @@ void Stack::adjust_windows(ListNode<Window *> *win, const Vector2D &gap_x, doubl
     // First rebuild pure local ordering around the anchor window. At this point
     // we still operate in stack-local coordinates, not compositor coordinates.
     for (auto w = win->prev(), p = win; w != nullptr; p = w, w = w->prev()) {
-        auto *wdata = w->data();
-        auto *pdata = p->data();
+        auto *wdata = w->data().get();
+        auto *pdata = p->data().get();
         wdata->set_geom_y(pdata->get_geom_y() - wdata->get_geom_h());
     }
     for (auto w = win->next(), p = win; w != nullptr; p = w, w = w->next()) {
-        auto *wdata = w->data();
-        auto *pdata = p->data();
+        auto *wdata = w->data().get();
+        auto *pdata = p->data().get();
         wdata->set_geom_y(pdata->get_geom_y() + pdata->get_geom_h());
     }
 
@@ -409,7 +409,7 @@ void Stack::adjust_windows(ListNode<Window *> *win, const Vector2D &gap_x, doubl
     size_t shiftedAbove = 0;
     size_t shiftedBelow = 0;
     for (auto w = windows.first(); w != nullptr; w = w->next()) {
-        auto *wdata = w->data();
+        auto *wdata = w->data().get();
         const auto window = wdata->ptr().lock();
         const auto border = window ? ScrollerCore::HyprlandRuntime::windowBorderSize(window) : 0.0;
         const auto gap0 = w == windows.first() ? 0.0 : gap;
@@ -507,7 +507,7 @@ void Stack::resize_active_window(const ScrollerCore::Box &bounds, const Vector2D
 
     if (std::abs(static_cast<int>(windowDelta)) > 0) {
         for (auto win = windows.first(); win != nullptr; win = win->next()) {
-            Window *window = win->data();
+            Window *window = win->data().get();
             if (win == active)
                 window->set_geom_h(window->get_geom_h() + windowDelta);
         }

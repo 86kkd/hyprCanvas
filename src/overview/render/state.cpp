@@ -275,9 +275,13 @@ void RenderState::clearTextCache() {
     textCache_.clear();
 }
 
+ScrollerCore::ServiceSlot<RenderState>& renderStateSlot() {
+    static ScrollerCore::ServiceSlot<RenderState> slot;
+    return slot;
+}
+
 RenderState& renderState() {
-    static RenderState state;
-    return state;
+    return renderStateSlot().get();
 }
 
 } // namespace Overview

@@ -10,7 +10,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-option(HYPRSCROLLER_ENABLE_SANITIZERS "Enable ASan/UBSan in debug builds" OFF)
+option(HYPRCANVAS_ENABLE_SANITIZERS "Enable ASan/UBSan in debug builds" OFF)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(DEPS REQUIRED hyprland pixman-1 libdrm)
@@ -43,7 +43,7 @@ add_library(hyprCanvas SHARED
             src/core/monitor_geometry_runtime.cpp
             src/core/layout_profile.cpp
             src/core/workspace_selector.h
-            src/core/intrusive_list.h
+            src/core/linked_list.h
             src/overview/navigation/logic.h
             src/overview/navigation/logic.cpp
             src/overview/scene/orientation.h
@@ -88,6 +88,7 @@ add_library(hyprCanvas SHARED
             src/model/stack/membership.cpp
             src/model/stack/geometry.cpp
             src/layout/canvas/core.cpp
+            src/layout/canvas/snapshot.cpp
             src/layout/canvas/overview.cpp
             src/layout/canvas/dispatch.cpp
             src/layout/canvas/dispatch_runtime_logic.cpp
@@ -97,6 +98,8 @@ add_library(hyprCanvas SHARED
             src/layout/canvas/topology_route.cpp
             src/layout/canvas/layout_repository.cpp
             src/layout/canvas/canvas_workspace_repository.cpp
+            src/layout/canvas/workspace_controller_logic.cpp
+            src/layout/canvas/workspace_controller.cpp
             src/layout/canvas/workspace.cpp
             src/layout/canvas/focus.cpp
             src/layout/canvas/commands.cpp
@@ -109,7 +112,7 @@ if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
     target_compile_options(hyprCanvas PRIVATE
         $<$<CONFIG:Debug>:-Wall;-Wextra;-Wpedantic>)
 
-    if(HYPRSCROLLER_ENABLE_SANITIZERS)
+    if(HYPRCANVAS_ENABLE_SANITIZERS)
         target_compile_options(hyprCanvas PRIVATE
             $<$<CONFIG:Debug>:-fsanitize=address,undefined;-fno-omit-frame-pointer>)
         set(CMAKE_SHARED_LINKER_FLAGS_DEBUG
@@ -129,7 +132,7 @@ target_link_libraries(hyprCanvas PRIVATE spdlog::spdlog_header_only PkgConfig::L
 set_target_properties(hyprCanvas PROPERTIES PREFIX "")
 
 if(BUILD_TESTING)
-    add_executable(hyprscroller_logic_tests
+    add_executable(hyprCanvas_logic_tests
                    tests/test_main.cpp
                    tests/minimap_tests.cpp
                    src/overview/minimap/logic.cpp
@@ -158,13 +161,24 @@ if(BUILD_TESTING)
                    src/layout/canvas/dispatch_logic.cpp
                    src/layout/canvas/dispatch_runtime_logic.cpp
                    src/layout/canvas/route_logic.cpp
-                   src/layout/canvas/topology_route.cpp)
-    target_include_directories(hyprscroller_logic_tests PRIVATE
+                   src/layout/canvas/topology_route.cpp
+                   src/layout/canvas/workspace_controller_logic.cpp)
+    target_include_directories(hyprCanvas_logic_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${DEPS_INCLUDE_DIRS}
         /usr/include/hyprland/wlroots-hyprland/hyprland
         /usr/include/hyprland/src)
-    target_link_libraries(hyprscroller_logic_tests PRIVATE PkgConfig::HYPRLAND ${DEPS_LIBRARIES} spdlog::spdlog_header_only stdc++ m)
-    set_target_properties(hyprscroller_logic_tests PROPERTIES LINKER_LANGUAGE CXX)
-    add_test(NAME hyprCanvas.logic COMMAND hyprscroller_logic_tests)
+    if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
+        target_compile_options(hyprCanvas_logic_tests PRIVATE
+            $<$<CONFIG:Debug>:-Wall;-Wextra;-Wpedantic>)
+        if(HYPRCANVAS_ENABLE_SANITIZERS)
+            target_compile_options(hyprCanvas_logic_tests PRIVATE
+                $<$<CONFIG:Debug>:-fsanitize=address,undefined;-fno-omit-frame-pointer>)
+            target_link_options(hyprCanvas_logic_tests PRIVATE
+                $<$<CONFIG:Debug>:-fsanitize=address,undefined>)
+        endif()
+    endif()
+    target_link_libraries(hyprCanvas_logic_tests PRIVATE PkgConfig::HYPRLAND ${DEPS_LIBRARIES} spdlog::spdlog_header_only stdc++ m)
+    set_target_properties(hyprCanvas_logic_tests PROPERTIES LINKER_LANGUAGE CXX)
+    add_test(NAME hyprCanvas.logic COMMAND hyprCanvas_logic_tests)
 endif()

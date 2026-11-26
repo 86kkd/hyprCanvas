@@ -23,7 +23,7 @@
 #include <hyprutils/math/Vector2D.hpp>
 
 #include "core/layout_snapshot.h"
-#include "core/intrusive_list.h"
+#include "core/linked_list.h"
 #include "core/types.h"
 #include "core/core.h"
 #include "model/stack/label.h"
@@ -113,11 +113,11 @@ private:
     // Weak reference to the backend Hyprland window.
     PHLWINDOWREF window;
     // Current logical height preset for resize/cycle commands.
-    WindowHeight height;
+    WindowHeight height = WindowHeight::One;
     // Logical origin inside the owning stack's local axis.
-    double box_y;
+    double box_y = 0.0;
     // Logical height inside the owning stack.
-    double box_h;
+    double box_h = 0.0;
     // Last saved logical geometry.
     Memory mem;
     std::optional<bool> fullsizeBeforeJoin;
@@ -136,9 +136,9 @@ StackWidth global_stack_width();
  * that the lane layer later positions on the canvas.
  *
  * Recommended implementation reading order:
- * - `stack_core.cpp` for presets, local-axis helpers, and construction rules
- * - `stack_geometry.cpp` for relayout and viewport-adjustment behavior
- * - `stack_membership.cpp` for focus, membership transfer, and ordering changes
+ * - `core.cpp` for presets, local-axis helpers, and construction rules
+ * - `geometry.cpp` for relayout and viewport-adjustment behavior
+ * - `membership.cpp` for focus, membership transfer, and ordering changes
  */
 class Stack {
 public:
@@ -171,7 +171,7 @@ public:
     template <typename Fn>
     void for_each_window_model(Fn&& fn) const {
         for (auto win = windows.first(); win != nullptr; win = win->next())
-            std::forward<Fn>(fn)(win->data());
+            std::forward<Fn>(fn)(win->data().get());
     }
     // Export each window's full logical compositor box before safety clipping.
     std::vector<WindowGeometryEntry> capture_window_boxes(const Vector2D &gap_x, double gap) const;
@@ -264,12 +264,14 @@ public:
     ScrollerSnapshot::StackSnapshot capture_snapshot() const;
 
 private:
+    using WindowNode = ListNode<std::unique_ptr<Window>>;
+
     // Record focus history only when selection actually changes.
-    void activate_window(ListNode<Window *> *node);
+    void activate_window(WindowNode *node);
     // Find the list node that owns a given compositor window.
-    ListNode<Window *> *findWindowNode(PHLWINDOW window) const;
+    WindowNode *findWindowNode(PHLWINDOW window) const;
     // Shift a window range so the active window stays visible inside the stack viewport.
-    void adjust_windows(ListNode<Window *> *win, const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox);
+    void adjust_windows(WindowNode *win, const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox);
 
     // Restore point for stack-level geometry transforms.
     struct Memory {
@@ -279,27 +281,27 @@ private:
     // Current horizontal width mode of the stack.
     StackWidth width = StackWidth::visible(StackWidth::kDefaultVisibleStacks);
     // Orientation profile used for stack-vs-window axis decisions.
-    Mode mode;
+    Mode mode = Mode::Row;
     // Height preset of the active window when cycling window sizes.
-    WindowHeight height;
+    WindowHeight height = WindowHeight::One;
     // Whether this stack already has stable initial geometry.
-    bool initialized;
+    bool initialized = false;
     // Current stack geometry in canvas coordinates.
     ScrollerCore::Box geom;
     // Scroller-managed fullscreen state.
     bool fullscreened = false;
     // Stack-level maximized state.
-    bool maxdim;
+    bool maxdim = false;
     // Saved stack geometry for temporary transforms.
     Memory mem;
     // Full monitor box used by fullscreen behavior.
     ScrollerCore::Box full;
     // Currently active model window node.
-    ListNode<Window *> *active = nullptr;
+    WindowNode *active = nullptr;
     // Last selected model, cleared before removal; transient presentation state.
     Window *previousActive = nullptr;
     // Ordered windows inside this stack.
-    List<Window *> windows;
+    List<std::unique_ptr<Window>> windows;
 };
 
 } // namespace ScrollerModel

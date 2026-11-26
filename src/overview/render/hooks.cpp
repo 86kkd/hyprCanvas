@@ -84,7 +84,8 @@ void handle_session_transition(steady_tp now) {
 
     if (overviewActive) {
         state.clearSessionState();
-        snapshotWindowTargets(overview.model());
+        // Window previews render directly from live surface textures; only
+        // background/bottom backdrop layers need an upfront snapshot.
         snapshotBackdropLayers(overview.model(), state);
         state.rebuildPreviewAnimations(overview.model());
         for (const auto& region : overview.model().monitors()) {

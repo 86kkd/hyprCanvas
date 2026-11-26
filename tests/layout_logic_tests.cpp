@@ -10,6 +10,7 @@
 #include "layout/canvas/dispatch_logic.h"
 #include "layout/canvas/handoff_state.h"
 #include "layout/canvas/route_logic.h"
+#include "layout/canvas/workspace_controller_logic.h"
 
 #include "test_suite.h"
 #include "test_support.h"
@@ -420,6 +421,59 @@ void test_switch_to_window_logic() {
                 "switch_to_window does not warp the cursor on failed focus");
 }
 
+void test_workspace_controller_navigation_logic() {
+    using namespace CanvasLayoutState;
+
+    const std::vector<CanvasTileNode> grid = {
+        {.canvasId = 0, .tileX = 0, .tileY = 0, .ephemeral = false},
+        {.canvasId = 1, .tileX = 1, .tileY = 0, .ephemeral = false},
+        {.canvasId = 2, .tileX = 1, .tileY = 1, .ephemeral = true},
+    };
+
+    const auto rightExisting = planDirectionalCanvasMove(grid, 0, Direction::Right);
+    expect_eq(static_cast<int>(rightExisting.action), static_cast<int>(CanvasNavigationAction::SelectExisting),
+              "directional canvas move selects existing right neighbor");
+    expect_eq(rightExisting.targetCanvasId, 1, "directional move picks canvas 1 to the right of canvas 0");
+
+    const auto leftCreate = planDirectionalCanvasMove(grid, 0, Direction::Left);
+    expect_eq(static_cast<int>(leftCreate.action), static_cast<int>(CanvasNavigationAction::CreateSynthetic),
+              "directional move from non-ephemeral edge creates synthetic canvas");
+    expect_eq(leftCreate.anchorCanvasId, 0, "synthetic canvas anchors on current canvas");
+    expect_eq(static_cast<int>(leftCreate.createDirection), static_cast<int>(Direction::Left),
+              "synthetic canvas keeps requested creation direction");
+
+    const auto fromEphemeralEdge = planDirectionalCanvasMove(grid, 2, Direction::Down);
+    expect_eq(static_cast<int>(fromEphemeralEdge.action), static_cast<int>(CanvasNavigationAction::None),
+              "ephemeral canvas cannot extend further into blank space");
+
+    const auto fromEphemeralBack = planDirectionalCanvasMove(grid, 2, Direction::Up);
+    expect_eq(static_cast<int>(fromEphemeralBack.action), static_cast<int>(CanvasNavigationAction::SelectExisting),
+              "ephemeral canvas can still navigate back to an existing neighbor");
+    expect_eq(fromEphemeralBack.targetCanvasId, 1, "up from canvas 2 returns to canvas 1");
+
+    const auto numberedExisting = planNumberedCanvasMove(grid, 0, 2);
+    expect_eq(static_cast<int>(numberedExisting.action), static_cast<int>(CanvasNavigationAction::SelectExisting),
+              "numbered move selects existing canvas in creation order");
+    expect_eq(numberedExisting.targetCanvasId, 1, "canvas #2 maps to second canvasId");
+
+    const auto numberedBlockedByEphemeralTail = planNumberedCanvasMove(grid, 0, 4);
+    expect_eq(static_cast<int>(numberedBlockedByEphemeralTail.action), static_cast<int>(CanvasNavigationAction::None),
+              "numbered move refuses to append past an already-ephemeral tail canvas");
+
+    const std::vector<CanvasTileNode> solidGrid = {
+        {.canvasId = 5, .tileX = 1, .tileY = 0, .ephemeral = false},
+        {.canvasId = 2, .tileX = 0, .tileY = 0, .ephemeral = false},
+    };
+    const auto numberedAppend = planNumberedCanvasMove(solidGrid, 2, 3);
+    expect_eq(static_cast<int>(numberedAppend.action), static_cast<int>(CanvasNavigationAction::CreateSynthetic),
+              "numbered move at size+1 creates one synthetic page when tail and current are solid");
+    expect_eq(numberedAppend.anchorCanvasId, 5, "numbered creation anchors on the highest canvasId");
+
+    const auto numberedSkip = planNumberedCanvasMove(solidGrid, 2, 4);
+    expect_eq(static_cast<int>(numberedSkip.action), static_cast<int>(CanvasNavigationAction::None),
+              "numbered move rejects skipping more than one page past the end");
+}
+
 } // namespace
 
 void run_layout_logic_tests() {
@@ -428,4 +482,5 @@ void run_layout_logic_tests() {
     test_dispatch_logic();
     test_focus_monitor_workspace_logic();
     test_switch_to_window_logic();
+    test_workspace_controller_navigation_logic();
 }

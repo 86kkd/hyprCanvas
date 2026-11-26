@@ -18,7 +18,7 @@
 #include <hyprland/src/render/Renderer.hpp>
 #include <spdlog/spdlog.h>
 
-#include "../../core/monitor_geometry_runtime.h"
+#include "core/monitor_geometry_runtime.h"
 #include "core/hyprland_runtime.h"
 #include "internal.h"
 
@@ -231,7 +231,7 @@ void CanvasLayout::syncHiddenSpecialWorkspaceCanvases()
         if (!layout || !layout->activeLane || !layout->activeLane->data())
             continue;
 
-        auto* lane = layout->activeLane->data();
+        auto* lane = layout->activeLane->data().get();
         if (!lane->is_ephemeral() || !lane->empty())
             continue;
 

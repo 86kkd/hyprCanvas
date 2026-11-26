@@ -16,9 +16,9 @@
 #include "core/focus_pointer_sync.h"
 #include <spdlog/spdlog.h>
 
-#include "../../core/direction.h"
+#include "core/direction.h"
 #include "core/hyprland_runtime.h"
-#include "../../core/workspace_selector.h"
+#include "core/workspace_selector.h"
 #include "internal.h"
 
 namespace {

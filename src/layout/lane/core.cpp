@@ -19,9 +19,9 @@
 
 #include <hyprland/src/Compositor.hpp>
 
-#include "../../core/layout_profile.h"
-#include "../../core/monitor_geometry_runtime.h"
-#include "../../core/window_key.h"
+#include "core/layout_profile.h"
+#include "core/monitor_geometry_runtime.h"
+#include "core/window_key.h"
 
 using ScrollerCore::Box;
 using ScrollerModel::Stack;
@@ -43,12 +43,7 @@ Lane::Lane(PHLMONITOR monitor, Mode laneMode)
         update_sizes(monitor);
 }
 
-Lane::~Lane() {
-    for (auto col = stacks.first(); col != nullptr; col = col->next()) {
-        delete col->data();
-    }
-    stacks.clear();
-}
+Lane::~Lane() = default;
 
 Stack *Lane::getStackForWindow(PHLWINDOW window) const {
     if (!window)
@@ -64,20 +59,20 @@ Stack *Lane::getStackForWindow(PHLWINDOW window) const {
 
     for (auto col = stacks.first(); col != nullptr; col = col->next()) {
         if (col->data()->has_window(window)) {
-            stackByWindow.remember(key, col->data());
-            return col->data();
+            stackByWindow.remember(key, col->data().get());
+            return col->data().get();
         }
     }
 
     return nullptr;
 }
 
-ListNode<Stack *> *Lane::getStackNode(Stack *stack) const {
+Lane::StackNode *Lane::getStackNode(Stack *stack) const {
     if (!stack)
         return nullptr;
 
     for (auto node = stacks.first(); node != nullptr; node = node->next()) {
-        if (node->data() == stack)
+        if (node->data().get() == stack)
             return node;
     }
 
@@ -125,7 +120,7 @@ void Lane::debugVerifyStackCache() const {
 #ifndef NDEBUG
     assert(stackByWindow.matches_expected([&](auto &&addExpected) {
         for (auto col = stacks.first(); col != nullptr; col = col->next()) {
-            auto *stack = col->data();
+            auto *stack = col->data().get();
             stack->for_each_window([&](PHLWINDOW window) {
                 addExpected(ScrollerCore::window_key(window), stack);
             });
@@ -204,7 +199,7 @@ ActiveWindowRestorePlan Lane::capture_active_window_restore_plan(Direction direc
     if (!active)
         return plan;
 
-    auto *stack = active->data();
+    auto *stack = active->data().get();
     if (!stack || stack->size() <= 1)
         return plan;
 
@@ -223,7 +218,7 @@ ActiveWindowPayload Lane::extract_active_window_payload() {
     // This is the central "move one active window out of the lane" primitive.
     // The returned payload must carry both the model window and enough sizing
     // intent for the destination lane to rebuild an equivalent stack.
-    auto *stack = active->data();
+    auto *stack = active->data().get();
     ActiveWindowPayload payload;
     // Free-width stacks need to carry their current rendered primary span so a
     // later reinsertion does not collapse back to the lane default preset.
@@ -246,9 +241,8 @@ ActiveWindowPayload Lane::extract_active_window_payload() {
         // later relayout code only sees live stacks.
         auto *emptyNode = active;
         active = emptyNode == stacks.last() ? emptyNode->prev() : emptyNode->next();
-        stacks.erase(emptyNode);
         forgetStackWindows(stack);
-        delete stack;
+        stacks.erase(emptyNode);
         debugVerifyStackCache();
         return payload;
     }
@@ -270,7 +264,7 @@ double Lane::stack_primary_span_for_transfer(const Stack *stack) const {
     return mode == Mode::Column ? stack->get_geom_h() : stack->get_geom_w();
 }
 
-Stack *Lane::create_stack_from_payload(ActiveWindowPayload payload) {
+std::unique_ptr<Stack> Lane::create_stack_from_payload(ActiveWindowPayload payload) {
     if (!payload)
         return nullptr;
 
@@ -291,11 +285,11 @@ Stack *Lane::create_stack_from_payload(ActiveWindowPayload payload) {
         payload.width.is_free() && payload.primarySpan > 0.0
             ? std::min(payload.primarySpan, mode == Mode::Column ? max.h : max.w)
             : (mode == Mode::Column ? max.h : max.w);
-    return new Stack(std::move(window),
-                     payload.width,
-                     mode == Mode::Column ? max.w : targetPrimarySpan,
-                     mode == Mode::Column ? targetPrimarySpan : max.h,
-                     mode);
+    return std::make_unique<Stack>(std::move(window),
+                                   payload.width,
+                                   mode == Mode::Column ? max.w : targetPrimarySpan,
+                                   mode == Mode::Column ? targetPrimarySpan : max.h,
+                                   mode);
 }
 
 void Lane::position_stack_relative_to_reference(Stack *stack, const Stack *reference, Direction direction) {
@@ -330,7 +324,7 @@ void Lane::insert_window_payload(ActiveWindowPayload payload, Direction directio
         if (!window)
             return;
         active->data()->admit_window(std::move(window));
-        rememberWindowStack(compositorWindow, active->data());
+        rememberWindowStack(compositorWindow, active->data().get());
         recalculate_lane_geometry();
         debugVerifyStackCache();
         return;
@@ -339,17 +333,18 @@ void Lane::insert_window_payload(ActiveWindowPayload payload, Direction directio
     if (singleWindowLane)
         stacks.first()->data()->update_width(ScrollerModel::global_stack_width(), max.w, max.h);
 
-    auto *stack = create_stack_from_payload(std::move(payload));
+    auto stack = create_stack_from_payload(std::move(payload));
     if (!stack)
         return;
-    const auto compositorWindow = stack->get_active_window();
+    auto *stackPtr = stack.get();
+    const auto compositorWindow = stackPtr->get_active_window();
     if (singleWindowLane)
-        stack->update_width(ScrollerModel::global_stack_width(), max.w, max.h);
-    stack->set_geom_pos(max.x, max.y);
+        stackPtr->update_width(ScrollerModel::global_stack_width(), max.w, max.h);
+    stackPtr->set_geom_pos(max.x, max.y);
     if (!active) {
-        stacks.push_back(stack);
+        stacks.push_back(std::move(stack));
         active = stacks.last();
-        rememberWindowStack(compositorWindow, stack);
+        rememberWindowStack(compositorWindow, stackPtr);
         recalculate_lane_geometry();
         debugVerifyStackCache();
         return;
@@ -358,19 +353,19 @@ void Lane::insert_window_payload(ActiveWindowPayload payload, Direction directio
     // Insert relative to the current active stack, then repair widths when row
     // mode would otherwise overflow the visible lane width.
     auto *current = active;
-    auto *currentStack = current->data();
+    auto *currentStack = current->data().get();
 
-    auto inserted = stacks.emplace_after(current, stack);
+    auto inserted = stacks.emplace_after(current, std::move(stack));
     if (direction == Direction::Left || direction == Direction::Up || direction == Direction::Begin)
         stacks.move_before(current, inserted);
 
     if (mode == Mode::Row) {
         const auto currentWidth = currentStack->get_geom_w();
-        const auto insertedWidth = stack->get_geom_w();
+        const auto insertedWidth = stackPtr->get_geom_w();
         const auto totalWidth = currentWidth + insertedWidth;
         if (totalWidth <= max.w || currentWidth <= 0.0 || insertedWidth <= 0.0) {
             active = inserted;
-            rememberWindowStack(compositorWindow, stack);
+            rememberWindowStack(compositorWindow, stackPtr);
             recalculate_lane_geometry();
             debugVerifyStackCache();
             return;
@@ -382,12 +377,12 @@ void Lane::insert_window_payload(ActiveWindowPayload payload, Direction directio
         const auto scale = max.w / totalWidth;
         currentStack->set_width_free();
         currentStack->set_geom_w(currentWidth * scale);
-        stack->set_width_free();
-        stack->set_geom_w(insertedWidth * scale);
+        stackPtr->set_width_free();
+        stackPtr->set_geom_w(insertedWidth * scale);
     }
 
     active = inserted;
-    rememberWindowStack(compositorWindow, stack);
+    rememberWindowStack(compositorWindow, stackPtr);
     recalculate_lane_geometry();
     debugVerifyStackCache();
 }
@@ -404,7 +399,7 @@ void Lane::restore_active_window_payload(ActiveWindowPayload payload, const Acti
         return;
     }
 
-    auto *stack = active->data();
+    auto *stack = active->data().get();
     payload.window->set_fullsize_before_join(payload.fullsize);
     auto window = payload.release_window();
     const auto compositorWindow = window ? window->ptr().lock() : nullptr;
@@ -440,12 +435,13 @@ void Lane::set_restored_canvas_geometry(const Box &full_box, const Box &max_box,
     gap = gap_size;
 }
 
-void Lane::append_restored_stack(Stack *stack) {
+void Lane::append_restored_stack(std::unique_ptr<Stack> stack) {
     if (!stack)
         return;
 
-    stacks.push_back(stack);
-    rememberStackWindows(stack);
+    auto *stackPtr = stack.get();
+    stacks.push_back(std::move(stack));
+    rememberStackWindows(stackPtr);
     if (!active)
         active = stacks.first();
     debugVerifyStackCache();

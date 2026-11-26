@@ -7,9 +7,10 @@
 #include <hyprland/src/SharedDefs.hpp>
 #include <hyprland/src/helpers/signal/Signal.hpp>
 
-#include "../../core/canvas_workspace_snapshot.h"
-#include "../../core/direction.h"
-#include "../../core/types.h"
+#include "core/canvas_workspace_snapshot.h"
+#include "core/direction.h"
+#include "core/service_slot.h"
+#include "core/types.h"
 
 namespace CanvasLayoutState {
 
@@ -68,6 +69,7 @@ class CanvasWorkspaceRepository {
     ScrollerCanvasSnapshot::RepositorySnapshot snapshot_;
 };
 
+ScrollerCore::ServiceSlot<CanvasWorkspaceRepository>& canvasRepositorySlot();
 CanvasWorkspaceRepository& canvasRepository();
 
 } // namespace CanvasLayoutState

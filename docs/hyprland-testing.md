@@ -44,7 +44,7 @@ make debug
 ./Debug/hyprCanvas.so
 ```
 
-插件初始化成功后，`~/.hyprland/plugins/hyprscroller/hyprscroller.log` 中的
+插件初始化成功后，`~/.hyprland/plugins/hyprCanvas/hyprCanvas.log` 中的
 `hyprland_abi` 字段会记录该二进制的编译目标 commit 和依赖 ABI，可用于排查加载了
 旧构建的问题。
 
@@ -546,13 +546,13 @@ env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.l
 插件日志默认写到：
 
 ```bash
-~/.hyprland/plugins/hyprscroller/hyprscroller.log
+~/.hyprland/plugins/hyprCanvas/hyprCanvas.log
 ```
 
 查看末尾日志：
 
 ```bash
-tail -n 200 ~/.hyprland/plugins/hyprscroller/hyprscroller.log
+tail -n 200 ~/.hyprland/plugins/hyprCanvas/hyprCanvas.log
 ```
 
 如果要只看本次测试新增的内容，推荐先记住文件大小，再在测试后截取新增部分。
@@ -591,7 +591,7 @@ hyprctl -i <instance-signature> eval 'hl.dispatch(hl.dsp.exit())'
 6. 跑目标场景
 7. 失败时同时保存：
    - `Hyprland` 终端日志
-   - `~/.hyprland/plugins/hyprscroller/hyprscroller.log`
+   - `~/.hyprland/plugins/hyprCanvas/hyprCanvas.log`
    - 必要时的截图
 8. 用 `hyprctl -i <instance-signature> eval 'hl.dispatch(hl.dsp.exit())'` 退出测试实例
 

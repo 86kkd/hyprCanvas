@@ -18,12 +18,12 @@
 #include <hyprland/src/managers/EventManager.hpp>
 #endif
 
-#include "../../core/interval.h"
-#include "../../core/layout_math.h"
-#include "../../core/layout_profile.h"
-#include "../../core/workarea_pager.h"
-#include "../../plugin/config.h"
-#include "../canvas/internal.h"
+#include "core/interval.h"
+#include "core/layout_math.h"
+#include "core/layout_profile.h"
+#include "core/workarea_pager.h"
+#include "plugin/config.h"
+#include "layout/canvas/internal.h"
 
 using ScrollerCore::Box;
 using ScrollerModel::Stack;
@@ -128,13 +128,13 @@ const void* active_window_ptr(Stack *stack) {
 }
 
 // Summarize the stack list for row-relayout debugging logs.
-std::string summarize_stacks(List<Stack *>& stacks, Mode mode) {
+std::string summarize_stacks(const List<std::unique_ptr<Stack>>& stacks, Mode mode) {
     std::ostringstream out;
     for (auto col = stacks.first(); col != nullptr; col = col->next()) {
         if (col != stacks.first())
             out << " | ";
 
-        auto *data = col->data();
+        auto *data = col->data().get();
         out << active_window_ptr(data)
             << (mode == Mode::Column ? "@y=" : "@x=")
             << (data ? stack_primary_origin(data, mode) : 0.0)
@@ -147,19 +147,19 @@ std::string summarize_stacks(List<Stack *>& stacks, Mode mode) {
 
 namespace recalc {
 // Initialize active-stack geometry when a stack is placed for the first time.
-double initialize_active_stack_geometry(ListNode<Stack *> *active, const ScrollerCore::Box &visible_box,
+double initialize_active_stack_geometry(ListNode<std::unique_ptr<Stack>> *active, const ScrollerCore::Box &visible_box,
                                         double active_span, Mode mode) {
     if (active->data()->get_init())
-        return stack_primary_origin(active->data(), mode);
+        return stack_primary_origin(active->data().get(), mode);
 
     // Brand-new stacks inherit their initial anchor from the nearest neighbor if
     // one already exists. Only a single-stack lane needs synthetic centering.
     double active_pos;
     if (active->prev()) {
-        Stack *prev = active->prev()->data();
+        Stack *prev = active->prev()->data().get();
         active_pos = stack_primary_origin(prev, mode) + stack_primary_span(prev, mode);
     } else if (active->next()) {
-        active_pos = stack_primary_origin(active->data(), mode);
+        active_pos = stack_primary_origin(active->data().get(), mode);
     } else {
         active_pos = visible_primary_origin(visible_box, mode) + 0.5 * (visible_primary_span(visible_box, mode) - active_span);
     }
@@ -171,7 +171,7 @@ double initialize_active_stack_geometry(ListNode<Stack *> *active, const Scrolle
 } // namespace
 
 // Compute the gap pair on the axis orthogonal to the stack's local window flow.
-Vector2D Lane::calculate_gap_x(const ListNode<Stack *> *stack) const {
+Vector2D Lane::calculate_gap_x(const StackNode *stack) const {
     auto gap0 = stack == stacks.first() ? 0.0 : gap;
     auto gap1 = stack == stacks.last() ? 0.0 : gap;
     return Vector2D(gap0, gap1);
@@ -208,7 +208,7 @@ void Lane::toggle_fullscreen_active_window() {
     if (!active)
         return;
 
-    Stack *stack = active->data();
+    Stack *stack = active->data().get();
     (void)stack->toggle_fullscreen(max);
     recalculate_lane_geometry();
 }
@@ -218,7 +218,7 @@ void Lane::toggle_maximize_active_stack() {
     if (!active)
         return;
 
-    Stack *stack = active->data();
+    Stack *stack = active->data().get();
     stack->toggle_maximized(max.w, max.h);
     recalculate_lane_geometry();
 }
@@ -249,7 +249,7 @@ void Lane::recalculate_lane_geometry() {
     // Degenerate case: one stack with one window should just occupy the entire
     // lane instead of running the more general anchor-selection logic below.
     if (stacks.size() == 1 && active->data()->size() == 1) {
-        auto *stack = active->data();
+        auto *stack = active->data().get();
         stack->update_width(stack->get_width(), max.w, max.h);
         stack->set_geom_pos(max.x, max.y);
         stack->set_geom_w(max.w);
@@ -262,10 +262,11 @@ void Lane::recalculate_lane_geometry() {
         return;
     }
 
-    auto activeSpan = stack_primary_span(active->data(), mode);
+    auto *activeStack = active->data().get();
+    auto activeSpan = stack_primary_span(activeStack, mode);
     auto activePos = recalc::initialize_active_stack_geometry(active, max, activeSpan, mode);
     spdlog::debug("lane_recalc_input: active_window={} active_pos={} active_span={} max=({}, {}, {}, {}) stacks_before={}",
-                  logging::active_window_ptr(active->data()),
+                  logging::active_window_ptr(activeStack),
                   activePos,
                   activeSpan,
                   max.x,
@@ -277,28 +278,28 @@ void Lane::recalculate_lane_geometry() {
     // drag/resize overflow before we think about smarter re-anchoring.
     if (activePos < visible_primary_origin(max, mode)) {
         activePos = visible_primary_origin(max, mode);
-        set_stack_primary_position(active->data(), mode, max, activePos);
+        set_stack_primary_position(activeStack, mode, max, activePos);
         adjust_stacks(active);
         spdlog::debug("lane_recalc_clamp_before: active_window={} active_pos={} stacks_after={}",
-                      logging::active_window_ptr(active->data()),
-                      stack_primary_origin(active->data(), mode),
+                      logging::active_window_ptr(activeStack),
+                      stack_primary_origin(activeStack, mode),
                       logging::summarize_stacks(stacks, mode));
         return;
     }
     if (std::round(activePos + activeSpan) > visible_primary_end(max, mode)) {
         activePos = visible_primary_end(max, mode) - activeSpan;
-        set_stack_primary_position(active->data(), mode, max, activePos);
+        set_stack_primary_position(activeStack, mode, max, activePos);
         adjust_stacks(active);
         spdlog::debug("lane_recalc_clamp_after: active_window={} active_pos={} stacks_after={}",
-                      logging::active_window_ptr(active->data()),
-                      stack_primary_origin(active->data(), mode),
+                      logging::active_window_ptr(activeStack),
+                      stack_primary_origin(activeStack, mode),
                       logging::summarize_stacks(stacks, mode));
         return;
     }
 
     const Box active_window(max.x, max.y, max.w, max.h);
-    const auto *prev = active->prev() ? active->prev()->data() : nullptr;
-    const auto *next = active->next() ? active->next()->data() : nullptr;
+    const auto *prev = active->prev() ? active->prev()->data().get() : nullptr;
+    const auto *next = active->next() ? active->next()->data().get() : nullptr;
     const auto prevPos = prev ? activePos - stack_primary_span(prev, mode) : 0.0;
     const auto nextPos = activePos + activeSpan;
     const bool prev_inside = viewport::projected_stack_intersects_visible_box(prev, prevPos, active_window, mode);
@@ -314,10 +315,10 @@ void Lane::recalculate_lane_geometry() {
         : (mode == Mode::Column
                ? ScrollerCore::choose_anchor_y(next != nullptr, prev != nullptr, activeSpan, nextSpan, prevSpan, max)
                : ScrollerCore::choose_anchor_x(next != nullptr, prev != nullptr, activeSpan, nextSpan, prevSpan, activePos, max));
-    set_stack_primary_position(active->data(), mode, max, newPos);
+    set_stack_primary_position(activeStack, mode, max, newPos);
     adjust_stacks(active);
     spdlog::debug("lane_recalc_auto: active_window={} keep_current={} prev_inside={} next_inside={} new_pos={} stacks_after={}",
-                  logging::active_window_ptr(active->data()),
+                  logging::active_window_ptr(activeStack),
                   keep_current,
                   prev_inside,
                   next_inside,
@@ -330,17 +331,17 @@ void Lane::commit_restored_geometry() {
         stack->data()->recalculate_stack_geometry(calculate_gap_x(stack), gap, max);
 }
 
-void Lane::adjust_stacks(ListNode<Stack *> *stack) {
+void Lane::adjust_stacks(StackNode *stack) {
     // Expand outward from the anchor stack so the linked-list order directly
     // maps to geometric order on screen.
     for (auto col = stack->prev(), prev = stack; col != nullptr; prev = col, col = col->prev()) {
-        set_stack_primary_position(col->data(), mode, max,
-                                   stack_primary_origin(prev->data(), mode) - stack_primary_span(col->data(), mode));
+        set_stack_primary_position(col->data().get(), mode, max,
+                                   stack_primary_origin(prev->data().get(), mode) - stack_primary_span(col->data().get(), mode));
         col->data()->set_init();
     }
     for (auto col = stack->next(), prev = stack; col != nullptr; prev = col, col = col->next()) {
-        set_stack_primary_position(col->data(), mode, max,
-                                   stack_primary_origin(prev->data(), mode) + stack_primary_span(prev->data(), mode));
+        set_stack_primary_position(col->data().get(), mode, max,
+                                   stack_primary_origin(prev->data().get(), mode) + stack_primary_span(prev->data().get(), mode));
         col->data()->set_init();
     }
 
@@ -358,25 +359,26 @@ void Lane::adjust_stacks(ListNode<Stack *> *stack) {
     for (auto col = stacks.first(); col != nullptr; col = col->next()) {
         auto gap0 = col == stacks.first() ? 0.0 : gap;
         auto gap1 = col == stacks.last() ? 0.0 : gap;
-        const auto rendered = stack_rendered_primary_interval(col->data(), mode, gap0, gap1);
-        const auto primaryPos = stack_primary_origin(col->data(), mode);
+        auto *colStack = col->data().get();
+        const auto rendered = stack_rendered_primary_interval(colStack, mode, gap0, gap1);
+        const auto primaryPos = stack_primary_origin(colStack, mode);
         const auto primaryDelta = hidden_reserved_primary_delta(full, max, mode, rendered.start, rendered.end);
 
         if (primaryDelta < 0.0) {
-            set_stack_primary_position(col->data(), mode, max, primaryPos + primaryDelta);
+            set_stack_primary_position(colStack, mode, max, primaryPos + primaryDelta);
             shiftedBefore++;
             continue;
         }
 
         if (primaryDelta > 0.0) {
-            set_stack_primary_position(col->data(), mode, max, primaryPos + primaryDelta);
+            set_stack_primary_position(colStack, mode, max, primaryPos + primaryDelta);
             shiftedAfter++;
         }
     }
 
     if (shiftedBefore > 0 || shiftedAfter > 0) {
         spdlog::debug("lane_recalc_reserved_shift: active_window={} reserved_before={} reserved_after={} shifted_before={} shifted_after={} stacks={}",
-                      logging::active_window_ptr(active ? active->data() : nullptr),
+                      logging::active_window_ptr(active ? active->data().get() : nullptr),
                       reservedBefore,
                       reservedAfter,
                       shiftedBefore,

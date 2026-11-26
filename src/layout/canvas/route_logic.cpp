@@ -6,7 +6,7 @@
  */
 #include "route_logic.h"
 
-#include "../../core/layout_profile.h"
+#include "core/layout_profile.h"
 
 namespace CanvasLayoutInternal {
 

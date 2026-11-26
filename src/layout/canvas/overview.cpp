@@ -6,7 +6,7 @@
 #include <hyprland/src/output/Monitor.hpp>
 
 #include "core/hyprland_runtime.h"
-#include "../lane/lane.h"
+#include "layout/lane/lane.h"
 #include "layout.h"
 
 void CanvasLayout::prepareForOverviewSnapshot() {
@@ -44,7 +44,7 @@ CanvasOverviewSnapshot CanvasLayout::buildOverviewSnapshot() const {
     // The snapshot is intentionally lightweight: it carries only monitor/workspace
     // ids plus already-laid-out window boxes so overview model code stays pure.
     for (auto laneNode = lanes.first(); laneNode != nullptr; laneNode = laneNode->next()) {
-        auto* lane = laneNode->data();
+        auto* lane = laneNode->data().get();
         if (!lane)
             continue;
 

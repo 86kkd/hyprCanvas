@@ -211,9 +211,13 @@ void apply_preview_insertions(std::vector<CanvasWorkspaceRecord>& canvases, cons
 
 } // namespace
 
+ScrollerCore::ServiceSlot<CanvasWorkspaceRepository>& canvasRepositorySlot() {
+    static ScrollerCore::ServiceSlot<CanvasWorkspaceRepository> slot;
+    return slot;
+}
+
 CanvasWorkspaceRepository& canvasRepository() {
-    static CanvasWorkspaceRepository repo;
-    return repo;
+    return canvasRepositorySlot().get();
 }
 
 void CanvasWorkspaceRepository::initialize() {

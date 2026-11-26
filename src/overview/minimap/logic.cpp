@@ -4,6 +4,7 @@
 #include "logic.h"
 #include "overview/navigation/logic.h"
 #include <algorithm>
+#include <array>
 #include <cstdint>
 
 namespace Overview::Minimap {
@@ -19,6 +20,7 @@ Map layout(std::vector<Canvas> canvases, int current, int selected, const Scroll
         anchor = canvases.begin();
     const Canvas center = *anchor;
     std::vector<Cell> cells;
+    cells.reserve(canvases.size() + 4);
     for (size_t i = 0; i < canvases.size(); ++i) {
         const auto& c = canvases[i];
         cells.push_back({.canvas = c, .number = static_cast<int>(i + 1), .box = {},
@@ -27,11 +29,13 @@ Map layout(std::vector<Canvas> canvases, int current, int selected, const Scroll
     // Only advertise immediate creation slots. Empty temporary/synthetic pages
     // cannot grow another page, matching the repository's one-empty-page rule.
     std::vector<OverviewLogic::TargetCandidate> candidates;
+    candidates.reserve(canvases.size());
     for (const auto& c : canvases)
         candidates.push_back({.monitorId = 0, .box = {double(c.x) * 128, double(c.y) * 128, 96, 96}});
     const size_t centerIndex = static_cast<size_t>(anchor - canvases.begin());
     if (!center.temporary && !center.synthetic) {
-        for (const auto& delta : std::vector<std::pair<int, int>>{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}) {
+        constexpr std::array<std::pair<int, int>, 4> deltas{{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}};
+        for (const auto& delta : deltas) {
             const auto direction = delta.first < 0 ? Direction::Left : delta.first > 0 ? Direction::Right :
                                    delta.second < 0 ? Direction::Up : Direction::Down;
             // Reuse overview routing: a direction with an existing destination

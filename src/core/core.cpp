@@ -56,4 +56,13 @@ PHLWINDOW Marks::visit(const std::string &name) {
     return nullptr;
 }
 
+ServiceSlot<Marks>& marksSlot() {
+    static ServiceSlot<Marks> slot;
+    return slot;
+}
+
+Marks& marksRegistry() {
+    return marksSlot().get();
+}
+
 } // namespace ScrollerCore

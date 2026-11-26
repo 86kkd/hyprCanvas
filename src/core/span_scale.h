@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core/intrusive_list.h"
+#include "core/linked_list.h"
 
 namespace ScrollerCore {
 

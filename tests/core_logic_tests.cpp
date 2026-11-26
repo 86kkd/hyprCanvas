@@ -1,4 +1,5 @@
 #include <algorithm>
+#include <memory>
 #include <string>
 #include <string_view>
 #include <type_traits>
@@ -13,7 +14,8 @@
 #include "core/layout_profile.h"
 #include "core/monitor_geometry.h"
 #include "core/owner_index.h"
-#include "core/intrusive_list.h"
+#include "core/service_slot.h"
+#include "core/linked_list.h"
 #include "core/workarea_pager.h"
 #include "model/stack/logic.h"
 #include "model/stack/width.h"
@@ -445,6 +447,33 @@ void test_list_move_only() {
     expect_eq(assigned.size(), std::size_t{2}, "move assignment replaces the destination contents");
     expect_eq(assigned.first()->data(), 1, "move assignment preserves first node data");
     expect_eq(assigned.last()->data(), 2, "move assignment preserves last node data");
+
+    // Edge cases: null iterator handling and unique_ptr ownership.
+    assigned.erase(nullptr);
+    expect_eq(assigned.size(), std::size_t{2}, "erasing null node is a safe no-op");
+    expect_eq(assigned.extract(nullptr), 0, "extracting null node returns default value");
+
+    assigned.emplace_after(nullptr, 3);
+    expect_eq(assigned.size(), std::size_t{3}, "emplace_after(nullptr) on non-empty list appends safely");
+    expect_eq(assigned.last()->data(), 3, "emplace_after(nullptr) places element at tail");
+
+    assigned.emplace_before(nullptr, 0);
+    expect_eq(assigned.size(), std::size_t{4}, "emplace_before(nullptr) on non-empty list prepends safely");
+    expect_eq(assigned.first()->data(), 0, "emplace_before(nullptr) places element at head");
+
+    List<std::unique_ptr<int>> owned;
+    owned.push_back(std::make_unique<int>(10));
+    owned.push_back(std::make_unique<int>(20));
+    auto *firstNode = owned.first();
+    auto *lastNode = owned.last();
+    owned.swap(firstNode, lastNode);
+    expect_eq(*owned.first()->data(), 20, "swapping unique_ptr nodes exchanges ownership");
+    expect_eq(*owned.last()->data(), 10, "swapping unique_ptr nodes updates tail ownership");
+
+    auto extracted = owned.extract(owned.first());
+    expect_true(extracted != nullptr && *extracted == 20, "extract transfers unique_ptr ownership out of list");
+    expect_eq(owned.size(), std::size_t{1}, "extract shrinks list size");
+    expect_eq(*owned.first()->data(), 10, "extract preserves remaining elements");
 }
 
 void test_stack_logic() {
@@ -645,6 +674,38 @@ void test_stack_visible_hit_boxes() {
                 "hit regions stay inside the visible work area");
 }
 
+void test_service_slot() {
+    struct CounterService {
+        int value = 7;
+    };
+
+    ScrollerCore::ServiceSlot<CounterService> slot;
+    expect_true(!slot.hasOwnedInstance(), "service slot starts lazily uninitialized");
+    slot.get().value = 42;
+    expect_true(slot.hasOwnedInstance(), "service slot constructs owned instance on first access");
+    expect_eq(slot.get().value, 42, "service slot retains state across reads");
+
+    {
+        CounterService injected{.value = 100};
+        auto guard = slot.overrideWith(injected);
+        expect_eq(slot.get().value, 100, "scoped override redirects access to injected instance");
+        slot.get().value = 101;
+        expect_eq(injected.value, 101, "mutations through slot hit the injected instance");
+
+        CounterService nested{.value = 200};
+        {
+            auto nestedGuard = slot.overrideWith(nested);
+            expect_eq(slot.get().value, 200, "nested override shadows outer override");
+        }
+        expect_eq(slot.get().value, 101, "destroying nested override restores outer override");
+    }
+
+    expect_eq(slot.get().value, 42, "destroying scoped override restores default owned instance");
+    slot.reset();
+    expect_true(!slot.hasOwnedInstance(), "reset destroys the owned instance cleanly");
+    expect_eq(slot.get().value, 7, "subsequent access after reset starts from fresh default state");
+}
+
 } // namespace
 
 void run_core_logic_tests() {
@@ -664,4 +725,5 @@ void run_core_logic_tests() {
     test_stack_deck();
     test_fullsize_deck();
     test_stack_visible_hit_boxes();
+    test_service_slot();
 }

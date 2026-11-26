@@ -7,7 +7,7 @@
 #include <lua.hpp>
 
 #include "core/core.h"
-#include "overview/minimap/runtime.h"
+#include "layout/canvas/workspace_controller.h"
 #include "model/stack/width.h"
 
 namespace dispatchers::detail {
@@ -21,13 +21,13 @@ void dispatch_setwindowsize(std::string arg) {
         return;
 
     if (const auto action = workspaceLayoutForAction())
-        action.layout->set_window_size(action.workspace, *count);
+        action.layout->setWindowSize(action.workspace, *count);
 }
 
 // movefocus <dir>: move focus inside scroller layout, with optional monitor
 // fallback when the active lane cannot move in requested direction.
 // This is the top of the focus path:
-// keybind -> dispatcher parse -> active canvas -> `CanvasLayout::move_focus`.
+// keybind -> dispatcher parse -> active canvas -> `CanvasLayout::moveFocus`.
 void dispatch_movefocus(std::string arg) {
     const auto direction = parsedDirectionArg(arg);
     if (!direction) {
@@ -45,7 +45,7 @@ void dispatch_movefocus(std::string arg) {
     const auto action = workspaceLayoutForAction();
     if (action) {
         spdlog::info("dispatch_movefocus: arg='{}' workspace={}", arg, action.workspace);
-        action.layout->move_focus(action.workspace, *direction);
+        action.layout->moveFocus(action.workspace, *direction);
         return;
     }
 
@@ -101,7 +101,7 @@ void dispatch_focusmonitor(std::string arg) {
 
 // movewindow <dir>: reorder active window inside lane/stack.
 // This is the top of the window-move path:
-// keybind -> dispatcher parse -> active canvas -> `CanvasLayout::move_window`.
+// keybind -> dispatcher parse -> active canvas -> `CanvasLayout::moveWindow`.
 void dispatch_movewindow(std::string arg) {
     const auto direction = parsedDirectionArg(arg);
     if (!direction) {
@@ -111,7 +111,7 @@ void dispatch_movewindow(std::string arg) {
 
     const auto action = workspaceLayoutForAction();
     if (action) {
-        action.layout->move_window(action.workspace, *direction);
+        action.layout->moveWindow(action.workspace, *direction);
         return;
     }
 
@@ -122,7 +122,7 @@ void dispatch_movewindow(std::string arg) {
 void dispatch_setmode(std::string arg) {
     withParsedModeArgOrWarn("dispatch_setmode", arg, [&](Mode mode) {
         if (const auto action = workspaceLayoutForAction())
-            action.layout->set_mode(action.workspace, mode);
+            action.layout->setMode(action.workspace, mode);
     });
 }
 
@@ -130,7 +130,7 @@ void dispatch_setmode(std::string arg) {
 void dispatch_togglefullscreen(std::string arg) {
     (void)arg;
     if (const auto action = workspaceLayoutForAction())
-        action.layout->toggle_fullscreen(action.workspace);
+        action.layout->toggleFullscreen(action.workspace);
 }
 
 } // namespace
@@ -161,9 +161,8 @@ int lua_focus_monitor(lua_State* state) {
     return 0;
 }
 
-// Use the same canvas transaction as overview acceptance, even when the
-// caller switches directly from normal mode. No native per-monitor workspace
-// dispatch is involved, so every canvas member changes together.
+// Switch canvases directly via `CanvasWorkspaceController` in desktop mode, or
+// update the preview selection when Overview is already open.
 int lua_switch_workspace(lua_State* state) {
     const auto argument = luaStringArg(state);
     const auto direction = parsedDirectionArg(argument);
@@ -174,23 +173,16 @@ int lua_switch_workspace(lua_State* state) {
         return 0;
     if (!direction && number == 0)
         return 0;
+
     auto& overview = Overview::session();
-    const bool wasActive = overview.active();
-    if (!wasActive)
-        overview.open();
     if (overview.active()) {
         overview.markInputHandled();
-        auto& canvasRepo = CanvasLayoutState::canvasRepository();
-        const int previousCanvas = canvasRepo.activeCanvasId();
-        const bool moved = direction ? overview.moveCanvasSelection(*direction) : overview.selectCanvasNumber(number);
-        if (!wasActive) {
-            overview.close(moved);
-            // Only direct desktop switching shows a transient HUD. Accepting
-            // an already visible overview must dismiss its map with the overlay.
-            if (moved)
-                Overview::Minimap::notifySwitch(previousCanvas, canvasRepo.activeCanvasId());
-        }
+        (void)(direction ? overview.moveCanvasSelection(*direction) : overview.selectCanvasNumber(number));
+        return 0;
     }
+
+    auto& controller = CanvasLayoutState::workspaceController();
+    (void)(direction ? controller.switchByDirection(*direction) : controller.switchByNumber(number));
     return 0;
 }
 
@@ -206,14 +198,16 @@ int lua_move_window_to_monitor(lua_State* state) {
     if (!direction || !CanvasLayoutInternal::direction_to_math(*direction))
         return 0;
     if (const auto action = workspaceLayoutForAction())
-        action.layout->move_window_to_monitor(action.workspace, *direction);
+        action.layout->moveWindowToMonitor(action.workspace, *direction);
     return 0;
 }
 
 int lua_move_window_to_workspace(lua_State* state) {
+    if (Overview::session().active())
+        return 0;
     const auto direction = parsedDirectionArg(luaStringArg(state));
     if (direction)
-        Overview::session().moveWindowToCanvas(*direction);
+        (void)CanvasLayoutState::workspaceController().moveFocusedWindowToCanvas(*direction);
     return 0;
 }
 
@@ -224,7 +218,7 @@ int lua_swap_window(lua_State* state) {
     if (!direction)
         return 0;
     if (const auto action = workspaceLayoutForAction())
-        action.layout->swap_window(action.workspace, *direction);
+        action.layout->swapWindow(action.workspace, *direction);
     return 0;
 }
 

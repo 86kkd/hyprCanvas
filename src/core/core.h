@@ -16,6 +16,7 @@
 #include <hyprland/src/desktop/view/window/Window.hpp>
 
 #include "core/hyprland_runtime.h"
+#include "core/service_slot.h"
 
 namespace ScrollerCore {
 
@@ -45,5 +46,8 @@ public:
 private:
     std::unordered_map<std::string, PHLWINDOWREF> marks;
 };
+
+ServiceSlot<Marks>& marksSlot();
+Marks& marksRegistry();
 
 } // namespace ScrollerCore

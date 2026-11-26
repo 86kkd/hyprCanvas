@@ -6,7 +6,7 @@
 #include <span>
 #include <vector>
 
-#include "core/intrusive_list.h"
+#include "core/linked_list.h"
 #include "core/types.h"
 
 namespace ScrollerModel::StackLogic {

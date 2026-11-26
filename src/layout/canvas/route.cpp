@@ -2,18 +2,17 @@
 
 #include <hyprland/src/Compositor.hpp>
 
-#include "../../core/layout_profile.h"
 #include "core/hyprland_runtime.h"
+#include "core/layout_profile.h"
 #include "internal.h"
 
 namespace CanvasLayoutInternal {
 
-bool should_sync_workspace_focus_before_move(ListNode<Lane *> *activeLaneNode) {
-    if (!activeLaneNode || !activeLaneNode->data())
+bool should_sync_workspace_focus_before_move(const Lane *activeLane) {
+    if (!activeLane)
         return true;
 
-    const auto lane = activeLaneNode->data();
-    return !(lane->is_ephemeral() && lane->empty());
+    return !(activeLane->is_ephemeral() && activeLane->empty());
 }
 
 PHLMONITOR resolve_monitor_in_direction(PHLMONITOR sourceMonitor, Direction direction) {

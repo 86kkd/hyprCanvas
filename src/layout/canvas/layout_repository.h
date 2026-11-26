@@ -3,7 +3,8 @@
 #include <optional>
 #include <string>
 
-#include "../../core/layout_snapshot.h"
+#include "core/layout_snapshot.h"
+#include "core/service_slot.h"
 
 namespace CanvasLayoutState {
 
@@ -25,6 +26,7 @@ private:
     ScrollerSnapshot::RepositorySnapshot snapshots_;
 };
 
+ScrollerCore::ServiceSlot<WorkspaceLayoutRepository> &repositorySlot();
 WorkspaceLayoutRepository &repository();
 
 } // namespace CanvasLayoutState

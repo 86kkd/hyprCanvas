@@ -9,6 +9,7 @@
 #pragma once
 
 #include <cstdint>
+#include <memory>
 #include <optional>
 #include <unordered_set>
 #include <string>
@@ -19,11 +20,11 @@
 #include <hyprland/src/layout/target/Target.hpp>
 #include <hyprland/src/helpers/signal/Signal.hpp>
 
-#include "../../core/owner_index.h"
-#include "../../core/layout_snapshot.h"
-#include "../../core/overview_snapshot.h"
-#include "../../core/types.h"
-#include "core/intrusive_list.h"
+#include "core/owner_index.h"
+#include "core/layout_snapshot.h"
+#include "core/overview_snapshot.h"
+#include "core/types.h"
+#include "core/linked_list.h"
 #include "model/stack/width.h"
 #include "handoff_state.h"
 #include "topology_route.h"
@@ -47,7 +48,7 @@ class Lane;
  * Most of the project is just different ways of moving through or mutating
  * that hierarchy:
  * - Hyprland target callbacks enter through `newTarget` / `removeTarget`
- * - keybindings enter through dispatcher-facing methods like `move_focus`
+ * - keybindings enter through dispatcher-facing methods like `moveFocus`
  * - `Lane` and `Stack` do the local membership and geometry work
  *
  * Recommended reading order for new contributors:
@@ -74,60 +75,35 @@ public:
     void                             swapTargets(SP<Layout::ITarget> a, SP<Layout::ITarget> b) override;
     void                             moveTargetInDirection(SP<Layout::ITarget> t, Math::eDirection direction, bool silent = false) override;
 
-    // Called when a tiled window is first mapped.
-    // This is the main "new tiled window entered scroller" hook after Hyprland
-    // has already decided the window belongs to this tiled algorithm.
-    bool onWindowCreatedTiling(PHLWINDOW, Math::eDirection = Math::DIRECTION_DEFAULT);
-    // Return true if the layout currently manages this window.
+    // Integration hooks used by dispatchers, overview snapshots, and canvas controller.
     bool isWindowTiled(PHLWINDOW);
-    // Called when a tiled window is unmapped.
-    void onWindowRemovedTiling(PHLWINDOW);
-    // Recompute geometry for monitor-specific constraints or DPI/workspace changes.
     void recalculateMonitor(const int &monitor_id);
-    // Recompute layout for a specific window (for toggles like pseudo and resize).
-    void recalculateWindow(PHLWINDOW);
-    void resizeActiveWindow(PHLWINDOW, const Vector2D &delta, Layout::eRectCorner = Layout::CORNER_NONE, PHLWINDOW pWindow = nullptr);
-    // Move current active item using directional command aliases.
-    void moveWindowTo(PHLWINDOW, const std::string &direction, bool silent = false);
-    // Swaps cached window metadata when plugin-level mapping changes.
-    void switchWindows(PHLWINDOW, PHLWINDOW);
-    // Compatibility no-op for split ratio events.
-    void alterSplitRatio(PHLWINDOW, float, bool);
-    PHLWINDOW getNextWindowCandidate(PHLWINDOW);
-    // Keep active lane/stack selection synchronized with focus changes.
     void onWindowFocusChange(PHLWINDOW);
-    void replaceWindowDataWith(PHLWINDOW from, PHLWINDOW to);
-    Vector2D predictSizeForNewWindowTiled();
-    // Refresh stale special-workspace lane state before a dispatcher acts on this layout.
     void prepareForActionContext();
-    // Synchronize and relayout this canvas so overview snapshots read current lane/stack geometry.
     void prepareForOverviewSnapshot();
-    // Build a read-only snapshot of the current logical lane/stack window geometry.
     CanvasOverviewSnapshot buildOverviewSnapshot() const;
+    void persistCurrentSnapshot();
 
     // Command-facing control surface from Hyprland config / Lua.
     // The usual call chain is:
     // keybind -> `hl.plugin.scroller.*` -> `src/plugin/dispatch/` -> one of
     // these methods -> lane/stack helpers -> relayout/focus synchronization.
-    void set_window_size(int workspace, int visibleStacks);
-    // Give every stack on this canvas the same width intent and relayout.
-    void apply_stack_width(ScrollerModel::StackWidth width);
-    void move_focus(int workspace, Direction);
-    void move_window(int workspace, Direction);
-    void move_window_to_monitor(int workspace, Direction);
-    void swap_window(int workspace, Direction);
-    void set_mode(int workspace, Mode);
-    void toggle_fullscreen(int workspace);
-
-    // Mark helpers: lightweight named bookmarks for focused windows.
-    void marks_add(const std::string &name);
-    void marks_delete(const std::string &name);
-    void marks_visit(const std::string &name);
-    void marks_reset();
-    // Persist this canvas into the session layout repository.
-    void persistCurrentSnapshot();
+    void setWindowSize(int workspace, int visibleStacks);
+    void applyStackWidth(ScrollerModel::StackWidth width);
+    void moveFocus(int workspace, Direction);
+    void moveWindow(int workspace, Direction);
+    void moveWindowToMonitor(int workspace, Direction);
+    void swapWindow(int workspace, Direction);
+    void setMode(int workspace, Mode);
+    void toggleFullscreen(int workspace);
 
 private:
+    using LaneNode = ListNode<std::unique_ptr<Lane>>;
+
+    bool onWindowCreatedTiling(PHLWINDOW, Math::eDirection = Math::DIRECTION_DEFAULT);
+    void onWindowRemovedTiling(PHLWINDOW);
+    void recalculateWindow(PHLWINDOW);
+
     std::optional<ScrollerSnapshot::CanvasSnapshot> captureSnapshot() const;
     void persistSnapshot();
     void clearPersistedSnapshot();
@@ -157,13 +133,13 @@ private:
     // Validate the debug window -> lane cache against the actual lane contents.
     void debugVerifyLaneCache() const;
     // Return the list node for a lane inside this canvas.
-    ListNode<Lane *> *getLaneNode(Lane *lane) const;
+    LaneNode *getLaneNode(Lane *lane) const;
     // Return the zero-based index of a lane for logs and paging math.
     int laneIndexOf(Lane *lane) const;
     // Count lanes in the current canvas.
     size_t laneCount() const;
     // Return the lane node at a zero-based index, or null when out of range.
-    ListNode<Lane *> *laneNodeAt(size_t index) const;
+    LaneNode *laneNodeAt(size_t index) const;
     // Derive the routing coordinates of a lane's focused item.
     CanvasLayoutInternal::TopologyIndex topologyIndex(Lane *lane) const;
     // Resolve the monitor currently showing this canvas.
@@ -185,49 +161,33 @@ private:
     // Apply active-lane state and relayout on the destination canvas after cross-monitor focus selection.
     void activateCrossMonitorFocusTarget(CanvasLayout *targetLayout, Lane *targetLane, PHLWINDOW targetWindow, PHLMONITOR fallbackMonitor);
     // Execute the full cross-monitor focus handoff for directional navigation.
-    void handoffFocusAcrossMonitor(int workspace, Direction direction, PHLWINDOW sourceWindow, PHLMONITOR sourceMonitor, WORKSPACEID sourceActiveWorkspaceId, WORKSPACEID sourceSpecialWorkspaceId, ListNode<Lane *> *sourceLaneNode, PHLMONITOR targetMonitor);
-    // Resolve the next monitor in a logical direction from a source monitor.
-    PHLMONITOR directionalMoveTargetMonitor(PHLMONITOR sourceMonitor, Direction direction) const;
+    void handoffFocusAcrossMonitor(int workspace, Direction direction, PHLWINDOW sourceWindow, PHLMONITOR sourceMonitor, WORKSPACEID sourceActiveWorkspaceId, WORKSPACEID sourceSpecialWorkspaceId, LaneNode *sourceLaneNode, PHLMONITOR targetMonitor);
     // Execute the full cross-monitor movewindow handoff and relayout/focus updates.
     bool handoffMoveWindowAcrossMonitor(int workspace, Direction direction, Lane *sourceLane, PHLWINDOW currentWindow, PHLMONITOR sourceMonitor, PHLMONITOR targetMonitor);
     // Move the active window payload into an adjacent lane and finish source cleanup.
-    void transferMoveWindowToAdjacentLane(Lane *sourceLane, PHLWINDOW currentWindow, ListNode<Lane *> *targetLaneNode, Direction direction, PHLMONITOR sourceMonitor);
+    void transferMoveWindowToAdjacentLane(Lane *sourceLane, PHLWINDOW currentWindow, LaneNode *targetLaneNode, Direction direction, PHLMONITOR sourceMonitor);
     // Move the active window payload into a newly created lane and finish source cleanup.
-    void transferMoveWindowToNewLane(Lane *sourceLane, PHLWINDOW currentWindow, PHLMONITOR sourceMonitor, Mode mode, Direction direction, ListNode<Lane *> *anchor);
+    void transferMoveWindowToNewLane(Lane *sourceLane, PHLWINDOW currentWindow, PHLMONITOR sourceMonitor, Mode mode, Direction direction, LaneNode *anchor);
     // Apply a move_window route that stays inside the lane.
     void applyLocalWindowMove(Lane *lane, CanvasLayoutInternal::LocalMove move, Direction direction);
     // Focus the adjacent lane chosen by directional routing and clean up the source lane if needed.
-    void focusAdjacentLane(int workspace, Direction direction, ListNode<Lane *> *sourceLaneNode, PHLMONITOR sourceMonitor, ListNode<Lane *> *targetLaneNode);
+    void focusAdjacentLane(int workspace, Direction direction, LaneNode *sourceLaneNode, PHLMONITOR sourceMonitor, LaneNode *targetLaneNode);
     // Create a temporary empty lane used when focus moves into blank space.
-    void createEphemeralLaneForFocus(int workspace, Direction direction, PHLMONITOR sourceMonitor, Mode mode, ListNode<Lane *> *anchor);
+    void createEphemeralLaneForFocus(int workspace, Direction direction, PHLMONITOR sourceMonitor, Mode mode, LaneNode *anchor);
     // Finish a successful local focus movement by logging and switching focus.
     void finalizeLocalFocusMove(int workspace, Direction direction, Lane *lane);
     // Switch Hyprland focus to a window and resync canvas state if the switch fails.
     bool focusManagedWindow(PHLWINDOW window, bool warpCursor = false, const char *context = nullptr, bool suppressWorkspaceSync = false);
     // Drop an empty lane and resolve a valid replacement active lane.
-    bool dropEmptyLane(ListNode<Lane *> *laneNode, Lane *preferredLane = nullptr, PHLMONITOR fallbackMonitor = nullptr, bool ephemeralOnly = false);
-    // Compatibility wrapper used by older ephemeral-lane call sites.
-    bool dropEmptyEphemeralLane(ListNode<Lane *> *laneNode, Lane *preferredLane = nullptr, PHLMONITOR fallbackMonitor = nullptr);
+    bool dropEmptyLane(LaneNode *laneNode, Lane *preferredLane = nullptr, PHLMONITOR fallbackMonitor = nullptr, bool ephemeralOnly = false);
     // Choose the active lane that should survive after lane removal.
-    Lane *resolveActiveLaneAfterRemoval(ListNode<Lane *> *laneNode, PHLWINDOW removedWindow);
+    Lane *resolveActiveLaneAfterRemoval(LaneNode *laneNode, PHLWINDOW removedWindow);
     // Insert a lane into canvas ordering according to directional semantics.
-    ListNode<Lane *> *insertLaneNode(Lane *lane, Direction direction, ListNode<Lane *> *anchor = nullptr);
+    LaneNode *insertLaneNode(std::unique_ptr<Lane> lane, Direction direction, LaneNode *anchor = nullptr);
     // Return the active lane, creating one if this canvas is still empty.
     Lane *ensureActiveLane(PHLMONITOR monitor, Mode mode);
-    // Mark a window so target callbacks defer to explicit cross-monitor insertion.
-    void rememberManualCrossMonitorInsertion(PHLWINDOW window);
-    // Clear the explicit cross-monitor insertion handoff marker.
-    void forgetManualCrossMonitorInsertion(PHLWINDOW window);
-    // Return true when target callbacks should skip auto-registering this window.
-    bool hasPendingManualCrossMonitorInsertion(PHLWINDOW window) const;
-    // Request one-shot suppression of workspace-focus sync on the next command.
-    void requestWorkspaceFocusSyncSuppression();
-    // Return the next active-lane sync policy and consume any one-shot suppression.
-    ActiveLaneSyncPolicy consumeActiveLaneSyncPolicy();
-    // Clear transient focus/cross-monitor handoff state.
-    void resetHandoffState();
     // Finish a lane transfer by pruning the source lane, relayouting, and focusing the active lane.
-    void finishLaneTransfer(ListNode<Lane *> *sourceLaneNode, PHLMONITOR sourceMonitor = nullptr, bool ephemeralOnly = false, bool warpCursor = true);
+    void finishLaneTransfer(LaneNode *sourceLaneNode, PHLMONITOR sourceMonitor = nullptr, bool ephemeralOnly = false, bool warpCursor = true);
 
     template <typename Fn>
     // Execute a command against the current active lane with optional focus sync.
@@ -246,9 +206,9 @@ private:
     // Workspace id currently bound to the workspace-active listener.
     WORKSPACEID workspaceRuntimeId = WORKSPACE_INVALID;
     // Currently active lane inside this canvas.
-    ListNode<Lane *> *activeLane = nullptr;
+    LaneNode *activeLane = nullptr;
     // Ordered lanes that make up the current canvas.
-    List<Lane *> lanes;
+    List<std::unique_ptr<Lane>> lanes;
     // Cached window -> lane index used to avoid repeated whole-canvas scans.
     ScrollerCore::OwnerIndex<uintptr_t, Lane> laneByWindow;
     std::unordered_set<uintptr_t> restoredTargetsAwaitingCallback;

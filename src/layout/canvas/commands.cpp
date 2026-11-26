@@ -6,24 +6,22 @@
  * focus state, resolve the active lane, and then delegate the actual layout
  * work to `Lane` or shared canvas helpers.
  */
+#include <memory>
 #include <string>
 #include <utility>
 
 #include <hyprland/src/Compositor.hpp>
 #include <spdlog/spdlog.h>
 
-#include "../../core/direction.h"
-#include "../../core/layout_profile.h"
-#include "../../core/monitor_geometry_runtime.h"
-#include "../../core/workspace_selector.h"
-#include "../lane/lane.h"
+#include "core/direction.h"
+#include "core/layout_profile.h"
+#include "core/monitor_geometry_runtime.h"
+#include "core/window_key.h"
+#include "core/workspace_selector.h"
+#include "layout/lane/lane.h"
 #include "layout.h"
 #include "internal.h"
 #include "route.h"
-
-PHLMONITOR CanvasLayout::directionalMoveTargetMonitor(PHLMONITOR sourceMonitor, Direction direction) const {
-    return CanvasLayoutInternal::resolve_monitor_in_direction(sourceMonitor, direction);
-}
 
 bool CanvasLayout::handoffMoveWindowAcrossMonitor(int workspace, Direction direction, Lane *sourceLane,
                                                   PHLWINDOW currentWindow, PHLMONITOR sourceMonitor,
@@ -70,14 +68,15 @@ bool CanvasLayout::handoffMoveWindowAcrossMonitor(int workspace, Direction direc
     // Hyprland dispatcher still moves the backend window across workspaces, but
     // scroller keeps ownership transfer explicit so it can preserve lane/stack
     // geometry and roll back cleanly on failure.
-    targetLayout->rememberManualCrossMonitorInsertion(currentWindow);
+    const auto currentWindowKey = ScrollerCore::window_key(currentWindow);
+    targetLayout->handoffState.rememberManualCrossMonitorInsertion(currentWindowKey);
 
     if (!CanvasLayoutInternal::invoke_dispatcher("movetoworkspacesilent", selector, "move_window_cross_monitor")) {
         spdlog::warn("move_window_cross_monitor: dispatcher failed workspace={} direction={} window={}",
                      workspace,
                      ScrollerCore::direction_name(direction),
                      static_cast<const void*>(currentWindow.get()));
-        targetLayout->forgetManualCrossMonitorInsertion(currentWindow);
+        targetLayout->handoffState.forgetManualCrossMonitorInsertion(currentWindowKey);
         sourceLane->restore_active_window_payload(std::move(payload), restorePlan);
         debugVerifyLaneCache();
         return false;
@@ -99,7 +98,7 @@ bool CanvasLayout::handoffMoveWindowAcrossMonitor(int workspace, Direction direc
     targetLane->insert_window_payload(std::move(payload), insertDirection);
     forgetWindowLane(currentWindow);
     targetLayout->rememberWindowLane(currentWindow, targetLane);
-    targetLayout->forgetManualCrossMonitorInsertion(currentWindow);
+    targetLayout->handoffState.forgetManualCrossMonitorInsertion(currentWindowKey);
     targetLayout->setActiveLane(targetLane);
 
     // Phase 4: prune the emptied source lane, relayout both canvases, and end
@@ -117,7 +116,7 @@ bool CanvasLayout::handoffMoveWindowAcrossMonitor(int workspace, Direction direc
 }
 
 void CanvasLayout::transferMoveWindowToAdjacentLane(Lane *sourceLane, PHLWINDOW currentWindow,
-                                                    ListNode<Lane *> *targetLaneNode, Direction direction,
+                                                    LaneNode *targetLaneNode, Direction direction,
                                                     PHLMONITOR sourceMonitor) {
     if (!sourceLane || !currentWindow || !targetLaneNode)
         return;
@@ -130,7 +129,7 @@ void CanvasLayout::transferMoveWindowToAdjacentLane(Lane *sourceLane, PHLWINDOW 
         return;
 
     targetLaneNode->data()->insert_window_payload(std::move(payload), direction);
-    rememberWindowLane(currentWindow, targetLaneNode->data());
+    rememberWindowLane(currentWindow, targetLaneNode->data().get());
     activeLane = targetLaneNode;
     finishLaneTransfer(sourceLaneNode, sourceMonitor, false, true);
     debugVerifyLaneCache();
@@ -138,7 +137,7 @@ void CanvasLayout::transferMoveWindowToAdjacentLane(Lane *sourceLane, PHLWINDOW 
 
 void CanvasLayout::transferMoveWindowToNewLane(Lane *sourceLane, PHLWINDOW currentWindow,
                                                PHLMONITOR sourceMonitor, Mode mode, Direction direction,
-                                               ListNode<Lane *> *anchor) {
+                                               LaneNode *anchor) {
     if (!sourceLane || !currentWindow)
         return;
     auto sourceLaneNode = getLaneNode(sourceLane);
@@ -149,11 +148,12 @@ void CanvasLayout::transferMoveWindowToNewLane(Lane *sourceLane, PHLWINDOW curre
     if (!payload)
         return;
 
-    auto *newLane = new Lane(sourceMonitor, mode);
-    auto newLaneNode = insertLaneNode(newLane, direction, anchor ? anchor : sourceLaneNode);
+    auto newLane = std::make_unique<Lane>(sourceMonitor, mode);
+    auto *newLanePtr = newLane.get();
+    auto newLaneNode = insertLaneNode(std::move(newLane), direction, anchor ? anchor : sourceLaneNode);
 
-    newLane->insert_window_payload(std::move(payload), direction);
-    rememberWindowLane(currentWindow, newLane);
+    newLanePtr->insert_window_payload(std::move(payload), direction);
+    rememberWindowLane(currentWindow, newLanePtr);
     activeLane = newLaneNode;
     finishLaneTransfer(sourceLaneNode, sourceMonitor, false, true);
     debugVerifyLaneCache();
@@ -189,7 +189,7 @@ void CanvasLayout::applyLocalWindowMove(Lane *lane, CanvasLayoutInternal::LocalM
 
 // Make `visibleStacks` the session-wide stack count: every stack on every
 // canvas spans `workarea / visibleStacks`, and new stacks follow it too.
-void CanvasLayout::set_window_size(int workspace, int visibleStacks)
+void CanvasLayout::setWindowSize(int workspace, int visibleStacks)
 {
     (void)workspace;
     const auto width = ScrollerModel::StackWidth::visible(visibleStacks);
@@ -200,11 +200,11 @@ void CanvasLayout::set_window_size(int workspace, int visibleStacks)
         const auto member = workspaceRef.lock();
         auto *layout = member ? CanvasLayoutInternal::get_canvas_for_workspace(ScrollerCore::HyprlandRuntime::workspaceId(member)) : nullptr;
         if (layout)
-            layout->apply_stack_width(width);
+            layout->applyStackWidth(width);
     }
 }
 
-void CanvasLayout::apply_stack_width(ScrollerModel::StackWidth width)
+void CanvasLayout::applyStackWidth(ScrollerModel::StackWidth width)
 {
     for (auto lane = lanes.first(); lane != nullptr; lane = lane->next())
         lane->data()->apply_stack_width(width);
@@ -215,9 +215,9 @@ void CanvasLayout::apply_stack_width(ScrollerModel::StackWidth width)
 // Move the focused window or stack according to lane/mode routing rules.
 // Reading guide:
 // `dispatch_movewindow` resolves the active `CanvasLayout` and lands here.
-// The destination comes from the same topology neighbor query `move_focus`
+// The destination comes from the same topology neighbor query `moveFocus`
 // uses; this function then runs the payload transfer for that answer.
-void CanvasLayout::move_window(int workspace, Direction direction) {
+void CanvasLayout::moveWindow(int workspace, Direction direction) {
     withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [&](Lane *lane) {
         const auto mode = lane->get_mode();
         const auto currentWindow = lane->get_active_window();
@@ -228,7 +228,7 @@ void CanvasLayout::move_window(int workspace, Direction direction) {
             return;
         }
 
-        const auto targetMonitor = directionalMoveTargetMonitor(sourceMonitor, direction);
+        const auto targetMonitor = CanvasLayoutInternal::resolve_monitor_in_direction(sourceMonitor, direction);
         const auto next = CanvasLayoutInternal::neighbor(topologyIndex(lane), {
             .intent = CanvasLayoutInternal::NeighborIntent::MoveWindow,
             .direction = direction,
@@ -259,20 +259,20 @@ void CanvasLayout::move_window(int workspace, Direction direction) {
 // Bypass local topology so a monitor shortcut always transfers directly to the
 // neighboring screen. Reuse the handoff transaction to preserve stack ownership
 // and focus; a missing destination must leave the current layout untouched.
-void CanvasLayout::move_window_to_monitor(int workspace, Direction direction) {
+void CanvasLayout::moveWindowToMonitor(int workspace, Direction direction) {
     withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [&](Lane *lane) {
         const auto window = lane->get_active_window();
         if (!window)
             return;
         const auto sourceMonitor = ScrollerCore::HyprlandRuntime::monitorById(window->monitorID());
-        const auto targetMonitor = directionalMoveTargetMonitor(sourceMonitor, direction);
+        const auto targetMonitor = CanvasLayoutInternal::resolve_monitor_in_direction(sourceMonitor, direction);
         if (!targetMonitor || targetMonitor == sourceMonitor)
             return;
         handoffMoveWindowAcrossMonitor(workspace, direction, lane, window, sourceMonitor, targetMonitor);
     });
 }
 
-void CanvasLayout::swap_window(int workspace, Direction direction) {
+void CanvasLayout::swapWindow(int workspace, Direction direction) {
     (void)workspace;
     bool swapped = false;
     withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [&](Lane *lane) {
@@ -291,7 +291,7 @@ void CanvasLayout::swap_window(int workspace, Direction direction) {
 }
 
 // Change the active lane traversal mode.
-void CanvasLayout::set_mode(int workspace, Mode mode) {
+void CanvasLayout::setMode(int workspace, Mode mode) {
     (void)workspace;
     withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [mode](Lane *lane) {
         lane->set_mode(mode);
@@ -301,9 +301,9 @@ void CanvasLayout::set_mode(int workspace, Mode mode) {
 }
 
 // Toggle scroller-managed fullscreen/expanded behavior.
-void CanvasLayout::toggle_fullscreen(int workspace) {
+void CanvasLayout::toggleFullscreen(int workspace) {
     (void)workspace;
-    const auto syncPolicy = consumeActiveLaneSyncPolicy();
+    const auto syncPolicy = handoffState.consumeActiveLaneSyncPolicy();
     withActiveLane(syncPolicy, [](Lane *lane) {
         lane->toggle_fullscreen_active_window();
     });

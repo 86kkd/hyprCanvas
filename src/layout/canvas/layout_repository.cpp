@@ -25,9 +25,13 @@ std::string hyprland_instance_signature() {
 
 } // namespace
 
+ScrollerCore::ServiceSlot<WorkspaceLayoutRepository> &repositorySlot() {
+    static ScrollerCore::ServiceSlot<WorkspaceLayoutRepository> slot;
+    return slot;
+}
+
 WorkspaceLayoutRepository &repository() {
-    static WorkspaceLayoutRepository repo;
-    return repo;
+    return repositorySlot().get();
 }
 
 void WorkspaceLayoutRepository::initialize() {
