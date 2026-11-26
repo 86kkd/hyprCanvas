@@ -1,0 +1,16 @@
+BasedOnStyle: LLVM
+Language: Cpp
+Standard: c++23
+IndentWidth: 4
+TabWidth: 4
+UseTab: Never
+ColumnLimit: 120
+AllowShortIfStatementsOnASingleLine: Never
+AllowShortLoopsOnASingleLine: false
+AllowShortFunctionsOnASingleLine: InlineOnly
+BreakBeforeBraces: Attach
+PointerAlignment: Left
+ReferenceAlignment: Left
+NamespaceIndentation: None
+FixNamespaceComments: true
+SortIncludes: Never
