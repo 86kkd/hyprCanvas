@@ -38,7 +38,7 @@ local function press(key, name, arg)
   return calls[1].args
 end
 -- Seed old/default conflicts and unrelated shortcuts.
-for _, mods in ipairs({'SUPER', 'SUPER ALT', 'SUPER CTRL', 'SUPER SHIFT', 'CTRL SHIFT'}) do
+for _, mods in ipairs({'SUPER', 'SUPER ALT', 'SUPER CTRL', 'SUPER CTRL ALT', 'SUPER SHIFT', 'CTRL SHIFT'}) do
   for _, key in ipairs({'H','J','K','L','N','M','comma','period'}) do
     hl.bind(mods:gsub(' ', ' + ') .. ' + ' .. key, function() error('stale binding') end)
   end
@@ -54,13 +54,13 @@ for _, mode in ipairs({'scroller', 'scroller', 'master', 'dwindle', 'scroller'})
       press('SUPER + '..key, 'move_focus', dir)
       press('SUPER + ALT + '..key, 'move_window', dir)
       press('SUPER + SHIFT + '..key, 'swap_window', dir)
-      assert(not bindings[normalize('SUPER + CTRL + '..key)])
-      assert(not bindings[normalize('SUPER + CTRL + ALT + '..key)])
+      press('SUPER + CTRL + '..key, 'focus_monitor', dir)
+      press('SUPER + CTRL + ALT + '..key, 'move_window_to_monitor', dir)
       assert(not bindings[normalize('CTRL + SHIFT + '..key)])
       press('SUPER + '..space, 'switch_workspace', dir)
       press('SUPER + ALT + '..space, 'move_window_to_workspace', dir)
-      press('SUPER + CTRL + '..space, 'focus_monitor', dir)
-      press('SUPER + CTRL + ALT + '..space, 'move_window_to_monitor', dir)
+      assert(not bindings[normalize('SUPER + CTRL + '..space)])
+      assert(not bindings[normalize('SUPER + CTRL + ALT + '..space)])
       assert(not bindings[normalize('SUPER + SHIFT + '..space)])
     else
       assert(press('SUPER + '..key, 'focus').direction == native)

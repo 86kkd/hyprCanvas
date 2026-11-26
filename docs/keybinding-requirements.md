@@ -6,13 +6,13 @@
 
 使用 F75／75% 键盘，主要通过左手修饰键和右手方向键操作桌面。
 
-- **H/J/K/L 表示单体窗口操作**：移动焦点、搬动窗口、交换窗口。
-- **N/M/,/. 表示整体空间操作**：显示器与 canvas workspace 的导航，以及携带窗口跨越这些空间。
+- **H/J/K/L 表示当前可见 canvas 内的操作**：单体窗口移动焦点、搬动窗口、交换窗口，以及叠加 `Ctrl` 后的显示器焦点与跨屏搬窗口。
+- **N/M/,/. 专用于 canvas workspace 空间操作**：四方向切换二维 canvas workspace，以及携带窗口跨 canvas 移动。
 - 两排方向一致，保持左／下／上／右的顺序。
 - workspace 是二维空间，需要四方向导航，不能简化为上一页／下一页。
 - “整体”指操作的目标空间，不表示把整个 workspace 搬到另一个显示器。
 
-| 方向 | 单体窗口区域 | 整体空间区域 |
+| 方向 | 当前 canvas（窗口／显示器） | Canvas Workspace 空间 |
 | --- | --- | --- |
 | 左 | H | N |
 | 下 | J | M |
@@ -53,21 +53,22 @@
    - 所有 scroller 方向操作统一收进 `Win` 命名空间，明确区分“桌面控制（带 `Win`）”与“应用内快捷键（不带 `Win`）”。
    - 因此放弃原先占用 `Ctrl + Shift + H/J/K/L` 的 `swap_window`（会覆盖终端、浏览器与编辑器里的常用快捷键），改为 `Win + Shift + H/J/K/L`，并把 `Ctrl + Shift + H/J/K/L` 完整归还给应用。
 2. **修饰键正交代数（一修饰键一语义）**
-   - **`Win`**：第一层导航（`move_focus` / `switch_workspace`）。
-   - **`+ Alt`**：永远表示在对应导航组合上**携带窗口搬运**（`Win` → `Win + Alt`、`Ctrl + Win` → `Ctrl + Win + Alt`），单窗、canvas 与显示器三层保持同一套肌肉和心智模型。
-   - **`+ Ctrl`**：专用于下排 `N/M/,/.` 的**第二空间层（显示器）**，不再同时用于上排 `H/J/K/L` 的窗口交换，避免 `Ctrl + Win` 在不同排分别代表“导航”和“交换”。
+   - **`Win`**：第一层导航（`H/J/K/L` 为窗口焦点，`N/M/,/.` 为切换 canvas workspace）。
+   - **`+ Alt`**：永远表示在对应导航组合上**携带窗口搬运**（`Win` → `Win + Alt`、`Ctrl + Win` → `Ctrl + Win + Alt`），窗口、显示器与 canvas 三层保持同一套肌肉和心智模型。
+   - **`+ Ctrl`**：专用于上排 `H/J/K/L` 从**窗口粒度升级到物理显示器粒度**（`Ctrl + Win` 切显示器焦点，`Ctrl + Win + Alt` 直接跨屏搬窗），右手停留在主键基准行即可完成当前 canvas 内的全部操作，不再需要探到下排按三键。
    - **`Win + Shift`**：专用于上排 `H/J/K/L` 的**原地交换（`swap_window`）**，与导航/搬运逻辑解耦。
 3. **连续动作优先（零换指主链路）**
    - 最高频的“导航 → 搬运 → 回到导航”全部落在 `Win` ↔ `Win + Alt` 上：小指始终锚定 `Win`，无名指按放 `Alt` 即可切换，无需换指。
    - `Win + Shift`（小指抬高按 `Shift`、无名指放低按 `Win`）作为独立起手舒适，但换指成本高于追加 `Alt`，因此只分配给频率低于搬动的 `swap_window`。
-4. **主键两排约束下的空间优先级（Workspace 优先于 Monitor）**
-   - 7 组方向动作包含 3 对“导航 + 搬运”（单窗、canvas workspace、显示器）与 1 组交换。在坚持右手不离开主键两排（`H/J/K/L` 与 `N/M/,/.`）且保持 `+ Alt` 搬运语义统一的前提下，受鸽巢约束必然有一对空间操作落入 `Ctrl + Win` / `Ctrl + Win + Alt`。
-   - `move_focus` 与 `move_window` 在布局边界本身即可跨屏，而 canvas workspace 是真正的二维四方向空间且跨 canvas 搬窗没有替代方向热键；因此将高频的 **canvas workspace** 放在第一层（`Win` / `Win + Alt`），将低频直达的**物理显示器**下放至第二层（`Ctrl + Win` / `Ctrl + Win + Alt`），把三修饰键的使用频率降到最低。
+4. **两排空间边界与优先级（当前 canvas 归上排，跨 canvas 归下排）**
+   - 7 组方向动作包含 3 对“导航 + 搬运”（单窗、显示器、canvas workspace）与 1 组交换。
+   - 将窗口与显示器统一放在上排 `H/J/K/L`（`Win` 管窗口，`Ctrl + Win` 升级管显示器），让下排 `N/M/,/.` 专职二维 canvas workspace 且只使用最顺手的 `Win` / `Win + Alt`，避免在下排伸手按 `Ctrl + Win + Alt`。
+   - 由于 `move_focus` 与 `move_window` 在布局边界本身即可跨屏，三键 `Ctrl + Win + Alt + H/J/K/L` 仅用于低频直达跨屏搬窗，实际触发频率低。
 
 ### 仍存在的折中
 
 - Swap 使用 `Win + Shift`（小指抬高按 Shift、无名指放低按 Win），作为独立操作可舒适按出，但相比 `Win + Alt` 仍需从小指 `Win` 换指；由于交换频率低于搬动，该折中可接受。
-- 跨显示器搬窗口使用 `Ctrl + Win + Alt`，严格遵循“导航组合 `+ Alt` 搬运”的语义，但涉及三个修饰键；由于 `move_window` 到边界亦可跨屏，该三键仅用于低频直达跨屏，尚未作为高频动作验证长期舒适度。
+- 跨显示器搬窗口使用 `Ctrl + Win + Alt + H/J/K/L`，严格遵循“导航组合 `+ Alt` 搬运”的语义，但涉及三个修饰键；由于 `move_window` 到边界亦可跨屏，该三键仅用于低频直达跨屏，尚未作为高频动作验证长期舒适度。
 - 快捷键顺手程度以用户实测为准，不用标准打字指法替代个人反馈。
 
 ## 3. 当前确认并采用的映射
@@ -79,14 +80,14 @@
 | 窗口焦点 | Win + H/J/K/L | `move_focus` |
 | 搬动窗口、调整布局 | Win + Alt + H/J/K/L | `move_window` |
 | 交换窗口 | Win + Shift + H/J/K/L | `swap_window` |
+| 显示器焦点 | Ctrl + Win + H/J/K/L | `focus_monitor` |
+| 直接跨显示器搬窗口 | Ctrl + Win + Alt + H/J/K/L | `move_window_to_monitor` |
 | 四方向切换 workspace | Win + N/M/,/. | `switch_workspace` |
 | 跨 workspace 搬窗口 | Win + Alt + N/M/,/. | `move_window_to_workspace` |
-| 显示器焦点 | Ctrl + Win + N/M/,/. | `focus_monitor` |
-| 直接跨显示器搬窗口 | Ctrl + Win + Alt + N/M/,/. | `move_window_to_monitor` |
 | Overview 打开／确认退出 | Win + I | `toggle_overview` |
 | 展开／恢复 stack | Win + F | `toggle_fullscreen` |
 
-在 scroller 中，`Ctrl + Win + H/J/K/L`、`Ctrl + Win + Alt + H/J/K/L`、`Ctrl + Shift + H/J/K/L` 以及 `Win + Shift + N/M/,/.` 均已解绑。
+在 scroller 中，`Ctrl + Shift + H/J/K/L`、`Ctrl + Win + N/M/,/.`、`Ctrl + Win + Alt + N/M/,/.` 以及 `Win + Shift + N/M/,/.` 均已解绑。
 
 ## 4. 已确定、不再占用方向组合的功能
 

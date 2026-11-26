@@ -68,14 +68,13 @@ for _, spec in ipairs({
   end, "swap window " .. native .. " (scroller)",
     native_shift_window_keys[key], "search keybinds")
 
-  -- Keep Ctrl+Super reserved for the secondary spatial layer on the lower row.
-  -- Native layouts retain their original Ctrl+Super window movement.
-  hl.unbind("SUPER + CTRL + " .. key)
-  hl.unbind("SUPER + CTRL + ALT + " .. key)
-  if not scroller() then
-    bind("SUPER + CTRL + " .. key, hl.dsp.window.move({ direction = native }),
-      "move window " .. native)
-  end
+  layout_bind("SUPER + CTRL + " .. key, function()
+    hl.plugin.scroller.focus_monitor(direction)
+  end, "focus monitor " .. native .. " (scroller)",
+    hl.dsp.window.move({ direction = native }), "move window " .. native)
+  layout_bind("SUPER + CTRL + ALT + " .. key, function()
+    hl.plugin.scroller.move_window_to_monitor(direction)
+  end, "move window to monitor " .. native .. " (scroller)")
 
   -- Release Ctrl+Shift+H/J/K/L back to applications in scroller.
   -- Native layouts restore the user's H/L workspace transfer shortcuts.
@@ -146,12 +145,8 @@ for _, spec in ipairs({ {"n", "l"}, {"m", "d"}, {"comma", "u"}, {"period", "r"} 
   layout_bind("SUPER + ALT + " .. key, function()
     hl.plugin.scroller.move_window_to_workspace(direction)
   end, "move window to canvas " .. direction .. " (scroller)")
-  layout_bind("SUPER + CTRL + " .. key, function()
-    hl.plugin.scroller.focus_monitor(direction)
-  end, "focus monitor " .. direction .. " (scroller)")
-  layout_bind("SUPER + CTRL + ALT + " .. key, function()
-    hl.plugin.scroller.move_window_to_monitor(direction)
-  end, "move window to monitor " .. direction .. " (scroller)")
+  hl.unbind("SUPER + CTRL + " .. key)
+  hl.unbind("SUPER + CTRL + ALT + " .. key)
 end
 
 -- Unbind unused Shift+lower-row shortcuts (former monitor aliases and unused
