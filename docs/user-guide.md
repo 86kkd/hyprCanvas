@@ -275,21 +275,23 @@ may restrict supported directions as described above.
 
 ## Options
 
-Options are registered under `plugin:scroller:*`. The normal build exposes:
+Options are registered under `plugin:hyprCanvas:*` (legacy `plugin:scroller:*` names remain accepted as compatibility aliases). The normal build exposes:
 
 | Option | Default | Values |
 | --- | --- | --- |
 | `column_default_width` | `"2"` | A string count `"1"`–`"8"`, or `"floating"` to use the last floating size. |
 | `focus_wrap` | `0` | `0` disables wrapping at lane/stack edges; `1` enables it. |
+| `canvas_map` | `1` | `1` shows the canvas map HUD/overview panel; `0` disables it. |
 
 After the plugin has loaded, these can be set through Lua configuration:
 
 ```lua
 hl.config({
     plugin = {
-        scroller = {
+        hyprCanvas = {
             column_default_width = "3",
             focus_wrap = 0,
+            canvas_map = 1,
         },
     },
 })

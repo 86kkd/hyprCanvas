@@ -56,7 +56,7 @@ The project name and configuration names serve different purposes:
 | Shared library | `hyprCanvas.so` |
 | Hyprland layout | `scroller` |
 | Lua functions | `hl.plugin.scroller.*` |
-| Plugin options | `plugin:scroller:*` |
+| Plugin options | `plugin:hyprCanvas:*` (with `plugin:scroller:*` compatibility alias) |
 
 ## Get started
 
