@@ -8,6 +8,12 @@ Keep windows in stacks. Navigate with the keyboard. Switch your whole desktop ac
 
 [Get started](#get-started) · [User guide](docs/user-guide.md) · [Development](#development) · [Architecture](docs/architecture.md)
 
+<br>
+
+<img src="videos/hyprcanvas-showcase.gif" alt="HyprCanvas dual-monitor showcase" width="100%">
+
+<sub>Landscape (<code>auto row</code>) + Portrait (<code>auto col</code>) dual-monitor demo: scrolling lanes, overlapping card stacks, in-place swap &amp; expand, cross-monitor transfer, synchronized 2D canvas workspaces with Canvas Map, and interactive Overview. Full 1080p60 recording: <a href="videos/hyprcanvas-showcase.mp4"><code>videos/hyprcanvas-showcase.mp4</code></a>.</sub>
+
 </div>
 
 ---
@@ -31,12 +37,6 @@ overview.
 | **Keyboard movement** | Reorder windows, join or split stacks, exchange windows between stacks, and move between monitors. |
 | **Focus and sizing** | Choose how many stacks fit on screen, expand a stack, or jump to a named window mark. |
 
-## Showcase
-
-![HyprCanvas dual-monitor showcase](videos/hyprcanvas-showcase.gif)
-
-*Landscape (`auto row`) + Portrait (`auto col`) dual-monitor demo covering scrolling lanes, overlapping card stacks, in-place stack swap & expand, cross-monitor window transfer, synchronized 2D canvas workspaces with Canvas Map, and interactive Overview. Full 1080p60 recording: [`videos/hyprcanvas-showcase.mp4`](videos/hyprcanvas-showcase.mp4).*
-
 ## Compatibility
 
 The current code targets **Hyprland 0.57 with Lua configuration**, with local
@@ -50,9 +50,9 @@ The project name and configuration names serve different purposes:
 | --- | --- |
 | `hyprpm` plugin | `hyprCanvas` |
 | Shared library | `hyprCanvas.so` |
-| Hyprland layout | `scroller` |
-| Lua functions | `hl.plugin.scroller.*` |
-| Plugin options | `plugin:hyprCanvas:*` (with `plugin:scroller:*` compatibility alias) |
+| Hyprland layout | `canvas` |
+| Lua functions | `hl.plugin.canvas.*` |
+| Plugin options | `plugin:hyprCanvas:*` (with `plugin:canvas:*` compatibility alias) |
 
 ## Get started
 
@@ -60,8 +60,8 @@ The project name and configuration names serve different purposes:
 
 > **Migrating from hyprscroller or a manual `.so`?** Follow the
 > [migration notes](docs/user-guide.md#migrating-an-existing-installation)
-> before enabling the new plugin. Both versions register the same layout and
-> must not be loaded together.
+> before enabling the new plugin, and update existing `scroller` layout/Lua
+> references to `canvas`.
 
 Run these as your normal user in a Hyprland session. Enter your sudo password
 when the manager requests it.
@@ -89,7 +89,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("hyprpm reload -n")
 end)
 
-hl.config({ general = { layout = "scroller" } })
+hl.config({ general = { layout = "canvas" } })
 ```
 
 The startup hook loads enabled plugins when a new session starts. It does not
@@ -109,18 +109,18 @@ for _, spec in ipairs({
 }) do
     local key, direction = spec[1], spec[2]
     hl.bind("SUPER + " .. key, function()
-        hl.plugin.scroller.move_focus(direction)
+        hl.plugin.canvas.move_focus(direction)
     end)
     hl.bind("SUPER + CTRL + " .. key, function()
-        hl.plugin.scroller.move_window(direction)
+        hl.plugin.canvas.move_window(direction)
     end)
 end
 
 -- Overview, stack expansion, and the number of visible stacks.
-hl.bind("SUPER + O", function() hl.plugin.scroller.toggle_overview() end)
-hl.bind("SUPER + F", function() hl.plugin.scroller.toggle_fullscreen() end)
-hl.bind("SUPER + 2", function() hl.plugin.scroller.set_window_size(2) end)
-hl.bind("SUPER + 3", function() hl.plugin.scroller.set_window_size(3) end)
+hl.bind("SUPER + O", function() hl.plugin.canvas.toggle_overview() end)
+hl.bind("SUPER + F", function() hl.plugin.canvas.toggle_fullscreen() end)
+hl.bind("SUPER + 2", function() hl.plugin.canvas.set_window_size(2) end)
+hl.bind("SUPER + 3", function() hl.plugin.canvas.set_window_size(3) end)
 ```
 
 For whole-desktop workspace switching, see
@@ -137,7 +137,7 @@ hyprctl getoption general:layout
 ```
 
 Look for `hyprCanvas` enabled in the manager, `Plugin hyprCanvas` in the loaded
-plugin list, and `scroller` as the active layout. The startup hook takes effect
+plugin list, and `canvas` as the active layout. The startup hook takes effect
 on your next login; `hyprpm enable` also attempts to load the plugin now.
 
 ## Update and manage

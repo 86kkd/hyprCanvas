@@ -1,6 +1,6 @@
 #include "direction.h"
 
-namespace ScrollerCore {
+namespace CanvasCore {
 
 const char *direction_name(Direction direction) {
     switch (direction) {
@@ -83,4 +83,4 @@ std::optional<Mode> parse_mode_arg(std::string_view arg) {
     return std::nullopt;
 }
 
-} // namespace ScrollerCore
+} // namespace CanvasCore

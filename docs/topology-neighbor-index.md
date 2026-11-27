@@ -1,6 +1,6 @@
 # Feature: Topology Neighbor Index（拓扑邻居索引）
 
-指令向功能计划。目标：**简化 scroller 的 `move_focus` / `move_window` 寻路**，不新增第二种布局。
+指令向功能计划。目标：**简化 canvas 的 `move_focus` / `move_window` 寻路**，不新增第二种布局。
 
 配套计划清单：[`planned-work.md`](./planned-work.md)  
 运行时地图：[`architecture-cn.md`](./architecture-cn.md)
@@ -24,7 +24,7 @@
 做索引实现前，先完成这些清理（细节在 planned-work）：
 
 1. 按 planned-work 瘦身公开命令：删 `focus_lane`、`create_lane`、`admit_window`、`expel_window`、`align_window`、`fit_size` 公共命令；`cycle_size` 换成 `set_window_size`
-2. 删除 `scrollergrid`（`TODO(remove-scrollergrid)`）：取消注册、删除 `src/layout/grid/`、清掉 dispatch 并列分支与 grid 测试/脚本
+2. 删除 `canvasgrid`（`TODO(remove-canvasgrid)`）：取消注册、删除 `src/layout/grid/`、清掉 dispatch 并列分支与 grid 测试/脚本
 3. 确认仓库内不再有「第二种正式布局」文档表述
 
 未完成 1–2 前，不要大拆 handoff 实现。
@@ -53,13 +53,13 @@
 
 1. 去掉仅服务已删公开命令的路由分支
 2. 去掉任何临时「投影到 grid 再寻路」的实验代码
-3. 更新 architecture / README：寻路说明指向本 feature，不再介绍 scrollergrid
+3. 更新 architecture / README：寻路说明指向本 feature，不再介绍 canvasgrid
 
 ## 4. 验收标准
 
 - [x] `move_focus` 与 `move_window` 共用同一邻居/路由决策出口
 - [x] 布局真相仍是 lane/stack；无 `GridModel` 寻路依赖
-- [x] `scrollergrid` 已删除或不再可加载
+- [x] `canvasgrid` 已删除或不再可加载
 - [x] ephemeral 空 lane 与跨屏 handoff 行为可用 ctest 与/或 smoke 覆盖
 - [x] `ctest --test-dir ./Debug --output-on-failure` 全绿
 
@@ -70,16 +70,16 @@
 
 ## 5. 禁止事项
 
-- 不要把 scroller「迁移成」格子布局产品
+- 不要把 canvas「迁移成」格子布局产品
 - 不要维护 lane/stack ↔ grid cells 双向同步
 - 不要为了寻路简单而引入第二套布局真相
-- 不要在未完成公开命令瘦身与删除 scrollergrid 前，把整棵 handoff 树重写到不可回滚
+- 不要在未完成公开命令瘦身与删除 canvasgrid 前，把整棵 handoff 树重写到不可回滚
 
 ## 6. 工作顺序（执行清单）
 
 ```text
 1. planned-work：公开命令瘦身
-2. TODO(remove-scrollergrid)：删除第二种布局
+2. TODO(remove-canvasgrid)：删除第二种布局
 3. TODO(topology-neighbor-index)：实现本 feature（§3）
 4. 文档与测试收尾（§4）
 ```

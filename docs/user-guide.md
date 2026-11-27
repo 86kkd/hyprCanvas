@@ -3,9 +3,9 @@
 [Back to the project](../README.md) · [Installation](../README.md#get-started)
 
 This guide describes the Hyprland 0.57 Lua API. The plugin is named
-`hyprCanvas`; its layout, options, and Lua namespace use `scroller`.
-Old `scroller:movefocus`-style dispatcher bindings are not supported by this
-version. Use `hl.plugin.scroller.move_focus(...)` and the other functions below.
+`hyprCanvas`; its layout, options, and Lua namespace use `canvas`.
+Old `canvas:movefocus`-style dispatcher bindings are not supported by this
+version. Use `hl.plugin.canvas.move_focus(...)` and the other functions below.
 
 ## Canvas workspaces
 
@@ -15,13 +15,13 @@ remain separate overlays.
 
 ```lua
 hl.bind("SUPER + TAB", function()
-    hl.plugin.scroller.switch_workspace("r")
+    hl.plugin.canvas.switch_workspace("r")
 end)
 hl.bind("SUPER + SHIFT + TAB", function()
-    hl.plugin.scroller.switch_workspace("l")
+    hl.plugin.canvas.switch_workspace("l")
 end)
 hl.bind("SUPER + 1", function()
-    hl.plugin.scroller.switch_workspace("1")
+    hl.plugin.canvas.switch_workspace("1")
 end)
 ```
 
@@ -55,7 +55,7 @@ keybinding modules:
 dofile(os.getenv("HOME") .. "/.config/hypr/lua/canvas-layout.lua")
 ```
 
-The module installs these bindings in scroller. Both direction groups use
+The module installs these bindings in canvas. Both direction groups use
 left / down / up / right order:
 
 | Keys | Action |
@@ -77,14 +77,14 @@ Keep the left little finger on Super when navigating; add Alt with the ring
 finger to move the selected window, including across monitors.
 
 Read the module before installing it: its native fallbacks match the local
-user configuration. Outside scroller it restores Super+Alt+H/J/K/L swapping,
+user configuration. Outside canvas it restores Super+Alt+H/J/K/L swapping,
 Super+Ctrl+H/J/K/L movement, Ctrl+Shift+H/L workspace transfers, Super+N night
 light, Super+M split ratio, and Super+comma/period workspace navigation.
 Plugin-only shortcuts are removed. The old Super+Shift+N/M monitor movement
 aliases are retired; those keys retain the notification panel and music launcher.
 
 It also replaces Tab, number, and wheel workspace shortcuts, and disables
-numbered window transfers and whole-workspace monitor moves while using scroller.
+numbered window transfers and whole-workspace monitor moves while using canvas.
 Other layouts retain native behavior. Number keys select workspaces; configure
 visible-stack counts in Lua rather than binding the README's sizing examples.
 
@@ -93,7 +93,7 @@ Hyprland's per-monitor semantics. Route ordinary canvas switching through
 `switch_workspace` to keep all monitors together.
 
 [`ChangeLayout.sh`](../examples/ChangeLayout.sh) switches between `master`,
-`dwindle`, and `scroller` and installs the associated bindings. Its Lua path
+`dwindle`, and `canvas` and installs the associated bindings. Its Lua path
 also reloads the workspace module above, so install both files when using it.
 
 ## Canvas map
@@ -115,7 +115,7 @@ positions preserve the actual canvas grid, including gaps and negative coordinat
 - Large maps show a local region up to five rows/columns around the preview.
   Footer arrows indicate retained canvases beyond the visible region.
 
-Set `plugin:scroller:canvas_map` to `0` to disable both map surfaces (default `1`).
+Set `plugin:canvas:canvas_map` to `0` to disable both map surfaces (default `1`).
 The first version uses fixed placement and duration; the independent, zoomable
 world-map design is tracked in [planned work](planned-work.md).
 
@@ -192,8 +192,8 @@ only cardinal directions and does nothing if there is no adjacent monitor or
 overview is open.
 
 ```lua
-hl.bind("SUPER + SHIFT + N", function() hl.plugin.scroller.move_window_to_monitor("l") end)
-hl.bind("SUPER + SHIFT + period", function() hl.plugin.scroller.move_window_to_monitor("r") end)
+hl.bind("SUPER + SHIFT + N", function() hl.plugin.canvas.move_window_to_monitor("l") end)
+hl.bind("SUPER + SHIFT + period", function() hl.plugin.canvas.move_window_to_monitor("r") end)
 ```
 
 `move_window_to_workspace(direction)` transfers the focused tiled window to an
@@ -205,7 +205,7 @@ history. Floating/special-workspace windows, invalid directions and calls during
 overview are ignored. Native numbered transfers remain disabled in the example.
 
 ```lua
-hl.bind("SUPER + CTRL + ALT + N", function() hl.plugin.scroller.move_window_to_workspace("l") end)
+hl.bind("SUPER + CTRL + ALT + N", function() hl.plugin.canvas.move_window_to_workspace("l") end)
 ```
 
 `swap_window(direction)` exchanges the active windows of adjacent stacks in
@@ -215,8 +215,8 @@ counts, and expansion states are preserved. It does not wrap, accept
 when either selected window is in native fullscreen.
 
 ```lua
-hl.bind("SUPER + ALT + LEFT", function() hl.plugin.scroller.swap_window("l") end)
-hl.bind("SUPER + ALT + RIGHT", function() hl.plugin.scroller.swap_window("r") end)
+hl.bind("SUPER + ALT + LEFT", function() hl.plugin.canvas.swap_window("l") end)
+hl.bind("SUPER + ALT + RIGHT", function() hl.plugin.canvas.swap_window("r") end)
 ```
 
 ## Overview and marks
@@ -247,7 +247,7 @@ clear all marks. Visiting a mark may switch workspaces.
 
 ## Lua API
 
-All functions live under `hl.plugin.scroller`. Call them from keybinding
+All functions live under `hl.plugin.canvas`. Call them from keybinding
 callbacks after the plugin has loaded.
 
 | Function | Purpose |
@@ -275,7 +275,7 @@ may restrict supported directions as described above.
 
 ## Options
 
-Options are registered under `plugin:hyprCanvas:*` (legacy `plugin:scroller:*` names remain accepted as compatibility aliases). The normal build exposes:
+Options are registered under `plugin:hyprCanvas:*` (legacy `plugin:canvas:*` names remain accepted as compatibility aliases). The normal build exposes:
 
 | Option | Default | Values |
 | --- | --- | --- |
@@ -335,5 +335,5 @@ hyprpm enable hyprCanvas
 
 If the old installation used a different repository URL, use the URL shown by
 that installation when removing it. Verify with `hyprpm list` and
-`hyprctl plugin list`. Do not load hyprscroller and hyprCanvas together: both
-register the `scroller` layout and Lua namespace.
+`hyprctl plugin list`. Unload hyprscroller before enabling hyprCanvas, and
+update any remaining `scroller` layout/Lua config entries to `canvas`.

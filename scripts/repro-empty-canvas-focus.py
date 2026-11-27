@@ -13,11 +13,11 @@ parser.add_argument('--plugin', type=Path, default=Path(__file__).resolve().pare
 args = parser.parse_args()
 plugin = args.plugin.resolve()
 assert plugin.is_file(), f'Missing plugin: {plugin}'
-run = Path(tempfile.mkdtemp(prefix='hyprscroller-empty-canvas-'))
+run = Path(tempfile.mkdtemp(prefix='hyprcanvas-empty-canvas-'))
 print(f'Artifacts: {run}', flush=True)
 config = run / 'hyprland.lua'
 config.write_text('hl.plugin.load(' + json.dumps(str(plugin)) + ')\n'
-                  'hl.config({general={layout="scroller"},input={follow_mouse=0},'
+                  'hl.config({general={layout="canvas"},input={follow_mouse=0},'
                   'animations={enabled=true},misc={disable_hyprland_logo=true,disable_splash_rendering=true}})\n')
 env = dict(os.environ)
 env.pop('HYPRLAND_INSTANCE_SIGNATURE', None)
@@ -36,11 +36,11 @@ def lua(code):
 
 
 def command(name, arg=None):
-    lua('hl.plugin.scroller.' + name + '(' + (json.dumps(arg) if arg is not None else '') + ')')
+    lua('hl.plugin.canvas.' + name + '(' + (json.dumps(arg) if arg is not None else '') + ')')
 
 
 def state():
-    path = Path(os.environ.get('XDG_RUNTIME_DIR', '/tmp')) / f'hyprscroller-canvas-{instance}.state'
+    path = Path(os.environ.get('XDG_RUNTIME_DIR', '/tmp')) / f'hyprcanvas-{instance}.state'
     canvases = []
     active = None
     for line in path.read_text().splitlines():

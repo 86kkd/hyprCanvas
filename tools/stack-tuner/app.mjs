@@ -1,7 +1,7 @@
 import {DEFAULT,valid,adjust,currentPlugin,layout,payload,fromPayload} from './model.mjs';
 const $=id=>document.getElementById(id), keys=['main','secondary','others'], names=['主窗口','次窗口','其他窗口'], tones=['var(--main)','var(--secondary)','var(--other)'];
 let state={...DEFAULT}, active=2, previous=1, saved=null, timer;
-const storageKey='hyprscroller.stack-tuner.v3';
+const storageKey='hyprcanvas.stack-tuner.v3';
 const letter=i=>String.fromCharCode(65+i), json=s=>JSON.stringify(payload(s));
 function toast(message){$('toast').textContent=message;$('toast').classList.add('visible');clearTimeout(timer);timer=setTimeout(()=>$('toast').classList.remove('visible'),2600);}
 function draft(){try{localStorage.setItem(storageKey,JSON.stringify(state));}catch{} render();}
@@ -69,6 +69,6 @@ $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringi
 $('export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(payload(state),null,2)+'\n'],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='stack-ratios.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 try{const r=await fetch('/api/final');if(!r.ok)throw Error();saved=fromPayload(await r.json());if(saved)state={...saved};}catch{toast('无法读取项目参数，请通过本地服务打开此页');}
 try{let d=JSON.parse(localStorage.getItem(storageKey));
- if(!d){const old=JSON.parse(localStorage.getItem('hyprscroller.stack-tuner.v2')||localStorage.getItem('hyprscroller.stack-tuner.v1'));if(old)d={...old,crossMain:old.crossMain>=0.1&&old.crossMain<=2?old.crossMain:DEFAULT.crossMain,crossSecondary:DEFAULT.crossSecondary,crossOthers:DEFAULT.crossOthers};}
+ if(!d){const old=JSON.parse(localStorage.getItem('hyprcanvas.stack-tuner.v2')||localStorage.getItem('hyprcanvas.stack-tuner.v1'));if(old)d={...old,crossMain:old.crossMain>=0.1&&old.crossMain<=2?old.crossMain:DEFAULT.crossMain,crossSecondary:DEFAULT.crossSecondary,crossOthers:DEFAULT.crossOthers};}
 if(valid({...DEFAULT,...d})){state={...DEFAULT,...d};delete state.crossStep;}}catch{}
 render();new ResizeObserver(renderPreview).observe($('canvas'));

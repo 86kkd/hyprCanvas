@@ -24,7 +24,7 @@ double fit_gap_to_region(double preferredGap, double regionSpan, std::size_t cel
 
 }
 
-WorkspaceGridShape chooseWorkspaceGridShape(const ScrollerCore::Box& regionBox, std::size_t count) {
+WorkspaceGridShape chooseWorkspaceGridShape(const CanvasCore::Box& regionBox, std::size_t count) {
     if (count <= 1)
         return {};
 
@@ -48,7 +48,7 @@ WorkspaceGridShape chooseWorkspaceGridShape(const ScrollerCore::Box& regionBox, 
     return {.columns = columns, .rows = rows};
 }
 
-std::vector<WorkspaceGridCell> layoutWorkspaceGridCells(const ScrollerCore::Box& regionBox, std::vector<int> workspaceIds) {
+std::vector<WorkspaceGridCell> layoutWorkspaceGridCells(const CanvasCore::Box& regionBox, std::vector<int> workspaceIds) {
     // Stable ordering keeps the same workspace ids in the same grid positions
     // across rebuilds, which reduces selection jumps during overview refreshes.
     std::sort(workspaceIds.begin(), workspaceIds.end());

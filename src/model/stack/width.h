@@ -5,7 +5,7 @@
 #include <optional>
 #include <string_view>
 
-namespace ScrollerModel {
+namespace CanvasModel {
 
 // Primary-axis sizing intent for a stack. A sized stack takes `workarea / n`,
 // where `n` is how many stacks should fit side by side on the monitor. A free
@@ -75,4 +75,4 @@ inline std::optional<int> parse_visible_stack_count(std::string_view arg) {
     return value;
 }
 
-} // namespace ScrollerModel
+} // namespace CanvasModel

@@ -15,8 +15,8 @@ namespace CanvasLayoutInternal {
  * Hyprland reserved areas and outer gaps are applied.
  */
 struct CanvasBounds {
-    ScrollerCore::Box full;
-    ScrollerCore::Box max;
+    CanvasCore::Box full;
+    CanvasCore::Box max;
     int               gap;
 };
 

@@ -1,6 +1,6 @@
 /**
  * @file core.h
- * @brief Shared geometry/model utilities used by scroller modules.
+ * @brief Shared geometry/model utilities used by canvas modules.
  *
  * Centralized helpers for window/monitor adaptation, geometry utilities, and
  * mark storage are kept here so layout and model layers share the same
@@ -18,7 +18,7 @@
 #include "core/hyprland_runtime.h"
 #include "core/service_slot.h"
 
-namespace ScrollerCore {
+namespace CanvasCore {
 
 // Convert the generic tiled target used by Hyprland into a concrete window pointer.
 PHLWINDOW windowFromTarget(SP<Layout::ITarget> target);
@@ -50,4 +50,4 @@ private:
 ServiceSlot<Marks>& marksSlot();
 Marks& marksRegistry();
 
-} // namespace ScrollerCore
+} // namespace CanvasCore

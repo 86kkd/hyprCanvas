@@ -5,7 +5,7 @@
 # 1. writes a minimal nested Hyprland config that loads the debug plugin,
 # 2. opens the nested compositor as a floating window on the requested monitor,
 # 3. creates enough tiled windows to push the first preview off-screen, and
-# 4. opens `scroller:toggleoverview` from inside the nested session itself so
+# 4. opens `canvas:toggleoverview` from inside the nested session itself so
 #    the visual overview test actually runs before the nested compositor exits.
 
 set -euo pipefail
@@ -304,7 +304,7 @@ if [[ -z "$OUTER_MONITOR" ]]; then
     [[ -n "$OUTER_MONITOR" ]] || die "could not auto-detect an outer monitor"
 fi
 
-RUN_DIR="$(mktemp -d /tmp/hyprscroller-overview-repro.XXXXXX)"
+RUN_DIR="$(mktemp -d /tmp/hyprcanvas-overview-repro.XXXXXX)"
 CONFIG_PATH="$RUN_DIR/hyprland.conf"
 LOG_PATH="$RUN_DIR/hyprland.log"
 LAUNCHER_PATH="$RUN_DIR/launch-nested.sh"
@@ -316,7 +316,7 @@ monitor = , preferred, auto, 1
 env = XCURSOR_SIZE,24
 
 general {
-    layout = scroller
+    layout = canvas
     gaps_in = 4
     gaps_out = 8
     border_size = 2
@@ -350,7 +350,7 @@ chmod +x "$LAUNCHER_PATH"
 cat >"$PREVIEW_TERMINAL_PATH" <<'EOF'
 #!/usr/bin/env bash
 clear
-printf 'hyprscroller overview preview fallback\n\n'
+printf 'hyprcanvas overview preview fallback\n\n'
 for _row in 1 2 3 4 5 6; do
     printf '\033[41m%*s\033[42m%*s\033[0m\n' 24 '' 24 ''
 done
@@ -394,8 +394,8 @@ wait_for_nested_output || die "nested Hyprland did not create a non-zero Wayland
 
 hyprctl -i "$NESTED_INSTANCE" plugin load "$PLUGIN_PATH" >/dev/null
 hyprctl -i "$NESTED_INSTANCE" plugin list | grep -q "Plugin hyprCanvas" || die "nested Hyprland did not load hyprCanvas"
-hyprctl -i "$NESTED_INSTANCE" eval "hl.config({ general = { layout = 'scroller' } })" >/dev/null
-hyprctl -i "$NESTED_INSTANCE" getoption general:layout | grep -q "str: scroller" || die "nested Hyprland did not activate the scroller layout"
+hyprctl -i "$NESTED_INSTANCE" eval "hl.config({ general = { layout = 'canvas' } })" >/dev/null
+hyprctl -i "$NESTED_INSTANCE" getoption general:layout | grep -q "str: canvas" || die "nested Hyprland did not activate the canvas layout"
 
 launch_preview_window
 
@@ -407,7 +407,7 @@ done
 wait_for_nested_client_count 5 || die "timed out waiting for preview window plus four terminals"
 
 sleep 1
-hyprctl -i "$NESTED_INSTANCE" eval "hl.plugin.scroller.toggle_overview()" >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval "hl.plugin.canvas.toggle_overview()" >/dev/null
 sleep $OVERVIEW_HOLD_SECONDS
 
 if [[ "$KEEP_OPEN" -eq 1 ]]; then

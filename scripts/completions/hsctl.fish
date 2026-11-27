@@ -1,4 +1,4 @@
-# Load with: source /path/to/hyprscroller/scripts/completions/hsctl.fish
+# Load with: source /path/to/hyprcanvas/scripts/completions/hsctl.fish
 # Or copy to ~/.config/fish/completions/hsctl.fish for automatic loading.
 
 # Return only positional tokens, skipping the global instance option and value.

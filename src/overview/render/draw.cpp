@@ -38,7 +38,7 @@
 namespace Overview {
 namespace {
 
-using ScrollerCore::Box;
+using CanvasCore::Box;
 using Render::GL::CHyprOpenGLImpl;
 using Render::GL::g_pHyprOpenGL;
 

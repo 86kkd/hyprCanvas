@@ -46,7 +46,7 @@ public:
         const std::string name(dispatcher);
         const std::string argument(arg);
         if (name == "focusmonitor") {
-            for (const auto& monitor : ScrollerCore::HyprlandRuntime::monitors()) {
+            for (const auto& monitor : CanvasCore::HyprlandRuntime::monitors()) {
                 if (monitor && monitor->m_name == argument)
                     return Config::Actions::focusMonitor(monitor).has_value();
             }
@@ -73,15 +73,15 @@ public:
     }
 
     PHLMONITOR getMonitorFromID(int monitorId) const override {
-        return g_pCompositor ? ScrollerCore::HyprlandRuntime::monitorById(monitorId) : nullptr;
+        return g_pCompositor ? CanvasCore::HyprlandRuntime::monitorById(monitorId) : nullptr;
     }
 
     PHLMONITOR getFocusedMonitor() const override {
-        return g_pCompositor ? ScrollerCore::HyprlandRuntime::monitorForKeyboardAction() : nullptr;
+        return g_pCompositor ? CanvasCore::HyprlandRuntime::monitorForKeyboardAction() : nullptr;
     }
 
     bool isWindowActive(PHLWINDOW window) const override {
-        return g_pCompositor && window && ScrollerCore::HyprlandRuntime::isWindowActive(window);
+        return g_pCompositor && window && CanvasCore::HyprlandRuntime::isWindowActive(window);
     }
 
     std::string monitorName(PHLMONITOR monitor) const override {
@@ -89,15 +89,15 @@ public:
     }
 
     WORKSPACEID workspaceID(PHLWORKSPACE workspace) const override {
-        return workspace ? ScrollerCore::HyprlandRuntime::workspaceId(workspace) : WORKSPACE_INVALID;
+        return workspace ? CanvasCore::HyprlandRuntime::workspaceId(workspace) : WORKSPACE_INVALID;
     }
 
     bool isWorkspaceSpecial(PHLWORKSPACE workspace) const override {
-        return workspace && ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace);
+        return workspace && CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspace);
     }
 
     std::string workspaceSelector(PHLWORKSPACE workspace) const override {
-        return ScrollerCore::workspace_selector(workspace);
+        return CanvasCore::workspace_selector(workspace);
     }
 
     bool activateMonitorWorkspaceDirectly(PHLMONITOR monitor, PHLWORKSPACE workspace, WORKSPACEID fallbackWorkspaceId) const override {
@@ -106,7 +106,7 @@ public:
 
         auto target = workspace;
         if (!target && fallbackWorkspaceId != WORKSPACE_INVALID) {
-            target = ScrollerCore::HyprlandRuntime::workspaceById(fallbackWorkspaceId);
+            target = CanvasCore::HyprlandRuntime::workspaceById(fallbackWorkspaceId);
             if (!target && fallbackWorkspaceId >= 0)
                 target = State::workspaceState()->createNumbered(
                     Workspace::SWorkspaceNumberedID(static_cast<Workspace::WorkspaceIDContainer>(fallbackWorkspaceId)), monitor);
@@ -118,7 +118,7 @@ public:
         // overwrite the window it remembers. Switch in place, without synthetic
         // pointer movement; background canvas members must not acquire focus.
         const bool noFocus = getFocusedMonitor() != monitor;
-        if (ScrollerCore::HyprlandRuntime::isSpecialWorkspace(target))
+        if (CanvasCore::HyprlandRuntime::isSpecialWorkspace(target))
             monitor->setSpecialWorkspace(target, noFocus);
         else
             monitor->changeWorkspace(target, false, true, noFocus);
@@ -131,13 +131,13 @@ public:
             return false;
 
         if (workspace) {
-            return ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace)
-                ? ScrollerCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor) == ScrollerCore::HyprlandRuntime::workspaceId(workspace)
-                : ScrollerCore::HyprlandRuntime::activeWorkspaceId(monitor) == ScrollerCore::HyprlandRuntime::workspaceId(workspace);
+            return CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspace)
+                ? CanvasCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor) == CanvasCore::HyprlandRuntime::workspaceId(workspace)
+                : CanvasCore::HyprlandRuntime::activeWorkspaceId(monitor) == CanvasCore::HyprlandRuntime::workspaceId(workspace);
         }
 
         if (fallbackWorkspaceId != WORKSPACE_INVALID)
-            return ScrollerCore::HyprlandRuntime::activeWorkspaceId(monitor) == fallbackWorkspaceId;
+            return CanvasCore::HyprlandRuntime::activeWorkspaceId(monitor) == fallbackWorkspaceId;
 
         return true;
     }
@@ -147,11 +147,11 @@ public:
     }
 
     WORKSPACEID windowWorkspaceID(PHLWINDOW window) const override {
-        return window ? ScrollerCore::HyprlandRuntime::windowWorkspaceId(window) : WORKSPACE_INVALID;
+        return window ? CanvasCore::HyprlandRuntime::windowWorkspaceId(window) : WORKSPACE_INVALID;
     }
 
     void warpCursorToWindow(PHLWINDOW window) const override {
-        ScrollerCore::FocusPointerSync::request(window, ScrollerCore::FocusPointerSync::Policy::Navigation);
+        CanvasCore::FocusPointerSync::request(window, CanvasCore::FocusPointerSync::Policy::Navigation);
     }
 };
 
@@ -167,7 +167,7 @@ CanvasLayoutInternal::DispatcherRuntime &dispatcher_runtime() {
 namespace CanvasLayoutInternal {
 
 void sync_new_window_pointer(PHLWINDOW window) {
-    ScrollerCore::FocusPointerSync::request(window, ScrollerCore::FocusPointerSync::Policy::NewWindow);
+    CanvasCore::FocusPointerSync::request(window, CanvasCore::FocusPointerSync::Policy::NewWindow);
 }
 
 void set_dispatcher_runtime_for_tests(DispatcherRuntime *runtime) {
@@ -184,10 +184,10 @@ bool invoke_dispatcher(const char* dispatcher, std::string_view arg, const char*
 
 // Shared wrapper around Hyprland builtin directional dispatchers.
 void dispatch_directional_builtin(const char* dispatcher, Direction direction) {
-    const auto arg = ScrollerCore::direction_dispatch_arg(direction);
+    const auto arg = CanvasCore::direction_dispatch_arg(direction);
     if (!arg) {
         spdlog::warn("dispatch_directional_builtin: unsupported direction={} dispatcher={}",
-                     ScrollerCore::direction_name(direction),
+                     CanvasCore::direction_name(direction),
                      dispatcher ? dispatcher : "(null)");
         return;
     }
@@ -214,7 +214,7 @@ void focus_window_monitor(PHLWINDOW window) {
 // Focus a target window and optionally warp the cursor to it.
 bool switch_to_window(PHLWINDOW window, bool warp_cursor)
 {
-    ScrollerCore::FocusPointerSync::request(nullptr, ScrollerCore::FocusPointerSync::Policy::Preserve);
+    CanvasCore::FocusPointerSync::request(nullptr, CanvasCore::FocusPointerSync::Policy::Preserve);
     return switch_to_window(dispatcher_runtime(), window, warp_cursor);
 }
 

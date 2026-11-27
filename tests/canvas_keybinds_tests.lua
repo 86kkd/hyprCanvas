@@ -1,4 +1,4 @@
-local bindings, calls, layout = {}, {}, 'scroller'
+local bindings, calls, layout = {}, {}, 'canvas'
 local function normalize(key)
   local parts = {}
   for p in key:upper():gmatch('[^+]+') do parts[#parts+1] = p:match('^%s*(.-)%s*$') end
@@ -23,7 +23,7 @@ hl = {
     window = { move = dispatcher('move'), swap = dispatcher('swap'), fullscreen_state = dispatcher('fullscreen') },
     workspace = { move = dispatcher('move_workspace') },
   },
-  plugin = { scroller = setmetatable({}, { __index = function(_, name)
+  plugin = { canvas = setmetatable({}, { __index = function(_, name)
     return function(arg) calls[#calls+1] = { name = name, args = arg } end
   end }) },
 }
@@ -45,12 +45,12 @@ for _, mods in ipairs({'SUPER', 'SUPER ALT', 'SUPER CTRL', 'SUPER CTRL ALT', 'SU
 end
 local untouched = function() end
 hl.bind('SUPER + Y', untouched)
-for _, mode in ipairs({'scroller', 'scroller', 'master', 'dwindle', 'scroller'}) do
+for _, mode in ipairs({'canvas', 'canvas', 'master', 'dwindle', 'canvas'}) do
   layout = mode
   dofile('examples/canvas-layout.lua')
   for _, spec in ipairs({{'H','N','l','left'},{'J','M','d','down'},{'K','comma','u','up'},{'L','period','r','right'}}) do
     local key, space, dir, native = table.unpack(spec)
-    if mode == 'scroller' then
+    if mode == 'canvas' then
       press('SUPER + '..key, 'move_focus', dir)
       press('SUPER + ALT + '..key, 'move_window', dir)
       press('SUPER + SHIFT + '..key, 'swap_window', dir)
@@ -73,7 +73,7 @@ for _, mode in ipairs({'scroller', 'scroller', 'master', 'dwindle', 'scroller'})
       assert(not bindings[normalize('SUPER + CTRL + ALT + '..key)])
     end
   end
-  if mode == 'scroller' then
+  if mode == 'canvas' then
     press('SUPER + I', 'toggle_overview')
     press('SUPER + F', 'toggle_fullscreen')
     calls = {}; bindings[normalize('SUPER + SHIFT + code:10')][1].action(); assert(#calls == 0)

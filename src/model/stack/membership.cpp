@@ -14,7 +14,7 @@
 
 #include "model/stack/logic.h"
 
-namespace ScrollerModel {
+namespace CanvasModel {
 
 Stack::WindowNode *Stack::findWindowNode(PHLWINDOW window) const {
     if (!window)
@@ -133,8 +133,8 @@ void Stack::move_active(Direction direction) {
     if (!active)
         return;
 
-    const auto backward = ScrollerCore::stack_item_backward_direction(mode);
-    const auto forward = ScrollerCore::stack_item_forward_direction(mode);
+    const auto backward = CanvasCore::stack_item_backward_direction(mode);
+    const auto forward = CanvasCore::stack_item_forward_direction(mode);
     if (direction == backward && active != windows.first()) {
         auto previous = active->prev();
         previousActive = previous->data().get();
@@ -217,4 +217,4 @@ std::unique_ptr<Window> Stack::expel_active(double /*gap*/) {
     return window;
 }
 
-} // namespace ScrollerModel
+} // namespace CanvasModel

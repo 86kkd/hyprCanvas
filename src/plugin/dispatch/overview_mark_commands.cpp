@@ -50,25 +50,25 @@ void dispatch_marksadd(std::string arg) {
         (void)workspace;
         const auto candidate = layout.getNextCandidate(nullptr);
         if (const auto window = candidate ? candidate->window() : nullptr)
-            ScrollerCore::marksRegistry().add(window, arg);
+            CanvasCore::marksRegistry().add(window, arg);
     });
 }
 
 // marksdelete <name>: remove a stored mark entry by name.
 void dispatch_marksdelete(std::string arg) {
-    ScrollerCore::marksRegistry().del(arg);
+    CanvasCore::marksRegistry().del(arg);
 }
 
 // marksvisit <name>: focus and activate the marked window if present.
 void dispatch_marksvisit(std::string arg) {
-    if (const auto window = ScrollerCore::marksRegistry().visit(arg))
+    if (const auto window = CanvasCore::marksRegistry().visit(arg))
         (void)CanvasLayoutInternal::switch_to_window(window, false);
 }
 
 // marksreset: clear all marks.
 void dispatch_marksreset(std::string arg) {
     (void)arg;
-    ScrollerCore::marksRegistry().reset();
+    CanvasCore::marksRegistry().reset();
 }
 
 } // namespace
@@ -115,8 +115,8 @@ int lua_marks_reset(lua_State* state) {
 }
 
 void registerLuaFunction(const char* name, PLUGIN_LUA_FN function) {
-    if (!HyprlandAPI::addLuaFunction(PHANDLE, "scroller", name, function))
-        spdlog::warn("failed to register Lua function hl.plugin.scroller.{}", name);
+    if (!HyprlandAPI::addLuaFunction(PHANDLE, "canvas", name, function))
+        spdlog::warn("failed to register Lua function hl.plugin.canvas.{}", name);
 }
 
 } // namespace

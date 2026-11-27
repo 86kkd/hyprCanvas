@@ -9,7 +9,7 @@
 #include <string_view>
 #include <vector>
 
-namespace ScrollerCanvasSnapshot {
+namespace CanvasRepoSnapshot {
 
 std::vector<MonitorMemberSnapshot> visible_members(std::vector<MonitorWorkspace> monitors) {
     std::sort(monitors.begin(), monitors.end(), [](const auto& lhs, const auto& rhs) {
@@ -228,4 +228,4 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
     return snapshot;
 }
 
-} // namespace ScrollerCanvasSnapshot
+} // namespace CanvasRepoSnapshot

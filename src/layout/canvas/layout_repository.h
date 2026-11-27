@@ -13,8 +13,8 @@ public:
     void initialize();
     void flush() const;
 
-    std::optional<ScrollerSnapshot::CanvasSnapshot> find(int workspaceId) const;
-    void upsert(ScrollerSnapshot::CanvasSnapshot snapshot);
+    std::optional<CanvasLayoutSnapshot::CanvasSnapshot> find(int workspaceId) const;
+    void upsert(CanvasLayoutSnapshot::CanvasSnapshot snapshot);
     void erase(int workspaceId);
 
 private:
@@ -23,10 +23,10 @@ private:
     void flushToDisk() const;
 
     bool initialized_ = false;
-    ScrollerSnapshot::RepositorySnapshot snapshots_;
+    CanvasLayoutSnapshot::RepositorySnapshot snapshots_;
 };
 
-ScrollerCore::ServiceSlot<WorkspaceLayoutRepository> &repositorySlot();
+CanvasCore::ServiceSlot<WorkspaceLayoutRepository> &repositorySlot();
 WorkspaceLayoutRepository &repository();
 
 } // namespace CanvasLayoutState

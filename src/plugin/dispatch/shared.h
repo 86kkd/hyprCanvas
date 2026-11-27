@@ -47,7 +47,7 @@ inline bool isOverviewAcceptArg(std::string_view arg) {
 }
 
 inline CanvasLayout* getCanvasForWorkspace(const int workspaceId) {
-    const auto workspace = ScrollerCore::HyprlandRuntime::workspaceById(workspaceId);
+    const auto workspace = CanvasCore::HyprlandRuntime::workspaceById(workspaceId);
     if (!workspace || !workspace->space())
         return nullptr;
 
@@ -66,15 +66,15 @@ inline PHLWORKSPACE getWorkspaceForAction(PHLMONITOR monitor) {
     if (!monitor)
         return nullptr;
 
-    const auto specialWorkspaceId = ScrollerCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor);
-    if (const auto specialWorkspace = ScrollerCore::HyprlandRuntime::workspaceById(specialWorkspaceId))
+    const auto specialWorkspaceId = CanvasCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor);
+    if (const auto specialWorkspace = CanvasCore::HyprlandRuntime::workspaceById(specialWorkspaceId))
         return specialWorkspace;
 
-    const auto activeWorkspaceId = ScrollerCore::HyprlandRuntime::activeWorkspaceId(monitor);
+    const auto activeWorkspaceId = CanvasCore::HyprlandRuntime::activeWorkspaceId(monitor);
     if (activeWorkspaceId == WORKSPACE_INVALID)
         return nullptr;
 
-    return ScrollerCore::HyprlandRuntime::workspaceById(activeWorkspaceId);
+    return CanvasCore::HyprlandRuntime::workspaceById(activeWorkspaceId);
 }
 
 inline PHLWORKSPACE workspaceForActionContext(int* workspace) {
@@ -85,7 +85,7 @@ inline PHLWORKSPACE workspaceForActionContext(int* workspace) {
         return nullptr;
     }
 
-    PHLMONITOR monitor = ScrollerCore::HyprlandRuntime::monitorForKeyboardAction();
+    PHLMONITOR monitor = CanvasCore::HyprlandRuntime::monitorForKeyboardAction();
     if (!monitor) {
         spdlog::warn("layout_for_action: no focused monitor or cursor monitor");
         if (workspace)
@@ -93,20 +93,20 @@ inline PHLWORKSPACE workspaceForActionContext(int* workspace) {
         return nullptr;
     }
 
-    const auto specialWorkspaceId = ScrollerCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor);
-    const auto activeWorkspaceId = ScrollerCore::HyprlandRuntime::activeWorkspaceId(monitor);
-    const auto specialWorkspace = ScrollerCore::HyprlandRuntime::workspaceById(specialWorkspaceId);
+    const auto specialWorkspaceId = CanvasCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor);
+    const auto activeWorkspaceId = CanvasCore::HyprlandRuntime::activeWorkspaceId(monitor);
+    const auto specialWorkspace = CanvasCore::HyprlandRuntime::workspaceById(specialWorkspaceId);
     const auto selectedWorkspace = getWorkspaceForAction(monitor);
-    const auto workspaceId = selectedWorkspace ? ScrollerCore::HyprlandRuntime::workspaceId(selectedWorkspace) : WORKSPACE_INVALID;
+    const auto workspaceId = selectedWorkspace ? CanvasCore::HyprlandRuntime::workspaceId(selectedWorkspace) : WORKSPACE_INVALID;
 
-    if (!selectedWorkspace || ScrollerCore::HyprlandRuntime::workspaceHasFullscreen(selectedWorkspace)) {
+    if (!selectedWorkspace || CanvasCore::HyprlandRuntime::workspaceHasFullscreen(selectedWorkspace)) {
         spdlog::debug("layout_for_action: rejected chosen_ws={} special_ws={} active_ws={} special_exists={} exists={} fullscreen={}",
                       workspaceId,
                       specialWorkspaceId,
                       activeWorkspaceId,
                       specialWorkspace != nullptr,
                       selectedWorkspace != nullptr,
-                      ScrollerCore::HyprlandRuntime::workspaceHasFullscreen(selectedWorkspace));
+                      CanvasCore::HyprlandRuntime::workspaceHasFullscreen(selectedWorkspace));
         if (workspace)
             *workspace = -1;
         return nullptr;
@@ -128,7 +128,7 @@ inline CanvasLayout* layoutForAction(int* workspace) {
     if (!selectedWorkspace)
         return nullptr;
 
-    auto* layout = getCanvasForWorkspace(ScrollerCore::HyprlandRuntime::workspaceId(selectedWorkspace));
+    auto* layout = getCanvasForWorkspace(CanvasCore::HyprlandRuntime::workspaceId(selectedWorkspace));
     if (layout)
         layout->prepareForActionContext();
     return layout;
@@ -164,11 +164,11 @@ inline std::string firstDispatchArg(const std::string& arg) {
 }
 
 inline std::optional<Direction> parsedDirectionArg(const std::string& arg) {
-    return ScrollerCore::parse_direction_arg(firstDispatchArg(arg));
+    return CanvasCore::parse_direction_arg(firstDispatchArg(arg));
 }
 
 inline std::optional<Mode> parsedModeArg(const std::string& arg) {
-    return ScrollerCore::parse_mode_arg(firstDispatchArg(arg));
+    return CanvasCore::parse_mode_arg(firstDispatchArg(arg));
 }
 
 template <typename Fn>

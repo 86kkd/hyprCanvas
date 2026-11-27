@@ -11,7 +11,7 @@
 #include <memory>
 #include <utility>
 
-namespace ScrollerCore {
+namespace CanvasCore {
 
 template <typename T>
 class ServiceSlot {
@@ -78,4 +78,4 @@ class ServiceSlot {
     T*                 override_ = nullptr;
 };
 
-} // namespace ScrollerCore
+} // namespace CanvasCore

@@ -9,7 +9,7 @@
 namespace Overview {
 namespace {
 
-ScrollerCore::Box round_box(const ScrollerCore::Box& box) {
+CanvasCore::Box round_box(const CanvasCore::Box& box) {
     return {
         std::round(box.x),
         std::round(box.y),
@@ -18,7 +18,7 @@ ScrollerCore::Box round_box(const ScrollerCore::Box& box) {
     };
 }
 
-ScrollerCore::Box transform_box_landscape(const ScrollerCore::Box& box,
+CanvasCore::Box transform_box_landscape(const CanvasCore::Box& box,
                                           wl_output_transform transform,
                                           double renderWidth,
                                           double renderHeight) {
@@ -36,7 +36,7 @@ ScrollerCore::Box transform_box_landscape(const ScrollerCore::Box& box,
     }
 }
 
-ScrollerCore::Box transform_box_portrait(const ScrollerCore::Box& box,
+CanvasCore::Box transform_box_portrait(const CanvasCore::Box& box,
                                          wl_output_transform transform,
                                          double renderWidth,
                                          double renderHeight) {
@@ -82,7 +82,7 @@ std::string_view orientation_name(MonitorOrientation orientation) {
     }
 }
 
-ScrollerCore::Box transform_box_to_render_space(const ScrollerCore::Box& box,
+CanvasCore::Box transform_box_to_render_space(const CanvasCore::Box& box,
                                                 wl_output_transform transform,
                                                 double renderWidth,
                                                 double renderHeight) {

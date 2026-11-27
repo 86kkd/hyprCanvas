@@ -33,7 +33,7 @@ const MonitorRegion* initial_empty_region(const Model& model) {
     if (model.monitors().empty())
         return nullptr;
 
-    const auto cursorMonitor = ScrollerCore::HyprlandRuntime::monitorFromCursor();
+    const auto cursorMonitor = CanvasCore::HyprlandRuntime::monitorFromCursor();
     if (!cursorMonitor)
         return &model.monitors().front();
 
@@ -127,8 +127,8 @@ void Session::damageMonitors() const {
     }
 }
 
-ScrollerCore::ServiceSlot<Session>& sessionSlot() {
-    static ScrollerCore::ServiceSlot<Session> slot;
+CanvasCore::ServiceSlot<Session>& sessionSlot() {
+    static CanvasCore::ServiceSlot<Session> slot;
     return slot;
 }
 
@@ -189,9 +189,9 @@ bool Session::selectCanvas(int canvasId, std::optional<int> preferredMonitorId) 
         return false;
 
     if (const auto* target = model_.resolve(*ref)) {
-        const auto workspace = ScrollerCore::HyprlandRuntime::workspaceById(target->workspaceId);
+        const auto workspace = CanvasCore::HyprlandRuntime::workspaceById(target->workspaceId);
         const auto remembered = workspace ? workspace->getLastFocusedWindow() : nullptr;
-        if (remembered && ScrollerCore::HyprlandRuntime::windowWorkspaceId(remembered) == target->workspaceId) {
+        if (remembered && CanvasCore::HyprlandRuntime::windowWorkspaceId(remembered) == target->workspaceId) {
             if (const auto rememberedRef = model_.findByWindow(remembered, canvasId)) {
                 model_.setSelection(*rememberedRef);
                 return true;
@@ -288,7 +288,7 @@ bool Session::moveSelection(Direction direction) {
         model_.setSelection(*targetRef);
         const auto* selection = model_.selection();
         spdlog::info("overview_move: direction={} canvas={} workspace={} window={} synthetic={}",
-                     ScrollerCore::direction_name(direction),
+                     CanvasCore::direction_name(direction),
                      selection ? selection->canvasId : INVALID_CANVAS_ID,
                      selection ? selection->workspaceId : INVALID_WORKSPACE_ID,
                      static_cast<const void*>(selection && selection->window ? selection->window.get() : nullptr),
@@ -332,7 +332,7 @@ bool Session::moveCanvasSelection(Direction direction) {
 
         const auto* selection = model_.selection();
         spdlog::info("overview_move_canvas: direction={} canvas={} workspace={}",
-                     ScrollerCore::direction_name(direction),
+                     CanvasCore::direction_name(direction),
                      selection ? selection->canvasId : INVALID_CANVAS_ID,
                      selection ? selection->workspaceId : INVALID_WORKSPACE_ID);
         return true;
@@ -348,7 +348,7 @@ bool Session::moveCanvasSelection(Direction direction) {
 
     const auto* selection = model_.selection();
     spdlog::info("overview_create_canvas: direction={} canvas={} workspace={}",
-                 ScrollerCore::direction_name(direction),
+                 CanvasCore::direction_name(direction),
                  selection ? selection->canvasId : INVALID_CANVAS_ID,
                  selection ? selection->workspaceId : INVALID_WORKSPACE_ID);
     return true;

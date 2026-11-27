@@ -16,16 +16,16 @@ inline bool approximatelyEqual(double a, double b, double epsilon = 0.5) {
     return std::abs(a - b) <= epsilon;
 }
 
-inline bool boxesMatch(const ScrollerCore::Box& a, const ScrollerCore::Box& b, double epsilon = 0.5) {
+inline bool boxesMatch(const CanvasCore::Box& a, const CanvasCore::Box& b, double epsilon = 0.5) {
     return approximatelyEqual(a.x, b.x, epsilon) && approximatelyEqual(a.y, b.y, epsilon)
         && approximatelyEqual(a.w, b.w, epsilon) && approximatelyEqual(a.h, b.h, epsilon);
 }
 
-inline bool finiteBox(const ScrollerCore::Box& box) {
+inline bool finiteBox(const CanvasCore::Box& box) {
     return std::isfinite(box.x) && std::isfinite(box.y) && std::isfinite(box.w) && std::isfinite(box.h);
 }
 
-inline ScrollerCore::Box translateBox(const ScrollerCore::Box& box, double dx, double dy) {
+inline CanvasCore::Box translateBox(const CanvasCore::Box& box, double dx, double dy) {
     return {
         box.x + dx,
         box.y + dy,
@@ -34,7 +34,7 @@ inline ScrollerCore::Box translateBox(const ScrollerCore::Box& box, double dx, d
     };
 }
 
-inline ScrollerCore::Box insetBox(const ScrollerCore::Box& box, double insetX, double insetY, double minimumSize = 1.0) {
+inline CanvasCore::Box insetBox(const CanvasCore::Box& box, double insetX, double insetY, double minimumSize = 1.0) {
     return {
         box.x + insetX,
         box.y + insetY,
@@ -43,7 +43,7 @@ inline ScrollerCore::Box insetBox(const ScrollerCore::Box& box, double insetX, d
     };
 }
 
-inline ScrollerCore::Box centerScaleBox(const ScrollerCore::Box& box, double scale) {
+inline CanvasCore::Box centerScaleBox(const CanvasCore::Box& box, double scale) {
     const auto scaledWidth = box.w * scale;
     const auto scaledHeight = box.h * scale;
     return {
@@ -54,14 +54,14 @@ inline ScrollerCore::Box centerScaleBox(const ScrollerCore::Box& box, double sca
     };
 }
 
-inline ScrollerCore::Box unionBox(const ScrollerCore::Box& a, const ScrollerCore::Box& b) {
+inline CanvasCore::Box unionBox(const CanvasCore::Box& a, const CanvasCore::Box& b) {
     const auto x = std::min(a.x, b.x);
     const auto y = std::min(a.y, b.y);
     return {x, y, std::max(a.x + a.w, b.x + b.w) - x,
             std::max(a.y + a.h, b.y + b.h) - y};
 }
 
-inline std::optional<ScrollerCore::Box> intersectBox(const ScrollerCore::Box& box, const ScrollerCore::Box& bounds) {
+inline std::optional<CanvasCore::Box> intersectBox(const CanvasCore::Box& box, const CanvasCore::Box& bounds) {
     if (!finiteBox(box) || !finiteBox(bounds))
         return std::nullopt;
 
@@ -72,7 +72,7 @@ inline std::optional<ScrollerCore::Box> intersectBox(const ScrollerCore::Box& bo
     if (x1 <= x0 || y1 <= y0)
         return std::nullopt;
 
-    return ScrollerCore::Box{x0, y0, x1 - x0, y1 - y0};
+    return CanvasCore::Box{x0, y0, x1 - x0, y1 - y0};
 }
 
 } // namespace Overview

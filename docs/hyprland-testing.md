@@ -1,11 +1,11 @@
 # Hyprland 测试说明
 
-这份文档说明如何用 `Hyprland` 本身来做 `hyprscroller` 的集成测试，
+这份文档说明如何用 `Hyprland` 本身来做 `hyprcanvas` 的集成测试，
 重点覆盖以下场景：
 
 - 在不污染当前桌面会话的前提下复现插件问题
 - 用 debug 构建的插件做手工回归
-- 采集 `Hyprland` 和 `hyprscroller` 的日志
+- 采集 `Hyprland` 和 `hyprcanvas` 的日志
 - 对 `layout` 切换、`overview`、跨 workspace/monitor 行为做定点回归
 
 ## 目标
@@ -53,10 +53,10 @@ make debug
 构建 Debug 插件后，在仓库根目录运行（需安装 `kitty`）：
 
 ```bash
-env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c tests/hyprscroller-test.lua
+env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c tests/hyprcanvas-test.lua
 ```
 
-[`tests/hyprscroller-test.lua`](../tests/hyprscroller-test.lua) 加载本仓库的
+[`tests/hyprcanvas-test.lua`](../tests/hyprcanvas-test.lua) 加载本仓库的
 `Debug/hyprCanvas.so`，启动时不创建窗口，输出尺寸采用 `preferred`。
 需要终端时按 `Ctrl + Alt + Enter` 打开 kitty。快捷键使用
 `Ctrl + Alt`，方便在嵌套会话中与外层桌面的 `Super` 绑定区分：
@@ -94,7 +94,7 @@ python3 scripts/repro-stack-removal.py
 防止从多 lane 回到单 lane 时残留一屏偏移。
 
 版本说明：本节及其子节中的旧版 shell repro 脚本保留了 Hyprlang 配置和旧
-`scroller:*` dispatcher 调用，尚未迁移，不适用于当前 0.57 基线。当前版本
+`canvas:*` dispatcher 调用，尚未迁移，不适用于当前 0.57 基线。当前版本
 请使用本文末尾的 `scripts/repro-overview-shared-workspace.py`，或第 3 节起的
 Lua 手工测试流程。不要直接运行旧脚本来验证当前版本。
 
@@ -110,7 +110,7 @@ overview”这条固定链路，优先直接用仓库里的脚本：
 - 生成一份最小 nested `Hyprland` 配置并加载 `./Debug/hyprCanvas.so`
 - 把嵌套 Hyprland 作为一个浮动窗口放到指定 outer monitor
 - 在 nested 实例里创建一个图片预览窗口和四个终端窗口
-- 在 nested 实例内部自动执行 `scroller:toggleoverview`
+- 在 nested 实例内部自动执行 `canvas:toggleoverview`
 - 默认等待短暂可见期后自动退出 nested 实例
 - 输出 nested 实例 id、日志路径和测试结果
 
@@ -151,7 +151,7 @@ overview”这条固定链路，优先直接用仓库里的脚本：
 ./scripts/repro-overview-canvas-workspaces.sh --outer-monitor HDMI-A-1
 ```
 
-它会先验证 normal-mode `scroller:focusmonitor` 只切 monitor focus，
+它会先验证 normal-mode `canvas:focusmonitor` 只切 monitor focus，
 再在 overview 里执行 `focusmonitor r -> toggleoverview(close-accept)`，并检查
 5 块 nested monitor 是否一起切到新的空白 canvas workspace，再验证可以切回原
 来的 canvas，且未创建窗口的临时 canvas 被回收。脚本会把 nested 输出摆成“上中下三个横屏，左右各一个竖屏”的十字
@@ -192,18 +192,18 @@ source "$REPO_ROOT/scripts/lib/nested-monitor-layouts.sh"
 
 这份 helper 提供的入口：
 
-- `hyprscroller_five_monitor_names`
-- `hyprscroller_five_outer_titles`
-- `hyprscroller_monitor_logical_geometry`
-- `hyprscroller_compute_five_monitor_outer_layout`
-- `hyprscroller_install_outer_output_map_time_float_rules`
-- `hyprscroller_outer_event_socket_path`
-- `hyprscroller_start_outer_output_event_watcher`
-- `hyprscroller_wait_for_outer_output_event_watcher_ready`
-- `hyprscroller_wait_for_outer_output_position_events`
-- `hyprscroller_create_positioned_wayland_outputs`
-- `hyprscroller_position_outer_windows`
-- `hyprscroller_apply_five_monitor_cross_layout`
+- `hyprcanvas_five_monitor_names`
+- `hyprcanvas_five_outer_titles`
+- `hyprcanvas_monitor_logical_geometry`
+- `hyprcanvas_compute_five_monitor_outer_layout`
+- `hyprcanvas_install_outer_output_map_time_float_rules`
+- `hyprcanvas_outer_event_socket_path`
+- `hyprcanvas_start_outer_output_event_watcher`
+- `hyprcanvas_wait_for_outer_output_event_watcher_ready`
+- `hyprcanvas_wait_for_outer_output_position_events`
+- `hyprcanvas_create_positioned_wayland_outputs`
+- `hyprcanvas_position_outer_windows`
+- `hyprcanvas_apply_five_monitor_cross_layout`
 
 推荐时序是先根据 outer monitor 计算出 5 个 preview window 的几何，然后在启动
 nested Hyprland 之前安装最小 map-time `float` 规则，让后续
@@ -230,10 +230,10 @@ OUTER_OUTPUT_HEIGHTS=()
 OUTER_OUTPUT_EVENT_STATE="$RUN_DIR/outer-output-events.tsv"
 OUTER_OUTPUT_EVENT_READY="$RUN_DIR/outer-output-events.ready"
 
-hyprscroller_five_monitor_names NESTED_MONITOR_NAMES
-hyprscroller_five_outer_titles OUTER_OUTPUT_TITLES
+hyprcanvas_five_monitor_names NESTED_MONITOR_NAMES
+hyprcanvas_five_outer_titles OUTER_OUTPUT_TITLES
 
-hyprscroller_compute_five_monitor_outer_layout \
+hyprcanvas_compute_five_monitor_outer_layout \
   "$outer_monitor_json" \
   "$WINDOW_WIDTH" \
   "$WINDOW_HEIGHT" \
@@ -245,10 +245,10 @@ hyprscroller_compute_five_monitor_outer_layout \
   OUTER_OUTPUT_WIDTHS \
   OUTER_OUTPUT_HEIGHTS
 
-hyprscroller_install_outer_output_map_time_float_rules OUTER_OUTPUT_TITLES
+hyprcanvas_install_outer_output_map_time_float_rules OUTER_OUTPUT_TITLES
 
-OUTER_OUTPUT_EVENT_SOCKET="$(hyprscroller_outer_event_socket_path)"
-hyprscroller_start_outer_output_event_watcher \
+OUTER_OUTPUT_EVENT_SOCKET="$(hyprcanvas_outer_event_socket_path)"
+hyprcanvas_start_outer_output_event_watcher \
   OUTER_OUTPUT_EVENT_WATCHER_PID \
   "$OUTER_OUTPUT_EVENT_SOCKET" \
   "$OUTER_OUTPUT_EVENT_STATE" \
@@ -260,9 +260,9 @@ hyprscroller_start_outer_output_event_watcher \
   OUTER_OUTPUT_YS \
   OUTER_OUTPUT_WIDTHS \
   OUTER_OUTPUT_HEIGHTS
-hyprscroller_wait_for_outer_output_event_watcher_ready "$OUTER_OUTPUT_EVENT_READY"
+hyprcanvas_wait_for_outer_output_event_watcher_ready "$OUTER_OUTPUT_EVENT_READY"
 
-hyprscroller_create_positioned_wayland_outputs \
+hyprcanvas_create_positioned_wayland_outputs \
   "$NESTED_INSTANCE" \
   1 \
   5 \
@@ -276,9 +276,9 @@ hyprscroller_create_positioned_wayland_outputs \
   OUTER_OUTPUT_WIDTHS \
   OUTER_OUTPUT_HEIGHTS
 
-hyprscroller_wait_for_outer_output_position_events "$OUTER_OUTPUT_EVENT_STATE" 5
+hyprcanvas_wait_for_outer_output_position_events "$OUTER_OUTPUT_EVENT_STATE" 5
 
-hyprscroller_position_outer_windows \
+hyprcanvas_position_outer_windows \
   "$OUTER_MONITOR_X" \
   "$OUTER_MONITOR_Y" \
   OUTER_OUTPUT_TITLES \
@@ -287,7 +287,7 @@ hyprscroller_position_outer_windows \
   OUTER_OUTPUT_WIDTHS \
   OUTER_OUTPUT_HEIGHTS
 
-hyprscroller_apply_five_monitor_cross_layout \
+hyprcanvas_apply_five_monitor_cross_layout \
   "$NESTED_INSTANCE" \
   "$WINDOW_WIDTH" \
   "$WINDOW_HEIGHT"
@@ -301,30 +301,30 @@ hyprscroller_apply_five_monitor_cross_layout \
 - `WAYLAND-1` 左竖屏
 - `WAYLAND-4` 右竖屏
 
-如果你要验证“layout 切换 / plugin reload 之后 scroller 是否恢复原布局”，
+如果你要验证“layout 切换 / plugin reload 之后 canvas 是否恢复原布局”，
 优先用这条脚本：
 
 ```bash
 ./scripts/repro-layout-persistence.sh
 ```
 
-它会在 nested 会话里构造一个多 lane、多窗口的 scroller 布局，然后依次验证：
+它会在 nested 会话里构造一个多 lane、多窗口的 canvas 布局，然后依次验证：
 
-- `master -> scroller`
-- `dwindle -> scroller`
-- `plugin unload/load -> scroller`
+- `master -> canvas`
+- `dwindle -> canvas`
+- `plugin unload/load -> canvas`
 
 脚本会输出 nested instance、log 路径、run dir，以及每一步的几何对比结论。
 
 ## 3. 手工启动嵌套 Hyprland 测试实例
 
-先写一份最小测试配置，例如 `/tmp/hyprscroller-test.lua`：
+先写一份最小测试配置，例如 `/tmp/hyprcanvas-test.lua`：
 
 ```lua
-hl.plugin.load("/home/linda/Documents/hyprscroller/Debug/hyprCanvas.so")
+hl.plugin.load("/home/linda/Documents/hyprcanvas/Debug/hyprCanvas.so")
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
 hl.config({
-    general = { layout = "scroller", gaps_in = 4, gaps_out = 8, border_size = 2 },
+    general = { layout = "canvas", gaps_in = 4, gaps_out = 8, border_size = 2 },
     decoration = { rounding = 6 },
     misc = { disable_hyprland_logo = true, disable_splash_rendering = true },
     input = { kb_layout = "us" },
@@ -339,7 +339,7 @@ hl.config({
 然后直接启动一个嵌套测试实例：
 
 ```bash
-env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.lua
+env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprcanvas-test.lua
 ```
 
 说明：
@@ -404,14 +404,14 @@ hyprctl -i <instance-signature> activeworkspace -j
 ```bash
 hyprctl -i <instance-signature> eval 'hl.config({general={layout="master"}})'
 hyprctl -i <instance-signature> eval 'hl.config({general={layout="dwindle"}})'
-hyprctl -i <instance-signature> eval 'hl.config({general={layout="scroller"}})'
+hyprctl -i <instance-signature> eval 'hl.config({general={layout="canvas"}})'
 ```
 
 常见回归点：
 
-- `master -> scroller`
-- `dwindle -> scroller`
-- `scroller -> master -> scroller`
+- `master -> canvas`
+- `dwindle -> canvas`
+- `canvas -> master -> canvas`
 - 多 workspace 下切换后再回到隐藏 workspace
 - 有 `fullscreen` / `overview` 状态时再切 layout
 
@@ -420,32 +420,32 @@ hyprctl -i <instance-signature> eval 'hl.config({general={layout="scroller"}})'
 打开 overview：
 
 ```bash
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.toggle_overview()'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.toggle_overview()'
 ```
 
 移动 overview 里的逻辑选中项：
 
 ```bash
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_focus("r")'
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_focus("l")'
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_focus("u")'
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_focus("d")'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.move_focus("r")'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.move_focus("l")'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.move_focus("u")'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.move_focus("d")'
 ```
 
 移动 overview 里的 canvas workspace focus：
 
 ```bash
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.focus_monitor("r")'
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.focus_monitor("l")'
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.focus_monitor("u")'
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.focus_monitor("d")'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.focus_monitor("r")'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.focus_monitor("l")'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.focus_monitor("u")'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.focus_monitor("d")'
 ```
 
 接受或取消：
 
 ```bash
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.toggle_overview()'
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.cancel_overview()'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.toggle_overview()'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.cancel_overview()'
 ```
 
 推荐重点回归：
@@ -455,7 +455,7 @@ hyprctl -i <instance-signature> eval 'hl.plugin.scroller.cancel_overview()'
 - 打开/关闭 overview 时是否有卡片残留
 - overview 期间真实 focus 是否被错误改变
 
-## 8. 手工测试 scroller Lua 命令
+## 8. 手工测试 canvas Lua 命令
 
 日常手工回归优先用仓库里的短命令包装，它会自动选中「非当前会话」的嵌套实例：
 
@@ -489,7 +489,7 @@ hyprctl -i <instance-signature> eval 'hl.plugin.scroller.cancel_overview()'
 也可以在仅有目标测试实例时先固定它，后面就不用每次带 `-i`：
 
 ```bash
-export HYPRSCROLLER_INSTANCE="$(./scripts/hsctl which)"
+export HYPRCANVAS_INSTANCE="$(./scripts/hsctl which)"
 ./scripts/hsctl focus r
 ```
 
@@ -497,17 +497,17 @@ export HYPRSCROLLER_INSTANCE="$(./scripts/hsctl which)"
 
 ```bash
 ./scripts/hsctl raw monitors -j
-./scripts/hsctl eval 'hl.plugin.scroller.move_focus("r")'
+./scripts/hsctl eval 'hl.plugin.canvas.move_focus("r")'
 ```
 
 等价的长命令（一般不必再手写）：
 
 ```bash
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_focus("r")'
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.move_window("r")'
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.set_mode("row")'
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.set_mode("col")'
-hyprctl -i <instance-signature> eval 'hl.plugin.scroller.toggle_fullscreen()'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.move_focus("r")'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.move_window("r")'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.set_mode("row")'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.set_mode("col")'
+hyprctl -i <instance-signature> eval 'hl.plugin.canvas.toggle_fullscreen()'
 ```
 
 推荐测试组合：
@@ -524,7 +524,7 @@ hyprctl -i <instance-signature> eval 'hl.plugin.scroller.toggle_fullscreen()'
 如果你是直接在终端里运行：
 
 ```bash
-env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.lua
+env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprcanvas-test.lua
 ```
 
 那么这个终端里的 stdout/stderr 就是测试实例的 `Hyprland` 日志。
@@ -532,7 +532,7 @@ env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.l
 如果要落盘：
 
 ```bash
-env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.lua > /tmp/hyprland-test.log 2>&1
+env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprcanvas-test.lua > /tmp/hyprland-test.log 2>&1
 ```
 
 重点关注：
@@ -564,7 +564,7 @@ tail -n 200 ~/.hyprland/plugins/hyprCanvas/hyprCanvas.log
 例如测试实例的 socket 是 `wayland-2`：
 
 ```bash
-WAYLAND_DISPLAY=wayland-2 grim /tmp/hyprscroller-test.png
+WAYLAND_DISPLAY=wayland-2 grim /tmp/hyprcanvas-test.png
 ```
 
 这样可以在不影响主会话的情况下抓到测试实例的画面。
@@ -585,7 +585,7 @@ hyprctl -i <instance-signature> eval 'hl.dispatch(hl.dsp.exit())'
 
 1. `make debug`
 2. 优先运行 `./scripts/repro-overview.sh --outer-monitor <monitor>`
-3. 如果脚本不适用，再手工启动嵌套 `env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprscroller-test.lua`
+3. 如果脚本不适用，再手工启动嵌套 `env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprcanvas-test.lua`
 4. 用 `hyprctl instances -j` 找到测试实例
 5. 在测试实例里创建目标窗口
 6. 跑目标场景
@@ -671,7 +671,7 @@ python3 scripts/repro-overview-shared-workspace.py
 compositor，按 PID 找到自己的 instance，创建两块 headless 输出后移除其
 Wayland 预览输出。启动时会短暂出现 nested 窗口；测试期间不切换主会话
 workspace、不热加载主会话插件，结束时只关闭自己的实例。
-输出 `/tmp/hyprscroller-shared-workspace.*/` 下的截图、日志和 result.json。
+输出 `/tmp/hyprcanvas-shared-workspace.*/` 下的截图、日志和 result.json。
 这是 Lua 配置/API 路径，不依赖旧脚本中的 legacy dispatcher。
 
 复现顺序：记录 `(101,102)` canvas，原生切换主屏到 103 并记录
@@ -707,7 +707,7 @@ canvas 测试，验证跨屏移动保持目标窗口焦点、鼠标同步到目�
 ### 安装前的热重载验证
 
 添加 `--reload-plugin` 会在独立实例中切到 dwindle，卸载/加载待安装插件，
-再切回 scroller，断言所有窗口的 workspace/monitor 归属和可见 workspace
+再切回 canvas，断言所有窗口的 workspace/monitor 归属和可见 workspace
 不变。切换布局可能改变焦点，因此安装流程应另外记录并恢复活动窗口。
 脚本同时覆盖 Lua 配置中的 `hl.plugin.load(...)` 自动加载入口。
 
@@ -756,7 +756,7 @@ preview 的 `tileX / tileY`；不另存一套地图布局。HUD 的显示时间�
 插件运行态，桌面直接切换 canvas 后显示约 1.5 秒；overview 中始终显示在打开 overview 的屏幕，
 接受或取消时随 overview 一起消失，并清除此前的 HUD 计时，不再触发切换提示。
 点击仅改变 session preview，接受和取消仍由现有 overview 事务处理。
-地图默认开启，可通过 `plugin:scroller:canvas_map = 0` 关闭。
+地图默认开启，可通过 `plugin:canvas:canvas_map = 0` 关闭。
 
 自动回归：
 
@@ -796,7 +796,7 @@ python3 scripts/repro-empty-canvas-focus.py
 ```bash
 cmake --build Debug -j 2
 ctest --test-dir Debug --output-on-failure
-lua tests/scroller_keybinds_tests.lua
+lua tests/canvas_keybinds_tests.lua
 python3 scripts/repro-canvas-window-transfer.py
 ```
 

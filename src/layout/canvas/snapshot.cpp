@@ -36,17 +36,17 @@ Mode restored_mode_or_default(int value, Mode fallback) {
     }
 }
 
-ScrollerModel::WindowHeight restored_height_or_default(int value) {
-    switch (static_cast<ScrollerModel::WindowHeight>(value)) {
-    case ScrollerModel::WindowHeight::OneThird:
-    case ScrollerModel::WindowHeight::OneHalf:
-    case ScrollerModel::WindowHeight::TwoThirds:
-    case ScrollerModel::WindowHeight::One:
-    case ScrollerModel::WindowHeight::Free:
-    case ScrollerModel::WindowHeight::Auto:
-        return static_cast<ScrollerModel::WindowHeight>(value);
+CanvasModel::WindowHeight restored_height_or_default(int value) {
+    switch (static_cast<CanvasModel::WindowHeight>(value)) {
+    case CanvasModel::WindowHeight::OneThird:
+    case CanvasModel::WindowHeight::OneHalf:
+    case CanvasModel::WindowHeight::TwoThirds:
+    case CanvasModel::WindowHeight::One:
+    case CanvasModel::WindowHeight::Free:
+    case CanvasModel::WindowHeight::Auto:
+        return static_cast<CanvasModel::WindowHeight>(value);
     default:
-        return ScrollerModel::WindowHeight::One;
+        return CanvasModel::WindowHeight::One;
     }
 }
 
@@ -55,10 +55,10 @@ std::vector<PHLWINDOW> live_tiled_workspace_windows(PHLWORKSPACE workspace) {
     if (!workspace)
         return windows;
 
-    windows.reserve(ScrollerCore::HyprlandRuntime::windows().size());
-    for (const auto &window : ScrollerCore::HyprlandRuntime::windows()) {
+    windows.reserve(CanvasCore::HyprlandRuntime::windows().size());
+    for (const auto &window : CanvasCore::HyprlandRuntime::windows()) {
         if (!window ||
-            ScrollerCore::HyprlandRuntime::windowWorkspaceId(window) != ScrollerCore::HyprlandRuntime::workspaceId(workspace) ||
+            CanvasCore::HyprlandRuntime::windowWorkspaceId(window) != CanvasCore::HyprlandRuntime::workspaceId(workspace) ||
             window->isFloating() || !window->mapped() || window->isHidden())
             continue;
         windows.push_back(window);
@@ -68,13 +68,13 @@ std::vector<PHLWINDOW> live_tiled_workspace_windows(PHLWORKSPACE workspace) {
 
 } // namespace
 
-std::optional<ScrollerSnapshot::CanvasSnapshot> CanvasLayout::captureSnapshot() const {
+std::optional<CanvasLayoutSnapshot::CanvasSnapshot> CanvasLayout::captureSnapshot() const {
     const auto workspace = getLayoutWorkspace();
     if (!workspace)
         return std::nullopt;
 
-    ScrollerSnapshot::CanvasSnapshot snapshot;
-    snapshot.workspaceId = ScrollerCore::HyprlandRuntime::workspaceId(workspace);
+    CanvasLayoutSnapshot::CanvasSnapshot snapshot;
+    snapshot.workspaceId = CanvasCore::HyprlandRuntime::workspaceId(workspace);
 
     size_t storedLaneIndex = 0;
     bool foundActiveLane = false;
@@ -115,7 +115,7 @@ void CanvasLayout::persistSnapshot() {
         });
         if (!fullyManaged) {
             spdlog::debug("persistSnapshot: preserving last complete snapshot during partial detach workspace={} live_windows={}",
-                          ScrollerCore::HyprlandRuntime::workspaceId(workspace),
+                          CanvasCore::HyprlandRuntime::workspaceId(workspace),
                           liveWindows.size());
             return;
         }
@@ -138,12 +138,12 @@ void CanvasLayout::clearPersistedSnapshot() {
     if (!workspace)
         return;
 
-    CanvasLayoutState::repository().erase(ScrollerCore::HyprlandRuntime::workspaceId(workspace));
+    CanvasLayoutState::repository().erase(CanvasCore::HyprlandRuntime::workspaceId(workspace));
 }
 
-bool CanvasLayout::restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snapshot) {
+bool CanvasLayout::restoreSnapshot(const CanvasLayoutSnapshot::CanvasSnapshot &snapshot) {
     const auto workspace = getLayoutWorkspace();
-    if (!workspace || snapshot.workspaceId != ScrollerCore::HyprlandRuntime::workspaceId(workspace))
+    if (!workspace || snapshot.workspaceId != CanvasCore::HyprlandRuntime::workspaceId(workspace))
         return false;
 
     const auto liveWindows = live_tiled_workspace_windows(workspace);
@@ -153,20 +153,20 @@ bool CanvasLayout::restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snaps
     std::unordered_map<uintptr_t, PHLWINDOW> windowsByKey;
     windowsByKey.reserve(liveWindows.size());
     for (const auto &window : liveWindows)
-        windowsByKey.emplace(ScrollerCore::snapshot_window_key(
+        windowsByKey.emplace(CanvasCore::snapshot_window_key(
                                  window,
                                  snapshot.version,
-                                 ScrollerSnapshot::kStableWindowKeyFormatVersion),
+                                 CanvasLayoutSnapshot::kStableWindowKeyFormatVersion),
                              window);
 
     const auto visibleMonitor = getVisibleCanvasMonitor();
-    const auto fallbackMonitor = visibleMonitor ? visibleMonitor : ScrollerCore::HyprlandRuntime::monitorById(liveWindows.front()->monitorID());
+    const auto fallbackMonitor = visibleMonitor ? visibleMonitor : CanvasCore::HyprlandRuntime::monitorById(liveWindows.front()->monitorID());
     if (!fallbackMonitor)
         return false;
 
     restoredTargetsAwaitingCallback.clear();
     for (const auto &window : liveWindows)
-        restoredTargetsAwaitingCallback.insert(ScrollerCore::window_key(window));
+        restoredTargetsAwaitingCallback.insert(CanvasCore::window_key(window));
     restoredGeometryActive = true;
 
     const auto bounds = CanvasLayoutInternal::compute_canvas_bounds(fallbackMonitor);
@@ -181,19 +181,19 @@ bool CanvasLayout::restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snaps
         const auto &laneSnapshot = snapshot.lanes[laneIndex];
         auto lane = std::make_unique<Lane>(
             fallbackMonitor,
-            restored_mode_or_default(laneSnapshot.mode, ScrollerCore::default_mode_for_monitor(fallbackMonitor)));
+            restored_mode_or_default(laneSnapshot.mode, CanvasCore::default_mode_for_monitor(fallbackMonitor)));
         lane->set_ephemeral(laneSnapshot.ephemeral);
 
         for (size_t stackIndex = 0; stackIndex < laneSnapshot.stacks.size(); ++stackIndex) {
             const auto &stackSnapshot = laneSnapshot.stacks[stackIndex];
-            auto stack = std::make_unique<ScrollerModel::Stack>(bounds.max.w, bounds.max.h, lane->get_mode());
+            auto stack = std::make_unique<CanvasModel::Stack>(bounds.max.w, bounds.max.h, lane->get_mode());
 
             for (const auto &windowSnapshot : stackSnapshot.windows) {
                 const auto it = windowsByKey.find(windowSnapshot.key);
                 if (it == windowsByKey.end())
                     continue;
 
-                auto window = std::make_unique<ScrollerModel::Window>(it->second, windowSnapshot.geomH, lane->get_mode());
+                auto window = std::make_unique<CanvasModel::Window>(it->second, windowSnapshot.geomH, lane->get_mode());
                 window->restore_state(restored_height_or_default(windowSnapshot.heightMode),
                                       windowSnapshot.geomY,
                                       windowSnapshot.geomH,
@@ -206,7 +206,7 @@ bool CanvasLayout::restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snaps
             if (stack->size() == 0)
                 continue;
 
-            stack->restore_state(ScrollerModel::StackWidth::from_snapshot(stackSnapshot.width),
+            stack->restore_state(CanvasModel::StackWidth::from_snapshot(stackSnapshot.width),
                                  stackSnapshot.geom,
                                  stackSnapshot.memGeom,
                                  stackSnapshot.fullscreened,
@@ -214,10 +214,10 @@ bool CanvasLayout::restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snaps
             if (stackSnapshot.activeWindowKey != 0) {
                 const auto activeWindowKey = stackSnapshot.activeWindowKey;
                 stack->for_each_window([&](PHLWINDOW window) {
-                    if (ScrollerCore::snapshot_window_key(
+                    if (CanvasCore::snapshot_window_key(
                             window,
                             snapshot.version,
-                            ScrollerSnapshot::kStableWindowKeyFormatVersion) == activeWindowKey)
+                            CanvasLayoutSnapshot::kStableWindowKeyFormatVersion) == activeWindowKey)
                         stack->focus_window(window);
                 });
             }
@@ -254,7 +254,7 @@ bool CanvasLayout::restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snaps
     }
 
     const auto restoredActiveWindow = activeLane && activeLane->data() ? activeLane->data()->get_active_window() : nullptr;
-    relayoutCanvas(fallbackMonitor, !ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace), true);
+    relayoutCanvas(fallbackMonitor, !CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspace), true);
     if (restoredActiveWindow)
         focusManagedWindow(restoredActiveWindow, false, "restoreSnapshot");
     debugVerifyLaneCache();
@@ -262,7 +262,7 @@ bool CanvasLayout::restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snaps
     restoringSnapshot = false;
     persistSnapshot();
     spdlog::info("restore_snapshot: workspace={} restored_lanes={} live_windows={}",
-                 ScrollerCore::HyprlandRuntime::workspaceId(workspace),
+                 CanvasCore::HyprlandRuntime::workspaceId(workspace),
                  snapshot.lanes.size(),
                  liveWindows.size());
     return true;
@@ -278,7 +278,7 @@ bool CanvasLayout::maybeRestoreWorkspaceSnapshot() {
         return false;
 
     CanvasLayoutState::repository().initialize();
-    const auto snapshot = CanvasLayoutState::repository().find(ScrollerCore::HyprlandRuntime::workspaceId(workspace));
+    const auto snapshot = CanvasLayoutState::repository().find(CanvasCore::HyprlandRuntime::workspaceId(workspace));
     if (!snapshot)
         return false;
 

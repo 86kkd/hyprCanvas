@@ -8,7 +8,7 @@
 #include <hyprland/src/managers/eventLoop/EventLoopManager.hpp>
 #include <cmath>
 
-namespace ScrollerCore::FocusPointerSync {
+namespace CanvasCore::FocusPointerSync {
 namespace {
 UP<SEventLoopDoLaterLock> pending;
 CHyprSignalListener mouseMove;

@@ -96,7 +96,7 @@ void handle_session_transition(steady_tp now) {
         spdlog::info("overview_renderer: enabled monitors={}", overview.model().monitors().size());
     } else {
         for (const auto& [monitorId, _scene] : state.scenes()) {
-            if (const auto monitor = ScrollerCore::HyprlandRuntime::monitorById(monitorId))
+            if (const auto monitor = CanvasCore::HyprlandRuntime::monitorById(monitorId))
                 g_pHyprRenderer->damageMonitor(monitor);
         }
         state.clearSessionState();
@@ -174,7 +174,7 @@ bool initializeRendererHooksImpl(HANDLE handle) {
             }
             if (!session().active() || event.state != WL_POINTER_BUTTON_STATE_PRESSED)
                 return;
-            const auto monitor = ScrollerCore::HyprlandRuntime::monitorById(session().model().origin().monitorId);
+            const auto monitor = CanvasCore::HyprlandRuntime::monitorById(session().model().origin().monitorId);
             if (!Minimap::visible(monitor, std::chrono::steady_clock::now()))
                 return;
             const auto pointer = Pointer::mgr()->position();

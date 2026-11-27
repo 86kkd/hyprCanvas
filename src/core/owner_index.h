@@ -3,7 +3,7 @@
 #include <unordered_map>
 #include <utility>
 
-namespace ScrollerCore {
+namespace CanvasCore {
 
 /**
  * @brief Shared cache for "member key -> owning object" lookups.
@@ -96,4 +96,4 @@ private:
     mutable std::unordered_map<Key, Owner *> owners_;
 };
 
-} // namespace ScrollerCore
+} // namespace CanvasCore

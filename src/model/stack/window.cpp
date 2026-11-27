@@ -14,12 +14,12 @@
 
 extern HANDLE PHANDLE;
 
-namespace ScrollerModel {
+namespace CanvasModel {
 
 Window::Window(PHLWINDOW window, double box_h, Mode mode)
     : window(window),
       height(WindowHeight::One),
-      box_y(window ? ScrollerCore::stack_local_origin_for_window(mode, ScrollerCore::HyprlandRuntime::windowPosition(window)) - ScrollerCore::HyprlandRuntime::windowBorderSize(window) : 0.0),
+      box_y(window ? CanvasCore::stack_local_origin_for_window(mode, CanvasCore::HyprlandRuntime::windowPosition(window)) - CanvasCore::HyprlandRuntime::windowBorderSize(window) : 0.0),
       box_h(box_h) {}
 
 Window::~Window() {
@@ -133,10 +133,10 @@ void Window::restore_state(WindowHeight h, double geom_y, double geom_h, double 
     mem.box_h = mem_h;
 }
 
-ScrollerSnapshot::WindowSnapshot Window::capture_snapshot() const {
+CanvasLayoutSnapshot::WindowSnapshot Window::capture_snapshot() const {
     const auto compositorWindow = window.lock();
     return {
-        .key = ScrollerCore::window_key(compositorWindow),
+        .key = CanvasCore::window_key(compositorWindow),
         .heightMode = static_cast<int>(height),
         .geomY = box_y,
         .geomH = box_h,
@@ -145,4 +145,4 @@ ScrollerSnapshot::WindowSnapshot Window::capture_snapshot() const {
     };
 }
 
-} // namespace ScrollerModel
+} // namespace CanvasModel

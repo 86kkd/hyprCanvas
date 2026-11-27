@@ -56,13 +56,13 @@ const CanvasWorkspaceMember* find_member(const CanvasWorkspaceRecord& canvas, in
 }
 
 PHLWINDOW preferred_window_for_workspace(WORKSPACEID workspaceId) {
-    const auto workspace = ScrollerCore::HyprlandRuntime::workspaceById(workspaceId);
+    const auto workspace = CanvasCore::HyprlandRuntime::workspaceById(workspaceId);
     if (!workspace)
         return nullptr;
 
     auto remembered = workspace->getLastFocusedWindow();
     if (remembered && remembered->mapped() && !remembered->isFloating() &&
-        ScrollerCore::HyprlandRuntime::windowWorkspaceId(remembered) == workspaceId)
+        CanvasCore::HyprlandRuntime::windowWorkspaceId(remembered) == workspaceId)
         return remembered;
 
     if (auto* layout = CanvasLayoutInternal::get_canvas_for_workspace(workspaceId)) {
@@ -100,7 +100,7 @@ bool CanvasWorkspaceController::activateCanvas(int canvasId,
     const auto sourceCanvas = canvasRepo.find(canvasRepo.activeCanvasId());
 
     std::vector<CanvasWorkspaceMember> members;
-    for (const auto& monitor : ScrollerCore::HyprlandRuntime::monitors()) {
+    for (const auto& monitor : CanvasCore::HyprlandRuntime::monitors()) {
         if (!monitor)
             continue;
 
@@ -120,11 +120,11 @@ bool CanvasWorkspaceController::activateCanvas(int canvasId,
 
     auto visitedSelectedMonitor = false;
     for (const auto& member : members) {
-        const auto monitor = ScrollerCore::HyprlandRuntime::monitorById(member.monitorId);
+        const auto monitor = CanvasCore::HyprlandRuntime::monitorById(member.monitorId);
         if (!monitor)
             continue;
 
-        const auto workspace = ScrollerCore::HyprlandRuntime::workspaceById(member.workspaceId);
+        const auto workspace = CanvasCore::HyprlandRuntime::workspaceById(member.workspaceId);
         const auto outgoingWorkspace = monitor->m_activeWorkspace;
         const auto outgoingOffset = outgoingWorkspace && outgoingWorkspace->m_renderOffset
             ? outgoingWorkspace->m_renderOffset->value() : Vector2D{};
@@ -141,7 +141,7 @@ bool CanvasWorkspaceController::activateCanvas(int canvasId,
         const auto incomingWorkspace = monitor->m_activeWorkspace;
         if (sourceCanvas && sourceCanvas->canvasId != canvasId && incomingWorkspace &&
             outgoingWorkspace != incomingWorkspace) {
-            const auto offset = ScrollerCore::canvas_transition_offset(sourceCanvas->tileX, sourceCanvas->tileY,
+            const auto offset = CanvasCore::canvas_transition_offset(sourceCanvas->tileX, sourceCanvas->tileY,
                                                                        targetCanvas->tileX, targetCanvas->tileY, monitor->m_size);
             if (offset.x == 0.0 && offset.y == 0.0)
                 continue;
@@ -170,11 +170,11 @@ bool CanvasWorkspaceController::activateCanvas(int canvasId,
         return true;
 
     const auto fallbackMember = members.front();
-    const auto fallbackMonitor = ScrollerCore::HyprlandRuntime::monitorById(fallbackMember.monitorId);
+    const auto fallbackMonitor = CanvasCore::HyprlandRuntime::monitorById(fallbackMember.monitorId);
     if (!fallbackMonitor)
         return false;
 
-    const auto fallbackWorkspace = ScrollerCore::HyprlandRuntime::workspaceById(fallbackMember.workspaceId);
+    const auto fallbackWorkspace = CanvasCore::HyprlandRuntime::workspaceById(fallbackMember.workspaceId);
     return CanvasLayoutInternal::focus_monitor_workspace(fallbackMonitor,
                                                          fallbackWorkspace,
                                                          fallbackMember.workspaceId,
@@ -246,7 +246,7 @@ bool CanvasWorkspaceController::switchByDirection(Direction direction) {
     if (plan.action == CanvasNavigationAction::None)
         return false;
 
-    const auto monitor = ScrollerCore::monitorForKeyboardAction();
+    const auto monitor = CanvasCore::monitorForKeyboardAction();
     const int preferredMonitorId = monitor ? static_cast<int>(monitor->m_id) : -1;
 
     std::vector<SyntheticCanvasWorkspace> pending;
@@ -270,7 +270,7 @@ bool CanvasWorkspaceController::switchByNumber(int number) {
     if (plan.action == CanvasNavigationAction::None)
         return false;
 
-    const auto monitor = ScrollerCore::monitorForKeyboardAction();
+    const auto monitor = CanvasCore::monitorForKeyboardAction();
     const int preferredMonitorId = monitor ? static_cast<int>(monitor->m_id) : -1;
 
     std::vector<SyntheticCanvasWorkspace> pending;
@@ -292,13 +292,13 @@ bool CanvasWorkspaceController::moveFocusedWindowToCanvas(Direction direction) {
     if (!window || !window->mapped() || window->isFloating() || window->onSpecialWorkspace())
         return false;
 
-    const auto sourceId = ScrollerCore::HyprlandRuntime::windowWorkspaceId(window);
-    const auto source = ScrollerCore::HyprlandRuntime::workspaceById(sourceId);
+    const auto sourceId = CanvasCore::HyprlandRuntime::windowWorkspaceId(window);
+    const auto source = CanvasCore::HyprlandRuntime::workspaceById(sourceId);
     auto* sourceLayout = CanvasLayoutInternal::get_canvas_for_workspace(sourceId);
     if (!source || !sourceLayout || !sourceLayout->isWindowTiled(window))
         return false;
 
-    const auto monitor = ScrollerCore::HyprlandRuntime::monitorById(window->monitorID());
+    const auto monitor = CanvasCore::HyprlandRuntime::monitorById(window->monitorID());
     if (!monitor)
         return false;
 
@@ -327,7 +327,7 @@ bool CanvasWorkspaceController::moveFocusedWindowToCanvas(Direction direction) {
     if (!destMember || destMember->workspaceId == sourceId)
         return false;
 
-    auto target = ScrollerCore::HyprlandRuntime::workspaceById(destMember->workspaceId);
+    auto target = CanvasCore::HyprlandRuntime::workspaceById(destMember->workspaceId);
     if (!target) {
         target = State::workspaceState()->createNumbered(
             Workspace::SWorkspaceNumberedID(static_cast<Workspace::WorkspaceIDContainer>(destMember->workspaceId)),
@@ -341,7 +341,7 @@ bool CanvasWorkspaceController::moveFocusedWindowToCanvas(Direction direction) {
     // The native silent dispatcher deliberately refocuses another source
     // window. Transfer ownership directly, then perform one canvas activation.
     Desktop::globalWindowController()->moveWindowToWorkspace(window, target);
-    if (ScrollerCore::HyprlandRuntime::windowWorkspaceId(window) != destMember->workspaceId)
+    if (CanvasCore::HyprlandRuntime::windowWorkspaceId(window) != destMember->workspaceId)
         return false;
 
     auto* liveSourceLayout = CanvasLayoutInternal::get_canvas_for_workspace(sourceId);
@@ -370,8 +370,8 @@ bool CanvasWorkspaceController::moveFocusedWindowToCanvas(Direction direction) {
     return true;
 }
 
-ScrollerCore::ServiceSlot<CanvasWorkspaceController>& workspaceControllerSlot() {
-    static ScrollerCore::ServiceSlot<CanvasWorkspaceController> slot;
+CanvasCore::ServiceSlot<CanvasWorkspaceController>& workspaceControllerSlot() {
+    static CanvasCore::ServiceSlot<CanvasWorkspaceController> slot;
     return slot;
 }
 

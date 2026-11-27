@@ -6,7 +6,7 @@
 
 namespace Render { class ITexture; }
 
-namespace ScrollerModel {
+namespace CanvasModel {
 
 enum class DeckLabelEdge { None, Top, Bottom, Left, Right };
 
@@ -22,7 +22,7 @@ public:
     eDecorationType getDecorationType() override { return DECORATION_CUSTOM; }
     eDecorationLayer getDecorationLayer() override { return DECORATION_LAYER_OVER; }
     uint64_t getDecorationFlags() override { return DECORATION_NON_SOLID; }
-    std::string getDisplayName() override { return "Scroller stack label"; }
+    std::string getDisplayName() override { return "Canvas stack label"; }
     void updateWindow(PHLWINDOW) override;
     void damageEntire() override;
 private:
@@ -35,4 +35,4 @@ private:
     SP<Render::ITexture> texture;
 };
 
-} // namespace ScrollerModel
+} // namespace CanvasModel

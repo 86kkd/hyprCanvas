@@ -2,7 +2,7 @@
 
 本文档面向新人，用来回答一个核心问题：
 
-Hyprland 的事件或快捷键，是如何最终驱动 hyprscroller 移动窗口的？
+Hyprland 的事件或快捷键，是如何最终驱动 hyprcanvas 移动窗口的？
 
 英文版见 [`architecture.md`](./architecture.md)。
 
@@ -17,9 +17,9 @@ Hyprland 的事件或快捷键，是如何最终驱动 hyprscroller 移动窗口
 
 1. Hyprland 通过 [`src/plugin/entry.cpp`](../src/plugin/entry.cpp) 中的 `PLUGIN_INIT` 加载插件。
 2. `PLUGIN_INIT` 负责注册：
-   - `plugin:hyprCanvas:*` 配置项（保留 `plugin:scroller:*` 兼容别名）
-   - `hl.plugin.scroller.*` Lua 命令（例如 `move_focus`）
-   - 名为 `scroller` 的平铺布局算法 `CanvasLayout`
+   - `plugin:hyprCanvas:*` 配置项（保留 `plugin:canvas:*` 兼容别名）
+   - `hl.plugin.canvas.*` Lua 命令（例如 `move_focus`）
+   - 名为 `canvas` 的平铺布局算法 `CanvasLayout`
    - overview 渲染钩子，以及焦点/卡片指针辅助逻辑
 3. 之后 Hyprland 会调用其中一类入口：
    - 用户按下快捷键时，走 [`src/plugin/dispatch/`](../src/plugin/dispatch/) 中的 Lua 命令
@@ -49,7 +49,7 @@ Hyprland 的事件或快捷键，是如何最终驱动 hyprscroller 移动窗口
 ```text
 Canvas Workspace              一整套多屏桌面（插件侧分组）
   └─ Hyprland workspace × N   每屏一个 member，N = 显示器数
-        └─ CanvasLayout       该工作区上的 `scroller` 实例
+        └─ CanvasLayout       该工作区上的 `canvas` 实例
               └─ Lane → Stack → window
 ```
 
@@ -69,7 +69,7 @@ Canvas Workspace              一整套多屏桌面（插件侧分组）
 
 ## 核心概念
 
-默认 `scroller` 布局主要有四类运行时对象。
+默认 `canvas` 布局主要有四类运行时对象。
 
 ### Plugin
 
@@ -81,7 +81,7 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 - 初始化日志，以及 layout / canvas 仓库
 - 注册配置项
 - 通过 `dispatchers::addLuaFunctions()` 注册 Lua 命令
-- 注册 `CanvasLayout` 为 `scroller` 平铺算法
+- 注册 `CanvasLayout` 为 `canvas` 平铺算法
 - 初始化 overview 渲染钩子、焦点指针同步，以及卡片指针命中测试
 
 它本身不包含布局策略。
@@ -128,10 +128,10 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 
 ### Window
 
-真正的 Hyprland 窗口对象仍然来自 Hyprland。Hyprscroller 只做轻量簿记，
+真正的 Hyprland 窗口对象仍然来自 Hyprland。HyprCanvas 只做轻量簿记，
 合成器才是真实客户端的权威来源。
 
-插件只注册 `scroller` 一种平铺算法。原先的 `scrollergrid` 格子布局已删除；
+插件只注册 `canvas` 一种平铺算法。原先的 `canvasgrid` 格子布局已删除；
 方向寻路仍建立在 lane/stack 上（见 [`topology-neighbor-index.md`](./topology-neighbor-index.md)）。
 
 ## 主流程
@@ -145,8 +145,8 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 1. 设置日志
 2. 初始化 layout / canvas 仓库
 3. 注册配置项
-4. 注册 `hl.plugin.scroller.*` Lua 命令
-5. 注册 `scroller` 平铺算法
+4. 注册 `hl.plugin.canvas.*` Lua 命令
+5. 注册 `canvas` 平铺算法
 6. 初始化 overview 渲染钩子，以及焦点 / 卡片指针辅助逻辑
 
 配置必须先于平铺算法注册。原因是：算法一旦挂上，Hyprland 就可能立刻创建布局对象，
@@ -172,7 +172,7 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 
 方向性焦点从 Lua 命令开始：
 
-1. 快捷键调用 `hl.plugin.scroller.move_focus("l")` 之类。
+1. 快捷键调用 `hl.plugin.canvas.move_focus("l")` 之类。
 2. [`src/plugin/dispatch/layout_commands.cpp`](../src/plugin/dispatch/layout_commands.cpp)
    解析方向，并解析出当前活动的 `CanvasLayout`。
 3. `CanvasLayout::moveFocus` 生成 `TopologyIndex`（焦点所在的 lane / stack /
@@ -191,7 +191,7 @@ Plugin 是面向 Hyprland 的外壳，主要代码在
 
 方向性窗口移动流程类似：
 
-1. 快捷键调用 `hl.plugin.scroller.move_window(...)`。
+1. 快捷键调用 `hl.plugin.canvas.move_window(...)`。
 2. Lua 命令解析出当前活动的 `CanvasLayout`。
 3. `CanvasLayout::moveWindow` 以“移动窗口”意图调用同一个 `neighbor` 查询，决定窗口：
    - 调整 stack 顺序、并入相邻 stack，或拆成新 stack
@@ -224,7 +224,7 @@ Overview 是一层独立的只读导航层。
 
 ### `src/plugin/dispatch`
 
-把 `hl.plugin.scroller.*` 的参数解析并路由到强类型布局方法。
+把 `hl.plugin.canvas.*` 的参数解析并路由到强类型布局方法。
 
 - `registration.cpp`：调用两组注册函数的引导入口
 - `layout_commands.cpp`：布局命令，例如 `move_focus`、`move_window`
@@ -233,7 +233,7 @@ Overview 是一层独立的只读导航层。
 
 ### `src/layout/canvas`
 
-`scroller` 的工作区级控制平面。
+`canvas` 的工作区级控制平面。
 
 - `core.cpp`：target 回调、工作区归属、lane 缓存、生命周期
 - `snapshot.cpp`：工作区布局快照采集、持久化与恢复
@@ -305,8 +305,8 @@ Overview 的 session、model、navigation、scene 与 render 钩子。
 4. 打开 [`src/layout/canvas/layout.h`](../src/layout/canvas/layout.h)，阅读 `CanvasLayout` 的公开方法。
 5. 端到端跟踪一条生命周期：
    - 新窗口：`newTarget -> onWindowCreatedTiling`
-   - 焦点：`hl.plugin.scroller.move_focus -> dispatch_movefocus -> move_focus`
-   - 移动窗口：`hl.plugin.scroller.move_window -> dispatch_movewindow -> move_window`
+   - 焦点：`hl.plugin.canvas.move_focus -> dispatch_movefocus -> move_focus`
+   - 移动窗口：`hl.plugin.canvas.move_window -> dispatch_movewindow -> move_window`
 6. 然后再深入 lane 与 stack 代码。
 
 这个顺序能保持自上而下的心智模型。如果先从 `Stack` 开始，局部代码通常能看懂，
@@ -314,6 +314,6 @@ Overview 的 session、model、navigation、scene 与 render 钩子。
 
 ## Hyprland 0.57 说明
 
-Hyprland 0.57 不再注册插件 dispatcher。快捷键必须调用 `hl.plugin.scroller`
-下的 Lua 函数，而不是旧的 `scroller:movefocus` 风格。
-`plugin:hyprCanvas:focus_wrap`（兼容旧名 `plugin:scroller:focus_wrap`）这类插件配置项仍然通过 `addConfigValueV2` 单独注册。
+Hyprland 0.57 不再注册插件 dispatcher。快捷键必须调用 `hl.plugin.canvas`
+下的 Lua 函数，而不是旧的 `canvas:movefocus` 风格。
+`plugin:hyprCanvas:focus_wrap`（兼容旧名 `plugin:canvas:focus_wrap`）这类插件配置项仍然通过 `addConfigValueV2` 单独注册。

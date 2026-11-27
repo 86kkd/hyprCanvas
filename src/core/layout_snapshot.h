@@ -9,7 +9,7 @@
 
 #include "types.h"
 
-namespace ScrollerSnapshot {
+namespace CanvasLayoutSnapshot {
 
 constexpr int kLegacyFormatVersion = 1;
 constexpr int kGridFormatVersion = 2;
@@ -33,8 +33,8 @@ struct StackSnapshot {
     int                          width = 0;
     bool                         fullscreened = false;
     bool                         maximized = false;
-    ScrollerCore::Box            geom;
-    ScrollerCore::Box            memGeom;
+    CanvasCore::Box            geom;
+    CanvasCore::Box            memGeom;
     uintptr_t                    activeWindowKey = 0;
     std::vector<WindowSnapshot>  windows;
 };
@@ -58,4 +58,4 @@ using RepositorySnapshot = std::unordered_map<int, CanvasSnapshot>;
 std::string serialize_repository(const RepositorySnapshot &snapshots);
 std::optional<RepositorySnapshot> deserialize_repository(std::string_view data);
 
-} // namespace ScrollerSnapshot
+} // namespace CanvasLayoutSnapshot

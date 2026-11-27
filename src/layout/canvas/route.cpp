@@ -20,7 +20,7 @@ PHLMONITOR resolve_monitor_in_direction(PHLMONITOR sourceMonitor, Direction dire
     if (!g_pCompositor || !sourceMonitor || !monitorDirection)
         return nullptr;
 
-    return ScrollerCore::HyprlandRuntime::monitorInDirection(sourceMonitor, *monitorDirection);
+    return CanvasCore::HyprlandRuntime::monitorInDirection(sourceMonitor, *monitorDirection);
 }
 
 } // namespace CanvasLayoutInternal

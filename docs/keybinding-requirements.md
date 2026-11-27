@@ -50,7 +50,7 @@
 本方案围绕四条原则收敛出最终映射，避免“只看单个组合好按，整体语义却互相冲突”：
 
 1. **命名空间隔离（全员带 `Win`）**
-   - 所有 scroller 方向操作统一收进 `Win` 命名空间，明确区分“桌面控制（带 `Win`）”与“应用内快捷键（不带 `Win`）”。
+   - 所有 canvas 方向操作统一收进 `Win` 命名空间，明确区分“桌面控制（带 `Win`）”与“应用内快捷键（不带 `Win`）”。
    - 因此放弃原先占用 `Ctrl + Shift + H/J/K/L` 的 `swap_window`（会覆盖终端、浏览器与编辑器里的常用快捷键），改为 `Win + Shift + H/J/K/L`，并把 `Ctrl + Shift + H/J/K/L` 完整归还给应用。
 2. **修饰键正交代数（一修饰键一语义）**
    - **`Win`**：第一层导航（`H/J/K/L` 为窗口焦点，`N/M/,/.` 为切换 canvas workspace）。
@@ -87,7 +87,7 @@
 | Overview 打开／确认退出 | Win + I | `toggle_overview` |
 | 展开／恢复 stack | Win + F | `toggle_fullscreen` |
 
-在 scroller 中，`Ctrl + Shift + H/J/K/L`、`Ctrl + Win + N/M/,/.`、`Ctrl + Win + Alt + N/M/,/.` 以及 `Win + Shift + N/M/,/.` 均已解绑。
+在 canvas 中，`Ctrl + Shift + H/J/K/L`、`Ctrl + Win + N/M/,/.`、`Ctrl + Win + Alt + N/M/,/.` 以及 `Win + Shift + N/M/,/.` 均已解绑。
 
 ## 4. 已确定、不再占用方向组合的功能
 
@@ -119,15 +119,15 @@ canvas workspace 包含多个显示器各自的原生 workspace。切换 canvas 
 
 ## 6. 与现有桌面配置共存的约束
 
-本方案只接管 scroller 模式的相关按键。用户所谓“默认快捷键”包括本机发行配置和用户自定义，并不全是 Hyprland 内置默认。
+本方案只接管 canvas 模式的相关按键。用户所谓“默认快捷键”包括本机发行配置和用户自定义，并不全是 Hyprland 内置默认。
 
-- 进入 scroller 时，先移除同组合的原有绑定，再安装插件动作，避免一键触发多个动作。
+- 进入 canvas 时，先移除同组合的原有绑定，再安装插件动作，避免一键触发多个动作。
 - 切回 master/dwindle 时，恢复原有用途，移除插件专用组合，不能留下吞键的空回调。
 - 同步维护 `ChangeLayout.sh`：初始化、切换布局以及重复刷新都不能叠加绑定。
 - 保留 Win + Y 布局切换等无关功能。
-- 原桌面预设的 Win + Shift + N（通知面板）、Win + Shift + M（音乐入口）和 Win + Shift + K（快捷键搜索）用户不使用：scroller 中释放 Win + Shift + K 给 `swap_window`（切回 master/dwindle 时恢复），并解绑未使用的 Win + Shift + N/M/,/.。
-- scroller 中解绑 Ctrl + Shift + H/J/K/L，使其完整归还给应用程序；切回 master/dwindle 时恢复原有的 Ctrl + Shift + H/L 跨工作区移动。
-- scroller 中不应启用绕过 canvas 成员关系的原生编号窗口转移或整工作区跨显示器移动。
+- 原桌面预设的 Win + Shift + N（通知面板）、Win + Shift + M（音乐入口）和 Win + Shift + K（快捷键搜索）用户不使用：canvas 中释放 Win + Shift + K 给 `swap_window`（切回 master/dwindle 时恢复），并解绑未使用的 Win + Shift + N/M/,/.。
+- canvas 中解绑 Ctrl + Shift + H/J/K/L，使其完整归还给应用程序；切回 master/dwindle 时恢复原有的 Ctrl + Shift + H/L 跨工作区移动。
+- canvas 中不应启用绕过 canvas 成员关系的原生编号窗口转移或整工作区跨显示器移动。
 - Tab、数字和滚轮等已有 canvas 导航入口可以保留；这次分区不是要求删除所有其他导航方式。
 
 ## 7. 文件与版本管理
@@ -136,7 +136,7 @@ canvas workspace 包含多个显示器各自的原生 workspace。切换 canvas 
 - 本机生效配置：`~/.config/hypr/lua/canvas-layout.lua`。
 - 本机加载入口：`~/.config/hypr/hyprland.lua`。
 - 布局切换脚本：`~/.config/hypr/scripts/ChangeLayout.sh`；项目参考版本在 `examples/ChangeLayout.sh`。
-- 模块已从 `scroller-workspaces.lua` 改名为 `canvas-layout.lua`，后续引用统一使用新名称。
+- 模块已从 `canvas-workspaces.lua` 改名为 `canvas-layout.lua`，后续引用统一使用新名称。
 - 本机配置由 `~/.config/hypr/.git` 管理；项目源码、示例、文档与测试由项目自身的 Git 仓库管理，不能把两个仓库混为一谈。
 - 用户要求直接用 Git 管理修改，不额外生成备份文件。
 - 项目提交遵循 `docs/commit-convention.md`；不能混入其他正在进行的改动。
@@ -144,9 +144,9 @@ canvas workspace 包含多个显示器各自的原生 workspace。切换 canvas 
 ## 8. 修改后的最小验证范围
 
 1. Lua 语法检查和现有快捷键测试。
-2. 模拟 scroller → master/dwindle → scroller，检查恢复行为与重复加载。
+2. 模拟 canvas → master/dwindle → canvas，检查恢复行为与重复加载。
 3. 查询实际会话绑定：目标组合各一份，旧组合已移除，无配置错误。
 4. 若新增插件接口，先确认已加载的二进制支持它，再安装调用该接口的绑定。
 5. 涉及窗口转移或焦点逻辑时，运行基础测试和独立 Hyprland 集成回归；仅文档修改不需要重跑图形测试。
 
-已有验证入口包括 `tests/scroller_keybinds_tests.lua`、`scripts/repro-canvas-window-transfer.py` 和 `docs/hyprland-testing.md`。
+已有验证入口包括 `tests/canvas_keybinds_tests.lua`、`scripts/repro-canvas-window-transfer.py` 和 `docs/hyprland-testing.md`。

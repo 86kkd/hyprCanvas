@@ -21,11 +21,11 @@ parser.add_argument('--no-warps', action='store_true', help='Also verify keyboar
 args = parser.parse_args()
 plugin = args.plugin.resolve()
 assert plugin.is_file(), f'Missing plugin: {plugin}'
-run = Path(tempfile.mkdtemp(prefix='hyprscroller-shared-workspace.'))
+run = Path(tempfile.mkdtemp(prefix='hyprcanvas-shared-workspace.'))
 print(f'Artifacts: {run}', flush=True)
 config = run / 'hyprland.lua'
 bindings = Path(__file__).resolve().parents[1] / 'examples/canvas-layout.lua'
-config.write_text('hl.plugin.load(' + json.dumps(str(plugin)) + ')\n' + 'hl.config({general={layout="scroller"}, misc={disable_hyprland_logo=true,disable_splash_rendering=true}})\n' + 'dofile(' + json.dumps(str(bindings)) + ')\n' + ('hl.config({cursor={no_warps=true},input={follow_mouse=0}})\n' if args.no_warps else ''))
+config.write_text('hl.plugin.load(' + json.dumps(str(plugin)) + ')\n' + 'hl.config({general={layout="canvas"}, misc={disable_hyprland_logo=true,disable_splash_rendering=true}})\n' + 'dofile(' + json.dumps(str(bindings)) + ')\n' + ('hl.config({cursor={no_warps=true},input={follow_mouse=0}})\n' if args.no_warps else ''))
 env = dict(os.environ)
 env.pop('HYPRLAND_INSTANCE_SIGNATURE', None)
 instance = None
@@ -55,7 +55,7 @@ def focus_workspace(ws):
 
 
 def overview():
-    lua('hl.plugin.scroller.toggle_overview()')
+    lua('hl.plugin.canvas.toggle_overview()')
     time.sleep(1)
 
 
@@ -115,7 +115,7 @@ with (run / 'hyprland.log').open('w') as log:
         for monitor in json.loads(ctl('monitors', '-j')):
             if monitor['name'] not in ('TEST-1', 'TEST-2'):
                 ctl('output', 'remove', monitor['name'])
-        lua('hl.config({general={layout="scroller"}})')
+        lua('hl.config({general={layout="canvas"}})')
         dispatch('hl.dsp.focus({monitor="TEST-1"})')
         focus_workspace(101)
         launch('shared-a', '#aa2222')
@@ -132,7 +132,7 @@ with (run / 'hyprland.log').open('w') as log:
             lua('hl.config({general={layout="dwindle"}})')
             ctl('plugin', 'unload', str(plugin))
             ctl('plugin', 'load', str(plugin))
-            lua('hl.config({general={layout="scroller"}})')
+            lua('hl.config({general={layout="canvas"}})')
             time.sleep(.7)
             check(workspaces() == visible, 'plugin reload preserves visible monitor workspaces')
             check({(c['address'], c['workspace']['id'], c['monitor']) for c in json.loads(ctl('clients', '-j'))} == membership,
@@ -157,7 +157,7 @@ with (run / 'hyprland.log').open('w') as log:
         screenshot('shared-origin-secondary', 'TEST-2', 1)
         overview()
         check(workspaces() == before, 'overview accept preserves the current canvas when origin is shared')
-        state_path = Path(os.environ.get('XDG_RUNTIME_DIR', '/tmp')) / ('hyprscroller-canvas-' + instance + '.state')
+        state_path = Path(os.environ.get('XDG_RUNTIME_DIR', '/tmp')) / ('hyprcanvas-' + instance + '.state')
         state_lines = state_path.read_text().splitlines()
         canvas_ids = sorted(int(line.split()[1]) for line in state_lines if line.startswith('CANVAS '))
         active_canvas = next(int(line.split()[1]) for line in state_lines if line.startswith('ACTIVE '))
@@ -165,39 +165,39 @@ with (run / 'hyprland.log').open('w') as log:
         members = [int(line.split()[2]) for line in state_lines if line.startswith('MEMBER ') and line.split()[3] == '0']
         check(len(members) == len(set(members)), 'legacy canvases no longer share native workspaces')
         # Explicit canvas creation switches both monitors, then restores both.
-        lua('hl.plugin.scroller.switch_workspace("r")')
+        lua('hl.plugin.canvas.switch_workspace("r")')
         time.sleep(.8)
         after = workspaces()
         check(all(after[m] != before[m] for m in before), 'direct canvas switch changes every monitor')
-        lua('hl.plugin.scroller.switch_workspace("l")')
+        lua('hl.plugin.canvas.switch_workspace("l")')
         time.sleep(.8)
         check(workspaces() == before, 'direct canvas switch restores every monitor')
         # Only the next numbered canvas may be created; skipping straight to
         # ten is intentionally rejected by the one-empty-page boundary.
         next_number = 1 + sum(line.startswith('CANVAS ') for line in state_path.read_text().splitlines())
-        lua('hl.plugin.scroller.switch_workspace(' + json.dumps(str(next_number)) + ')')
+        lua('hl.plugin.canvas.switch_workspace(' + json.dumps(str(next_number)) + ')')
         time.sleep(.6)
         numbered = workspaces()
         check(all(numbered[m] != before[m] for m in before), 'numbered canvas switches all monitors')
-        lua('hl.plugin.scroller.switch_workspace(' + json.dumps(before_number) + ')')
+        lua('hl.plugin.canvas.switch_workspace(' + json.dumps(before_number) + ')')
         time.sleep(.6)
         check(workspaces() == before, 'numbered canvas restores its monitor members')
-        lua('hl.plugin.scroller.switch_workspace("1")')
+        lua('hl.plugin.canvas.switch_workspace("1")')
         time.sleep(.5)
         legacy_first = workspaces()
-        lua('hl.plugin.scroller.switch_workspace("2")')
+        lua('hl.plugin.canvas.switch_workspace("2")')
         time.sleep(.5)
         legacy_second = workspaces()
         check(all(legacy_first[m] != legacy_second[m] for m in legacy_first),
               'switching between migrated legacy canvases changes BOTH monitors')
-        lua('hl.plugin.scroller.switch_workspace(' + json.dumps(before_number) + ')')
+        lua('hl.plugin.canvas.switch_workspace(' + json.dumps(before_number) + ')')
         time.sleep(.5)
         check(workspaces() == before, 'return from legacy canvases restores original visible members')
         # Directional window moves may change physical monitor but never create
         # another native workspace or move into a hidden canvas.
         known = {w['id'] for w in json.loads(ctl('workspaces', '-j'))}
         for direction in ('l', 'r', 'r', 'r', 'l'):
-            lua(f'hl.plugin.scroller.move_window("{direction}")')
+            lua(f'hl.plugin.canvas.move_window("{direction}")')
             time.sleep(.2)
         clients = json.loads(ctl('clients', '-j'))
         current = workspaces()
@@ -207,7 +207,7 @@ with (run / 'hyprland.log').open('w') as log:
         if args.no_warps:
             # A fresh canvas gives the source exactly one window. Plugin focus
             # synchronization must follow it to TEST-2 despite no_warps.
-            lua('hl.plugin.scroller.switch_workspace("5")')
+            lua('hl.plugin.canvas.switch_workspace("5")')
             time.sleep(.5)
             dispatch('hl.dsp.focus({monitor="TEST-1"})')
             launch('focus-source', '#aa2222')
@@ -225,7 +225,7 @@ with (run / 'hyprland.log').open('w') as log:
             dispatch('hl.dsp.cursor.move({x=' + str(source['x'] + 100) + ',y=' + str(source['y'] + 100) + '})')
             time.sleep(.2)
             cursor_before = json.loads(ctl('cursorpos', '-j'))
-            lua('hl.plugin.scroller.move_window("r")')
+            lua('hl.plugin.canvas.move_window("r")')
             time.sleep(.6)
             active = json.loads(ctl('activewindow', '-j'))
             target = next(m for m in json.loads(ctl('monitors', '-j')) if m['name'] == 'TEST-2')
@@ -237,16 +237,16 @@ with (run / 'hyprland.log').open('w') as log:
             check(active['at'][0] <= cursor_after['x'] < active['at'][0] + active['size'][0]
                   and active['at'][1] <= cursor_after['y'] < active['at'][1] + active['size'][1],
                   'keyboard navigation synchronizes pointer into destination despite no_warps')
-            lua('hl.plugin.scroller.move_focus("d")')
+            lua('hl.plugin.canvas.move_focus("d")')
             time.sleep(.4)
             active = json.loads(ctl('activewindow', '-j'))
             check(active.get('monitor') == target['id'], 'next keyboard focus action operates on destination monitor')
             # Isolate navigation from the empty-lane scenario above.
-            lua('hl.plugin.scroller.switch_workspace("6")')
+            lua('hl.plugin.canvas.switch_workspace("6")')
             dispatch('hl.dsp.focus({monitor="TEST-2"})')
             launch('rapid-a', '#aa2222')
             launch('rapid-b', '#22aa22')
-            lua('hl.plugin.scroller.move_focus("end"); hl.plugin.scroller.move_focus("begin")')
+            lua('hl.plugin.canvas.move_focus("end"); hl.plugin.canvas.move_focus("begin")')
             time.sleep(.4)
             latest = json.loads(ctl('activewindow', '-j'))
             pointer = json.loads(ctl('cursorpos', '-j'))
@@ -255,7 +255,7 @@ with (run / 'hyprland.log').open('w') as log:
                   and latest['at'][1] <= pointer['y'] < latest['at'][1] + latest['size'][1],
                   'rapid navigation synchronizes only the final target')
             px, py = target['x'] + 20, target['y'] + 20
-            lua('hl.plugin.scroller.move_focus("u"); hl.dispatch(hl.dsp.cursor.move({x='
+            lua('hl.plugin.canvas.move_focus("u"); hl.dispatch(hl.dsp.cursor.move({x='
                 + str(px) + ',y=' + str(py) + '}))')
             time.sleep(.4)
             pointer = json.loads(ctl('cursorpos', '-j'))
@@ -267,14 +267,14 @@ with (run / 'hyprland.log').open('w') as log:
             dispatch('hl.dsp.cursor.move({x=' + str(target['x'] + 100) + ',y=' + str(target['y'] + 100) + '})')
             expected_class = active.get('class')
             for _ in range(6):
-                lua('hl.plugin.scroller.move_window("l")')
+                lua('hl.plugin.canvas.move_window("l")')
                 time.sleep(.2)
                 active = json.loads(ctl('activewindow', '-j'))
                 if active.get('monitor') == source['id']:
                     break
             check(active.get('class') == expected_class and active.get('monitor') == source['id'],
                   'reverse cross-monitor move follows the same window')
-            lua('hl.plugin.scroller.move_focus("u")')
+            lua('hl.plugin.canvas.move_focus("u")')
             time.sleep(.3)
             check(json.loads(ctl('activewindow', '-j')).get('monitor') == source['id'],
                   'reverse move subsequent keyboard action stays on destination')
@@ -283,13 +283,13 @@ with (run / 'hyprland.log').open('w') as log:
         # Remember the last window: choosing the first one would hide a return
         # path that incorrectly resets selection to the first overview target.
         lua('hl.config({input={follow_mouse=0}})')
-        lua('hl.plugin.scroller.switch_workspace("r")')
+        lua('hl.plugin.canvas.switch_workspace("r")')
         remembered = {}
         for output in ('TEST-1', 'TEST-2'):
             dispatch('hl.dsp.focus({monitor=' + json.dumps(output) + '})')
             launch('remember-' + output + '-a', '#aa2222')
             launch('remember-' + output + '-b', '#22aa22')
-            lua('hl.plugin.scroller.move_focus("end")')
+            lua('hl.plugin.canvas.move_focus("end")')
             time.sleep(.3)
             win = json.loads(ctl('activewindow', '-j'))
             remembered[win['workspace']['id']] = win['address']
@@ -301,14 +301,14 @@ with (run / 'hyprland.log').open('w') as log:
         lua('hl.config({input={follow_mouse=1}})')
         for outward, backward in (('r', 'l'), ('d', 'u'), ('l', 'r'), ('u', 'd')):
             visible_before = workspaces()
-            lua('hl.plugin.scroller.switch_workspace(' + json.dumps(outward) + ')')
+            lua('hl.plugin.canvas.switch_workspace(' + json.dumps(outward) + ')')
             time.sleep(.3)
             check(all(ws not in workspaces().values() for ws in remembered),
                   'focus regression actually leaves every source workspace')
             hidden = {w['id']: w for w in json.loads(ctl('workspaces', '-j'))}
             check(all(hidden[ws]['lastwindow'] == address for ws, address in remembered.items()),
                   'departing canvas preserves remembered focus on every monitor')
-            lua('hl.plugin.scroller.switch_workspace(' + json.dumps(backward) + ')')
+            lua('hl.plugin.canvas.switch_workspace(' + json.dumps(backward) + ')')
             time.sleep(.3)
             check(workspaces() == visible_before, 'focus regression returns to the source canvas')
             restored = {w['id']: w for w in json.loads(ctl('workspaces', '-j'))}
@@ -319,8 +319,8 @@ with (run / 'hyprland.log').open('w') as log:
         lua('hl.config({input={follow_mouse=0}})')
         # Exercise scale changes on live windows, using logical rather than
         # framebuffer bounds for containment.
-        for layout, canvas in [('scroller', '8')]:
-            lua('hl.plugin.scroller.switch_workspace(' + json.dumps(canvas) + ')')
+        for layout, canvas in [('canvas', '8')]:
+            lua('hl.plugin.canvas.switch_workspace(' + json.dumps(canvas) + ')')
             lua('hl.config({general={layout=' + json.dumps(layout) + '}})')
             dispatch('hl.dsp.focus({monitor="TEST-2"})')
             launch('scale-' + layout + '-a', '#aa2222')
@@ -329,7 +329,7 @@ with (run / 'hyprland.log').open('w') as log:
                 lua('hl.monitor({output="TEST-2",mode="preferred",position="auto",scale=' + str(scale) + '})')
                 time.sleep(.6)
                 for direction in ('begin', 'end'):
-                    lua('hl.plugin.scroller.move_focus(' + json.dumps(direction) + ')')
+                    lua('hl.plugin.canvas.move_focus(' + json.dumps(direction) + ')')
                     time.sleep(.4)
                     win = json.loads(ctl('activewindow', '-j'))
                     mon = next(m for m in json.loads(ctl('monitors', '-j')) if m['id'] == win['monitor'])

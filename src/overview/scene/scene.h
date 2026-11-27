@@ -18,7 +18,7 @@ namespace Overview {
 struct SceneTarget {
     int               canvasId = INVALID_CANVAS_ID;
     TargetType        type = TargetType::Window;
-    ScrollerCore::Box box;
+    CanvasCore::Box box;
     PHLWINDOW         window = nullptr;
     bool              synthetic = false;
     bool              selected = false;
@@ -26,8 +26,8 @@ struct SceneTarget {
 };
 
 struct SceneWorkspace {
-    ScrollerCore::Box      box;
-    ScrollerCore::Box      contentBox;
+    CanvasCore::Box      box;
+    CanvasCore::Box      contentBox;
     bool                   selected = false;
     bool                   special = false;
     std::string            label;
@@ -37,10 +37,10 @@ struct SceneWorkspace {
 struct SceneMonitor {
     int                      monitorId = INVALID_MONITOR_ID;
     std::string              monitorName;
-    ScrollerCore::Box        box;
+    CanvasCore::Box        box;
     std::vector<SceneWorkspace> workspaces;
     std::optional<SceneTarget> syntheticTarget;
-    std::optional<ScrollerCore::Box> selectionBox;
+    std::optional<CanvasCore::Box> selectionBox;
 };
 
 std::optional<SceneMonitor> buildSceneForMonitor(PHLMONITOR monitor, const Model& model);

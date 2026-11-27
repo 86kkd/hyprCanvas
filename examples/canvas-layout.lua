@@ -1,7 +1,7 @@
 -- Load AFTER your default/user keybind modules, with the updated plugin loaded.
 -- Normal native workspaces remain available when another layout is selected.
-local function scroller()
-  return hl.get_config("general.layout") == "scroller"
+local function canvas()
+  return hl.get_config("general.layout") == "canvas"
 end
 
 local function bind(key, action, description)
@@ -11,8 +11,8 @@ end
 
 local function switch(key, canvas, native)
   bind(key, function()
-    if scroller() then
-      hl.plugin.scroller.switch_workspace(canvas)
+    if canvas() then
+      hl.plugin.canvas.switch_workspace(canvas)
     else
       hl.dispatch(hl.dsp.focus({ workspace = native }))
     end
@@ -21,10 +21,10 @@ end
 
 local function move(key, direction, native, follow)
   bind(key, function()
-    if scroller() then
+    if canvas() then
       -- Reorder locally or hand off to another physical monitor's visible
       -- workspace. Never dispatch movetoworkspace +/-1 from this path.
-      hl.plugin.scroller.move_window(direction)
+      hl.plugin.canvas.move_window(direction)
     else
       hl.dispatch(hl.dsp.window.move({ workspace = native, follow = follow }))
     end
@@ -39,7 +39,7 @@ switch("SUPER + mouse_up", "l", "e-1")
 -- layouts (ChangeLayout.sh does this); unbind first so repeated loads are safe.
 local function layout_bind(key, action, description, native, native_description)
   hl.unbind(key)
-  if scroller() then
+  if canvas() then
     hl.bind(key, action, { description = description })
   elseif native then
     hl.bind(key, native, { description = native_description or description })
@@ -56,31 +56,31 @@ for _, spec in ipairs({
 }) do
   local key, direction, native = spec[1], spec[2], spec[3]
   layout_bind("SUPER + " .. key, function()
-    hl.plugin.scroller.move_focus(direction)
-  end, "focus window " .. native .. " (scroller)",
+    hl.plugin.canvas.move_focus(direction)
+  end, "focus window " .. native .. " (canvas)",
     hl.dsp.focus({ direction = native }), "focus window " .. native)
   layout_bind("SUPER + ALT + " .. key, function()
-    hl.plugin.scroller.move_window(direction)
-  end, "move window " .. native .. " (scroller)",
+    hl.plugin.canvas.move_window(direction)
+  end, "move window " .. native .. " (canvas)",
     hl.dsp.window.swap({ direction = native }), "swap window " .. native)
   layout_bind("SUPER + SHIFT + " .. key, function()
-    hl.plugin.scroller.swap_window(direction)
-  end, "swap window " .. native .. " (scroller)",
+    hl.plugin.canvas.swap_window(direction)
+  end, "swap window " .. native .. " (canvas)",
     native_shift_window_keys[key], "search keybinds")
 
   layout_bind("SUPER + CTRL + " .. key, function()
-    hl.plugin.scroller.focus_monitor(direction)
-  end, "focus monitor " .. native .. " (scroller)",
+    hl.plugin.canvas.focus_monitor(direction)
+  end, "focus monitor " .. native .. " (canvas)",
     hl.dsp.window.move({ direction = native }), "move window " .. native)
   layout_bind("SUPER + CTRL + ALT + " .. key, function()
-    hl.plugin.scroller.move_window_to_monitor(direction)
-  end, "move window to monitor " .. native .. " (scroller)")
+    hl.plugin.canvas.move_window_to_monitor(direction)
+  end, "move window to monitor " .. native .. " (canvas)")
 
-  -- Release Ctrl+Shift+H/J/K/L back to applications in scroller.
+  -- Release Ctrl+Shift+H/J/K/L back to applications in canvas.
   -- Native layouts restore the user's H/L workspace transfer shortcuts.
   local transfer = direction == "l" and "-1" or direction == "r" and "+1" or nil
   hl.unbind("CTRL + SHIFT + " .. key)
-  if not scroller() and transfer then
+  if not canvas() and transfer then
     bind("CTRL + SHIFT + " .. key,
       hl.dsp.window.move({ workspace = transfer, follow = true }),
       "move window to " .. transfer .. " workspace")
@@ -88,13 +88,13 @@ for _, spec in ipairs({
 end
 
 layout_bind("SUPER + F", function()
-  hl.plugin.scroller.toggle_fullscreen()
-end, "expand / restore stack (scroller)",
+  hl.plugin.canvas.toggle_fullscreen()
+end, "expand / restore stack (canvas)",
   hl.dsp.window.fullscreen_state({ internal = 2, client = 0, action = "toggle" }),
   "special fullscreenstate")
 layout_bind("SUPER + I", function()
-  hl.plugin.scroller.toggle_overview()
-end, "toggle overview (scroller)", hl.dsp.layout("addmaster"), "add master")
+  hl.plugin.canvas.toggle_overview()
+end, "toggle overview (canvas)", hl.dsp.layout("addmaster"), "add master")
 
 for _, spec in ipairs({ {"bracketleft", "l", "-1"}, {"bracketright", "r", "+1"} }) do
   move("SUPER + SHIFT + " .. spec[1], spec[2], spec[3], true)
@@ -110,8 +110,8 @@ for number = 1, 10 do
     bind("SUPER + " .. mods .. " + " .. code, function()
       -- A numbered destination means another global canvas, not a monitor.
       -- Numbered native transfers bypass canvas membership. Use the
-      -- directional move_window_to_workspace shortcut in scroller instead.
-      if not scroller() then
+      -- directional move_window_to_workspace shortcut in canvas instead.
+      if not canvas() then
         hl.dispatch(hl.dsp.window.move({ workspace = native, follow = follow }))
       end
     end, "move to native workspace (other layouts only)")
@@ -122,7 +122,7 @@ end
 -- monitor bypasses the canvas mapping. Keep these bindings for other layouts.
 for _, spec in ipairs({ {"F9", "left"}, {"F10", "right"}, {"F11", "up"}, {"F12", "down"} }) do
   bind("SUPER + CTRL + " .. spec[1], function()
-    if not scroller() then
+    if not canvas() then
       hl.dispatch(hl.dsp.workspace.move({ monitor = spec[2] }))
     end
   end, "move native workspace (other layouts only)")
@@ -139,12 +139,12 @@ local native_space_keys = {
 for _, spec in ipairs({ {"n", "l"}, {"m", "d"}, {"comma", "u"}, {"period", "r"} }) do
   local key, direction = spec[1], spec[2]
   layout_bind("SUPER + " .. key, function()
-    hl.plugin.scroller.switch_workspace(direction)
-  end, "canvas workspace " .. direction .. " (scroller)", native_space_keys[key],
+    hl.plugin.canvas.switch_workspace(direction)
+  end, "canvas workspace " .. direction .. " (canvas)", native_space_keys[key],
     "native " .. key .. " shortcut")
   layout_bind("SUPER + ALT + " .. key, function()
-    hl.plugin.scroller.move_window_to_workspace(direction)
-  end, "move window to canvas " .. direction .. " (scroller)")
+    hl.plugin.canvas.move_window_to_workspace(direction)
+  end, "move window to canvas " .. direction .. " (canvas)")
   hl.unbind("SUPER + CTRL + " .. key)
   hl.unbind("SUPER + CTRL + ALT + " .. key)
 end

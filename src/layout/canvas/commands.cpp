@@ -33,8 +33,8 @@ bool CanvasLayout::handoffMoveWindowAcrossMonitor(int workspace, Direction direc
         return false;
 
     const auto workspaceId = CanvasLayoutInternal::preferred_workspace_id(targetMonitor, workspace);
-    const auto targetWorkspace = ScrollerCore::HyprlandRuntime::workspaceById(workspaceId);
-    const auto selector = ScrollerCore::workspace_selector(targetWorkspace);
+    const auto targetWorkspace = CanvasCore::HyprlandRuntime::workspaceById(workspaceId);
+    const auto selector = CanvasCore::workspace_selector(targetWorkspace);
     if (!CanvasLayoutInternal::can_invoke_dispatcher("movetoworkspacesilent", selector, "move_window_cross_monitor"))
         return false;
 
@@ -60,21 +60,21 @@ bool CanvasLayout::handoffMoveWindowAcrossMonitor(int workspace, Direction direc
     if (!payload)
         return true;
 
-    const auto insertDirection = ScrollerCore::opposite_direction(direction);
+    const auto insertDirection = CanvasCore::opposite_direction(direction);
     // Phase 2: tell target callbacks that the backend workspace move is part of
-    // an explicit scroller handoff. That keeps target hooks from auto-claiming
+    // an explicit canvas handoff. That keeps target hooks from auto-claiming
     // the window before we finish reinserting the transferred payload.
     // Tell target callbacks that this window is being rehomed manually. The
     // Hyprland dispatcher still moves the backend window across workspaces, but
-    // scroller keeps ownership transfer explicit so it can preserve lane/stack
+    // canvas keeps ownership transfer explicit so it can preserve lane/stack
     // geometry and roll back cleanly on failure.
-    const auto currentWindowKey = ScrollerCore::window_key(currentWindow);
+    const auto currentWindowKey = CanvasCore::window_key(currentWindow);
     targetLayout->handoffState.rememberManualCrossMonitorInsertion(currentWindowKey);
 
     if (!CanvasLayoutInternal::invoke_dispatcher("movetoworkspacesilent", selector, "move_window_cross_monitor")) {
         spdlog::warn("move_window_cross_monitor: dispatcher failed workspace={} direction={} window={}",
                      workspace,
-                     ScrollerCore::direction_name(direction),
+                     CanvasCore::direction_name(direction),
                      static_cast<const void*>(currentWindow.get()));
         targetLayout->handoffState.forgetManualCrossMonitorInsertion(currentWindowKey);
         sourceLane->restore_active_window_payload(std::move(payload), restorePlan);
@@ -89,7 +89,7 @@ bool CanvasLayout::handoffMoveWindowAcrossMonitor(int workspace, Direction direc
     if (!targetLane)
         targetLane = targetLayout->getActiveLane();
     if (!targetLane) {
-        const auto targetMode = ScrollerCore::default_mode_for_monitor(targetMonitor);
+        const auto targetMode = CanvasCore::default_mode_for_monitor(targetMonitor);
         targetLane = targetLayout->ensureActiveLane(targetMonitor, targetMode);
     }
 
@@ -192,19 +192,19 @@ void CanvasLayout::applyLocalWindowMove(Lane *lane, CanvasLayoutInternal::LocalM
 void CanvasLayout::setWindowSize(int workspace, int visibleStacks)
 {
     (void)workspace;
-    const auto width = ScrollerModel::StackWidth::visible(visibleStacks);
-    ScrollerModel::visible_stacks_override() = width.visible_stacks();
+    const auto width = CanvasModel::StackWidth::visible(visibleStacks);
+    CanvasModel::visible_stacks_override() = width.visible_stacks();
 
     syncActiveStateFromWorkspaceFocus();
-    for (const auto &workspaceRef : ScrollerCore::HyprlandRuntime::workspaces()) {
+    for (const auto &workspaceRef : CanvasCore::HyprlandRuntime::workspaces()) {
         const auto member = workspaceRef.lock();
-        auto *layout = member ? CanvasLayoutInternal::get_canvas_for_workspace(ScrollerCore::HyprlandRuntime::workspaceId(member)) : nullptr;
+        auto *layout = member ? CanvasLayoutInternal::get_canvas_for_workspace(CanvasCore::HyprlandRuntime::workspaceId(member)) : nullptr;
         if (layout)
             layout->applyStackWidth(width);
     }
 }
 
-void CanvasLayout::applyStackWidth(ScrollerModel::StackWidth width)
+void CanvasLayout::applyStackWidth(CanvasModel::StackWidth width)
 {
     for (auto lane = lanes.first(); lane != nullptr; lane = lane->next())
         lane->data()->apply_stack_width(width);
@@ -221,7 +221,7 @@ void CanvasLayout::moveWindow(int workspace, Direction direction) {
     withActiveLane(ActiveLaneSyncPolicy::WorkspaceFocus, [&](Lane *lane) {
         const auto mode = lane->get_mode();
         const auto currentWindow = lane->get_active_window();
-        const auto sourceMonitor = currentWindow ? ScrollerCore::HyprlandRuntime::monitorById(currentWindow->monitorID()) : getVisibleCanvasMonitor();
+        const auto sourceMonitor = currentWindow ? CanvasCore::HyprlandRuntime::monitorById(currentWindow->monitorID()) : getVisibleCanvasMonitor();
         if (!currentWindow || !sourceMonitor) {
             if (CanvasLayoutInternal::direction_moves_between_lanes(mode, direction))
                 CanvasLayoutInternal::dispatch_directional_builtin("movewindow", direction);
@@ -264,7 +264,7 @@ void CanvasLayout::moveWindowToMonitor(int workspace, Direction direction) {
         const auto window = lane->get_active_window();
         if (!window)
             return;
-        const auto sourceMonitor = ScrollerCore::HyprlandRuntime::monitorById(window->monitorID());
+        const auto sourceMonitor = CanvasCore::HyprlandRuntime::monitorById(window->monitorID());
         const auto targetMonitor = CanvasLayoutInternal::resolve_monitor_in_direction(sourceMonitor, direction);
         if (!targetMonitor || targetMonitor == sourceMonitor)
             return;
@@ -300,7 +300,7 @@ void CanvasLayout::setMode(int workspace, Mode mode) {
     persistSnapshot();
 }
 
-// Toggle scroller-managed fullscreen/expanded behavior.
+// Toggle canvas-managed fullscreen/expanded behavior.
 void CanvasLayout::toggleFullscreen(int workspace) {
     (void)workspace;
     const auto syncPolicy = handoffState.consumeActiveLaneSyncPolicy();

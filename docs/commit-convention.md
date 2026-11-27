@@ -104,7 +104,7 @@ fix(layout): restore portrait fullscreen geometry on insert
 ```text
 docs(readme): clarify fullscreen behavior
 
-Document that scroller fullscreen is different from Hyprland native fullscreen.
+Document that canvas fullscreen is different from Hyprland native fullscreen.
 ```
 
 ### 按类型选正文模板
@@ -578,7 +578,7 @@ bump(release): prepare v0.4.0
 ```text
 refactor(dispatch)!: rename fullscreen dispatcher arguments
 
-BREAKING CHANGE: `scroller:togglefullscreen` no longer accepts legacy aliases.
+BREAKING CHANGE: `canvas:togglefullscreen` no longer accepts legacy aliases.
 ```
 
 ## Trailer 约定

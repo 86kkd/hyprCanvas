@@ -20,7 +20,7 @@ jobs:
           node-version: '22'
 
       - name: Run Lua keybind tests
-        run: lua5.4 tests/scroller_keybinds_tests.lua
+        run: lua5.4 tests/canvas_keybinds_tests.lua
 
       - name: Run stack-tuner JS tests
         run: node --test tools/stack-tuner/model.test.mjs

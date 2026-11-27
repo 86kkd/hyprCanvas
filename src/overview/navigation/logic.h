@@ -20,13 +20,13 @@ constexpr int         MONITOR_ID_INVALID = -1;
 
 struct TargetCandidate {
     int               monitorId = MONITOR_ID_INVALID;
-    ScrollerCore::Box box;
+    CanvasCore::Box box;
 };
 
 struct CanvasTargetCandidate {
     int               canvasId = -1;
     int               monitorId = MONITOR_ID_INVALID;
-    ScrollerCore::Box box;
+    CanvasCore::Box box;
     // Nonzero keys group windows belonging to the same stack.
     uintptr_t         stackId = 0;
     bool              stackActive = false;

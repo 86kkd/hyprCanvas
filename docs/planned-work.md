@@ -14,7 +14,7 @@ TODO(remove-fit-size-command)
 TODO(remove-focus-lane)
 TODO(remove-create-lane-command)
 TODO(remove-admit-expel-window)
-TODO(remove-scrollergrid)
+TODO(remove-canvasgrid)
 TODO(topology-neighbor-index)
 TODO(canvas-workspace-model)
 TODO(deck-card-share)
@@ -23,7 +23,7 @@ TODO(deck-card-share)
 相关决策背景也可对照：
 
 - [`architecture-cn.md`](./architecture-cn.md) / [`architecture.md`](./architecture.md)
-- [`topology-neighbor-index.md`](./topology-neighbor-index.md)（Feature：拓扑邻居索引；先瘦身并删 scrollergrid）
+- [`topology-neighbor-index.md`](./topology-neighbor-index.md)（Feature：拓扑邻居索引；先瘦身并删 canvasgrid）
 - 下文 [§9](#9-todocanvas-workspace-model目标所有权层级canvas-workspace)（Canvas Workspace 目标模型）
 - README 中的 Lua commands 表（清理后需同步删文档示例）
 
@@ -42,8 +42,8 @@ TODO(deck-card-share)
 ### 不做 / 注意
 
 - 当前 `Lane::resize_active_stack` 只拦 `maximized()`，对 expanded/fullscreen 防护偏弱；新 API 应明确与这些状态的交互
-- `plugin:scroller:column_default_width`（`onehalf` / `onethird` / …）需一并迁到「可见 stack 数」模型
-- `scrollergrid` 目前共用 `cycle_size` 命令表面，需同步改或删除
+- `plugin:canvas:column_default_width`（`onehalf` / `onethird` / …）需一并迁到「可见 stack 数」模型
+- `canvasgrid` 目前共用 `cycle_size` 命令表面，需同步改或删除
 
 ### 主要落点
 
@@ -58,7 +58,7 @@ TODO(deck-card-share)
 
 ### 建议完成判定
 
-- [x] 已提供 `hl.plugin.scroller.set_window_size(n)`（或最终定名）
+- [x] 已提供 `hl.plugin.canvas.set_window_size(n)`（或最终定名）
 - [x] `cycle_size` / `cycle_window_size` / `resize_active_stack(step)` 及 1/3·1/2·2/3 循环路径已删除
 - [x] 默认宽度配置与新语义对齐
 - [x] grid 侧不再残留旧 cycle API
@@ -75,7 +75,7 @@ TODO(deck-card-share)
 
 ### 删除范围
 
-- Lua：`hl.plugin.scroller.align_window`
+- Lua：`hl.plugin.canvas.align_window`
 - dispatch：`dispatch_alignwindow`
 - Canvas / Grid：`align_window`
 - Lane：`align_stack`
@@ -117,7 +117,7 @@ TODO(deck-card-share)
 
 ### 删除范围（公共命令）
 
-- Lua：`hl.plugin.scroller.fit_size`
+- Lua：`hl.plugin.canvas.fit_size`
 - dispatch：`dispatch_fitsize`
 - Canvas / Grid / Lane 的命令向 `fit_size(...)` 入口
 
@@ -186,8 +186,8 @@ TODO(deck-card-share)
 
 - [x] 公共 Lua/dispatch/Canvas `focus_lane` 已删除
 - [x] 公共 Lua/dispatch/Canvas `create_lane` 已删除
-- [x] `GridLayout::expel_window_right` 不再依赖 `create_lane`（随 scrollergrid 一并删除）
-- [x] `GridLayout::focus_lane` / `create_lane` 已删除（随 scrollergrid 一并删除）
+- [x] `GridLayout::expel_window_right` 不再依赖 `create_lane`（随 canvasgrid 一并删除）
+- [x] `GridLayout::focus_lane` / `create_lane` 已删除（随 canvasgrid 一并删除）
 - [x] README 与 hyprland-testing 示例已去掉这两条命令
 - [x] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 
@@ -238,7 +238,7 @@ TODO(deck-card-share)
 - [x] `Stack::admit_window` 仍保留给 `move_window` 内部路径
 - [x] README Admit/Expel 说明与绑定示例已删除或改写为 `move_window`
 
-> 已完成：repro 脚本中的 `admit_window()` / `scroller:admitwindow` 已改写为 stack 轴 `move_window`。
+> 已完成：repro 脚本中的 `admit_window()` / `canvas:admitwindow` 已改写为 stack 轴 `move_window`。
 - [x] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 
 ---
@@ -255,11 +255,11 @@ TODO(deck-card-share)
 | `focus_lane` | 否 | 否 | 无测试改动 |
 | `create_lane` | 否 | 否 | 无测试改动 |
 | `admit_window` / `expel_window` | 否 | 否（无公开命令引用） | 无测试改动 |
-| `align_window` 公开命令 | 否 | 否（无 `align_window`/`align_stack`） | 无 scroller 侧测试改动 |
-| `cycle_size` 公开命令 | 否 | 否 | 无 scroller 侧测试改动 |
+| `align_window` 公开命令 | 否 | 否（无 `align_window`/`align_stack`） | 无 canvas 侧测试改动 |
+| `cycle_size` 公开命令 | 否 | 否 | 无 canvas 侧测试改动 |
 | `fit_size` 公开命令 | 否 | **有 helper** | 见下 |
-| `scrollergrid` / `GridModel` | **有** [`tests/grid_logic_tests.cpp`](../tests/grid_logic_tests.cpp) | 整模块 | 随 `TODO(remove-scrollergrid)` 删除测试 |
-| grid resize/align 模型 | 否（非 Lua） | **有**（同上） | 随 scrollergrid 删除，不再单独迁移 |
+| `canvasgrid` / `GridModel` | **有** [`tests/grid_logic_tests.cpp`](../tests/grid_logic_tests.cpp) | 整模块 | 随 `TODO(remove-canvasgrid)` 删除测试 |
+| grid resize/align 模型 | 否（非 Lua） | **有**（同上） | 随 canvasgrid 删除，不再单独迁移 |
 
 #### 必须处理的测试
 
@@ -290,11 +290,11 @@ TODO(deck-card-share)
 
 | 文件 | 用到的旧 API | 清理动作 |
 |---|---|---|
-| [`scripts/repro-overview-accept-lane.sh`](../scripts/repro-overview-accept-lane.sh) | `scroller:createlane` | 改为 `move_focus` / `move_window` 等价路径，或删除该步骤 |
-| [`scripts/repro-layout-persistence.sh`](../scripts/repro-layout-persistence.sh) | `scroller:createlane` | 同上 |
-| [`scripts/repro-grid-real-coverage.sh`](../scripts/repro-grid-real-coverage.sh) | `scrollergrid` / `fitsize` 等 | 随删除 scrollergrid **整脚本删除或改写为 scroller 场景** |
+| [`scripts/repro-overview-accept-lane.sh`](../scripts/repro-overview-accept-lane.sh) | `canvas:createlane` | 改为 `move_focus` / `move_window` 等价路径，或删除该步骤 |
+| [`scripts/repro-layout-persistence.sh`](../scripts/repro-layout-persistence.sh) | `canvas:createlane` | 同上 |
+| [`scripts/repro-grid-real-coverage.sh`](../scripts/repro-grid-real-coverage.sh) | `canvasgrid` / `fitsize` 等 | 随删除 canvasgrid **整脚本删除或改写为 canvas 场景** |
 
-说明：这些脚本里不少仍是旧 `dispatch scroller:...` 写法；清理时一并迁到 `hl.plugin.scroller.*`，避免 0.57 上假绿/假红。  
+说明：这些脚本里不少仍是旧 `dispatch canvas:...` 写法；清理时一并迁到 `hl.plugin.canvas.*`，避免 0.57 上假绿/假红。  
 目前未发现 repro 脚本直接调用 `admitwindow` / `expelwindow`；删除时仍应全库再搜一遍。
 
 ### 6.3 文档清单
@@ -309,35 +309,35 @@ TODO(deck-card-share)
 
 - [x] `ctest --test-dir ./Debug --output-on-failure` 全绿
 - [x] `core_logic_tests` 中 fit_size helper 测试已按 helper 去留更新
-- [x] `grid_logic_tests` 已随 scrollergrid 删除（或确认不再构建）
-- [x] 相关 repro 脚本不再依赖 createlane / fitsize / scrollergrid
-- [x] smoke-test / hyprland-testing / README 不再推荐已删命令（含 admit/expel / scrollergrid）
+- [x] `grid_logic_tests` 已随 canvasgrid 删除（或确认不再构建）
+- [x] 相关 repro 脚本不再依赖 createlane / fitsize / canvasgrid
+- [x] smoke-test / hyprland-testing / README 不再推荐已删命令（含 admit/expel / canvasgrid）
 
 ---
 
-## 7. `TODO(remove-scrollergrid)`：删除第二种布局算法
+## 7. `TODO(remove-canvasgrid)`：删除第二种布局算法
 
 ### 目标
 
-删除 `scrollergrid`。它不是寻路简化方案，而是平行的格子布局产品；与「只改 move_focus/move_window 表达、保留 lane/stack」的目标不符。
+删除 `canvasgrid`。它不是寻路简化方案，而是平行的格子布局产品；与「只改 move_focus/move_window 表达、保留 lane/stack」的目标不符。
 
 功能计划见 [`topology-neighbor-index.md`](./topology-neighbor-index.md)。
 
 ### 删除范围
 
-- `PLUGIN_INIT` 中 `HyprlandAPI::addTiledAlgo(..., "scrollergrid", ...)`
+- `PLUGIN_INIT` 中 `HyprlandAPI::addTiledAlgo(..., "canvasgrid", ...)`
 - [`src/layout/grid/`](../src/layout/grid/)（`GridLayout` / `GridModel` 等）
 - dispatch 里对 `GridLayout` 的并列分支（`workspaceGridLayoutForAction` 等）
 - overview / snapshot / persist 中仅服务 grid 的路径（若有）
 - [`tests/grid_logic_tests.cpp`](../tests/grid_logic_tests.cpp)
-- [`scripts/repro-grid-real-coverage.sh`](../scripts/repro-grid-real-coverage.sh) 及文档中的 scrollergrid 说明
+- [`scripts/repro-grid-real-coverage.sh`](../scripts/repro-grid-real-coverage.sh) 及文档中的 canvasgrid 说明
 
 ### 建议完成判定
 
-- [x] 无法再 `layout = scrollergrid` 加载该算法
-- [x] 仓库无 `ScrollerGrid::` / `src/layout/grid` 生产路径
+- [x] 无法再 `layout = canvasgrid` 加载该算法
+- [x] 仓库无 `CanvasGrid::` / `src/layout/grid` 生产路径
 - [x] ctest 不再编译/运行 grid 专用测试
-- [x] README / architecture / smoke-test 不再把 scrollergrid 写成并存布局
+- [x] README / architecture / smoke-test 不再把 canvasgrid 写成并存布局
 
 > 已完成：旧快照文件中的 `GRID` / `GRIDITEM` 行仍可解析但会被忽略，lane 状态照常恢复；
 > `repro-grid-*.sh` 三个脚本已删除。
@@ -348,13 +348,13 @@ TODO(deck-card-share)
 
 完整指令向功能计划见 [`topology-neighbor-index.md`](./topology-neighbor-index.md)。
 
-摘要：在 **保留 lane/stack** 的前提下，把 `move_focus` / `move_window` 的「下一步去哪」收成只读派生索引 + 纯函数路由；删除 scrollergrid，不引入格子布局。
+摘要：在 **保留 lane/stack** 的前提下，把 `move_focus` / `move_window` 的「下一步去哪」收成只读派生索引 + 纯函数路由；删除 canvasgrid，不引入格子布局。
 
 ### 建议完成判定
 
 - [x] 按 feature 文档 §3–§4 完成实现与验收
 - [x] `move_focus` 与 `move_window` 共用同一邻居/路由决策出口
-- [x] 不再依赖 `GridModel` / `scrollergrid`
+- [x] 不再依赖 `GridModel` / `canvasgrid`
 
 ---
 
@@ -362,10 +362,10 @@ TODO(deck-card-share)
 
 ### 目标模型
 
-在 **不替换** Hyprland workspace 的前提下，把 hyprscroller 的跨屏场景正式抽象为：
+在 **不替换** Hyprland workspace 的前提下，把 hyprcanvas 的跨屏场景正式抽象为：
 
 ```text
-Canvas Workspace          ← hyprscroller 抽象：一整套多屏桌面
+Canvas Workspace          ← hyprcanvas 抽象：一整套多屏桌面
   └─ Hyprland workspace × N(= monitor 数)   ← 每屏一块真实桌面
         └─ Lane → Stack → window
 ```
@@ -479,8 +479,8 @@ Canvas Workspace          ← hyprscroller 抽象：一整套多屏桌面
 2. **`remove-admit-expel-window`** — 无 ctest 引用；保留 `Stack::admit_window`  
 3. **`remove-align-window`** / **`remove-create-lane-command`** / **`remove-fit-size-command`** — 继续瘦身公开命令  
 4. **`set_window_size` + 删除 `cycle_size`** — 尺寸语义替换  
-5. **`remove-scrollergrid`** — 删除第二种布局及 grid 测试/脚本（可与命令瘦身并行，但勿再往 grid 加功能）  
-6. **`topology-neighbor-index`** — 在 scroller 上落地邻居索引，简化 `move_focus` / `move_window`  
+5. **`remove-canvasgrid`** — 删除第二种布局及 grid 测试/脚本（可与命令瘦身并行，但勿再往 grid 加功能）  
+6. **`topology-neighbor-index`** — 在 canvas 上落地邻居索引，简化 `move_focus` / `move_window`  
 7. **`canvas-workspace-model`** — 文档与 overview/canvas 仓库对齐目标层级（可与 6 并行规划；改跨屏切换语义时再动代码）
 8. **`deck-card-share`** — 横向/纵向 stack 卡牌交叉轴逐层缩放（已实现，待人工验收）
 

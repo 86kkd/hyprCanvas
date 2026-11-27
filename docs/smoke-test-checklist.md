@@ -1,4 +1,4 @@
-# Hyprscroller Smoke Test Checklist
+# HyprCanvas Smoke Test Checklist
 
 Use this checklist after changing `src/layout/canvas/*`, `src/layout/lane/*`, or `src/model/stack.*`.
 
@@ -12,23 +12,23 @@ Use this checklist after changing `src/layout/canvas/*`, `src/layout/lane/*`, or
 ## Checklist
 
 1. Open three tiled windows in `row` mode on one workspace and confirm the newest window appears next to the latest focused window, not at the far end.
-2. Run `scroller:movefocus l/r` across the row and confirm focus changes stay inside the lane until the edge.
-3. Run `scroller:movewindow l/r` inside the same row and confirm window order changes without losing geometry or leaving blank space.
-4. Switch to `column` mode, add at least three windows to one stack, and confirm `scroller:movefocus u/d` moves inside the stack correctly.
+2. Run `canvas:movefocus l/r` across the row and confirm focus changes stay inside the lane until the edge.
+3. Run `canvas:movewindow l/r` inside the same row and confirm window order changes without losing geometry or leaving blank space.
+4. Switch to `column` mode, add at least three windows to one stack, and confirm `canvas:movefocus u/d` moves inside the stack correctly.
 5. In `column` mode, use `move_window` up/down to join a single-window stack into its neighbor and to split a window back out of a multi-window stack; confirm the moved window keeps focus and no window disappears.
-6. In `row` mode, run `hl.plugin.scroller.set_window_size(3)` and then `set_window_size(2)`; confirm every column (including ones on other workspaces and newly opened ones) takes a third, then a half, of the workarea.
-7. Toggle `scroller:togglefullscreen` in `row` mode, then move focus left/right and confirm the layout restores cleanly after toggling back.
-8. Toggle `scroller:togglefullscreen` in `column` mode and confirm expanded-window behavior still allows focus movement and relayout after exit.
+6. In `row` mode, run `hl.plugin.canvas.set_window_size(3)` and then `set_window_size(2)`; confirm every column (including ones on other workspaces and newly opened ones) takes a third, then a half, of the workarea.
+7. Toggle `canvas:togglefullscreen` in `row` mode, then move focus left/right and confirm the layout restores cleanly after toggling back.
+8. Toggle `canvas:togglefullscreen` in `column` mode and confirm expanded-window behavior still allows focus movement and relayout after exit.
 9. Create or enter an empty ephemeral lane via directional focus and confirm it is cleaned up once focus returns to a non-empty lane.
 10. Move a window to an adjacent lane and confirm the source lane is removed only when empty.
-11. Move a window from the landscape monitor to the portrait monitor and back with `scroller:movewindow`, confirming target insertion happens beside the latest focused window on the destination monitor.
-12. Move focus across monitors with `scroller:movefocus` and confirm focus lands on the target monitor without bouncing back on the next command.
-13. Repeat cross-monitor `movewindow` while the target or crossed neighbor is scroller-fullscreen and confirm there is no half-monitor blank region.
-14. Open a special workspace containing scroller windows, toggle it visible/hidden, and confirm relayout still uses the correct monitor.
-15. On an empty or newly created workspace, run `scroller:movefocus` or `scroller:movewindow` once and confirm builtin fallback behavior does not crash or wedge focus.
+11. Move a window from the landscape monitor to the portrait monitor and back with `canvas:movewindow`, confirming target insertion happens beside the latest focused window on the destination monitor.
+12. Move focus across monitors with `canvas:movefocus` and confirm focus lands on the target monitor without bouncing back on the next command.
+13. Repeat cross-monitor `movewindow` while the target or crossed neighbor is canvas-fullscreen and confirm there is no half-monitor blank region.
+14. Open a special workspace containing canvas windows, toggle it visible/hidden, and confirm relayout still uses the correct monitor.
+15. On an empty or newly created workspace, run `canvas:movefocus` or `canvas:movewindow` once and confirm builtin fallback behavior does not crash or wedge focus.
 16. Prefer `./scripts/repro-overview.sh --outer-monitor <portrait-monitor>` for overview regressions, then confirm every visible monitor shows overview cards without live window geometry jumping.
-17. While overview is open, run `scroller:movefocus` across windows, empty workspaces, and between monitors, then confirm the real focused window does not change until accept.
-18. Close overview with `scroller:toggleoverview accept` and `scroller:canceloverview`, confirming accept jumps to the selected target while cancel restores the original workspace/window.
+17. While overview is open, run `canvas:movefocus` across windows, empty workspaces, and between monitors, then confirm the real focused window does not change until accept.
+18. Close overview with `canvas:toggleoverview accept` and `canvas:canceloverview`, confirming accept jumps to the selected target while cancel restores the original workspace/window.
 19. Open overview on a monitor with no tiled workspaces and confirm the monitor still renders a stable empty-state card instead of crashing or drawing stale previews.
 
 ## Notes
@@ -112,7 +112,7 @@ Use this checklist after changing `src/layout/canvas/*`, `src/layout/lane/*`, or
 
 Automated isolated regression: `python3 scripts/repro-fullsize-insertion.py`.
 
-- Expand a single-window stack with the scroller fullscreen toggle (`mainMod+F`).
+- Expand a single-window stack with the canvas fullscreen toggle (`mainMod+F`).
   From its right neighbor, move a window left: it must join the fullsize target
   deck while the target stays expanded. Repeat rightward from the left neighbor.
 - The joined stack must keep fullsize geometry. Toggle fullsize off and confirm
@@ -130,7 +130,7 @@ Automated isolated regression: `python3 scripts/repro-fullsize-insertion.py`.
 Automated isolated regression: `python3 scripts/repro-fullsize-deck.py`
 (requires `grim` in addition to the insertion regression dependencies).
 
-- With 2, 3 and 5 windows in one stack, toggle scroller fullsize. The main
+- With 2, 3 and 5 windows in one stack, toggle canvas fullsize. The main
   window must occupy 90% of the stack axis and the entire cross axis.
 - With 2 windows the secondary gets 10%; otherwise the secondary gets 5%, and
   the other windows equally share 5%. Keep original order during focus changes.

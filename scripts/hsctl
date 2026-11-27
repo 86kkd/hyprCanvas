@@ -17,12 +17,12 @@
 #
 # Instance selection (first match wins):
 #   1. -i / --instance SIGNATURE
-#   2. $HYPRSCROLLER_INSTANCE
+#   2. $HYPRCANVAS_INSTANCE
 #   3. newest Hyprland instance that is not the current session
 #   4. newest instance overall
 set -euo pipefail
 
-INSTANCE="${HYPRSCROLLER_INSTANCE:-}"
+INSTANCE="${HYPRCANVAS_INSTANCE:-}"
 
 die() {
     printf 'hsctl: %s\n' "$*" >&2
@@ -31,14 +31,14 @@ die() {
 
 usage() {
     cat <<'EOF'
-hsctl — short hyprctl wrapper for nested hyprscroller tests
+hsctl — short hyprctl wrapper for nested hyprcanvas tests
 
 Commands:
-  focus <l|r|u|d|...>     hl.plugin.scroller.move_focus
-  move  <l|r|u|d|...>     hl.plugin.scroller.move_window
+  focus <l|r|u|d|...>     hl.plugin.canvas.move_focus
+  move  <l|r|u|d|...>     hl.plugin.canvas.move_window
   move-workspace <l|r|u|d> move window to adjacent canvas and follow
   move-monitor <l|r|u|d>  move window directly to adjacent monitor and follow
-  swap  <l|r|u|d|...>     hl.plugin.scroller.swap_window (adjacent stack)
+  swap  <l|r|u|d|...>     hl.plugin.canvas.swap_window (adjacent stack)
   monitor <l|r|u|d>      focus monitor / select canvas in overview
   workspace <l|r|u|d|1-10>
                           switch canvas workspace (alias: canvas)
@@ -46,9 +46,9 @@ Commands:
   marks visit <name>      focus a marked window
   marks delete <name>     delete a mark
   marks reset             clear all marks (alias: mark)
-  size  <1-8>             hl.plugin.scroller.set_window_size
-  mode  <row|col>         hl.plugin.scroller.set_mode
-  fullscreen              hl.plugin.scroller.toggle_fullscreen
+  size  <1-8>             hl.plugin.canvas.set_window_size
+  mode  <row|col>         hl.plugin.canvas.set_mode
+  fullscreen              hl.plugin.canvas.toggle_fullscreen
   overview                open overview, or accept if already open
   overview accept         accept selection and leave overview
   overview cancel         leave overview without accepting
@@ -71,7 +71,7 @@ Options:
   -h, --help
 
 Environment:
-  HYPRSCROLLER_INSTANCE   default instance signature
+  HYPRCANVAS_INSTANCE   default instance signature
 EOF
 }
 
@@ -104,16 +104,16 @@ run_eval() {
     run_hypr eval "$1"
 }
 
-scroller() {
+canvas() {
     local fn="$1"
     shift
     if [[ $# -eq 0 ]]; then
-        run_eval "hl.plugin.scroller.${fn}()"
+        run_eval "hl.plugin.canvas.${fn}()"
     else
         # Encode control characters as well as quotes without evaluating input.
         local arg
         arg="$(lua_string "$1")"
-        run_eval "hl.plugin.scroller.${fn}(${arg})"
+        run_eval "hl.plugin.canvas.${fn}(${arg})"
     fi
 }
 
@@ -176,30 +176,30 @@ case "$cmd" in
         ;;
     focus)
         [[ $# -ge 1 ]] || die "focus needs a direction"
-        scroller move_focus "$1"
+        canvas move_focus "$1"
         ;;
     move)
         [[ $# -ge 1 ]] || die "move needs a direction"
-        scroller move_window "$1"
+        canvas move_window "$1"
         ;;
     move-monitor)
         one_arg "$@"
         cardinal_direction "$1"
-        scroller move_window_to_monitor "$1"
+        canvas move_window_to_monitor "$1"
         ;;
     move-workspace)
         one_arg "$@"
         cardinal_direction "$1"
-        scroller move_window_to_workspace "$1"
+        canvas move_window_to_workspace "$1"
         ;;
     swap)
         [[ $# -ge 1 ]] || die "swap needs a direction"
-        scroller swap_window "$1"
+        canvas swap_window "$1"
         ;;
     monitor|focusmonitor)
         one_arg "$@"
         cardinal_direction "$1"
-        scroller focus_monitor "$1"
+        canvas focus_monitor "$1"
         ;;
     workspace|canvas)
         one_arg "$@"
@@ -207,7 +207,7 @@ case "$cmd" in
             [1-9]|10) ;;
             *) cardinal_direction "$1" ;;
         esac
-        scroller switch_workspace "$1"
+        canvas switch_workspace "$1"
         ;;
     marks|mark)
         [[ $# -ge 1 ]] || die "marks needs add, visit, delete, or reset"
@@ -217,11 +217,11 @@ case "$cmd" in
             add|visit|delete)
                 one_arg "$@"
                 [[ -n "$1" ]] || die "mark name must not be empty"
-                scroller "marks_${action}" "$1"
+                canvas "marks_${action}" "$1"
                 ;;
             reset)
                 [[ $# -eq 0 ]] || die "marks reset takes no arguments"
-                scroller marks_reset
+                canvas marks_reset
                 ;;
             *) die "unknown marks action: $action" ;;
         esac
@@ -229,27 +229,27 @@ case "$cmd" in
     size)
         one_arg "$@"
         [[ "$1" =~ ^[1-8]$ ]] || die "size needs an integer 1-8"
-        run_eval "hl.plugin.scroller.set_window_size($1)"
+        run_eval "hl.plugin.canvas.set_window_size($1)"
         ;;
     mode)
         one_arg "$@"
         [[ "$1" == row || "$1" == col ]] || die "mode needs row or col"
-        scroller set_mode "$1"
+        canvas set_mode "$1"
         ;;
     fullscreen)
-        scroller toggle_fullscreen
+        canvas toggle_fullscreen
         ;;
     overview|ov)
         [[ $# -le 1 ]] || die "overview takes at most one action"
         case "${1:-}" in
             "")
-                scroller toggle_overview
+                canvas toggle_overview
                 ;;
             accept|confirm|enter)
-                scroller toggle_overview accept
+                canvas toggle_overview accept
                 ;;
             cancel|abort|close)
-                scroller cancel_overview
+                canvas cancel_overview
                 ;;
             *)
                 die "overview accepts accept or cancel"

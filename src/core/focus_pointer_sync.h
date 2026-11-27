@@ -2,7 +2,7 @@
 
 #include <hyprland/src/desktop/DesktopTypes.hpp>
 
-namespace ScrollerCore::FocusPointerSync {
+namespace CanvasCore::FocusPointerSync {
 enum class Policy { Preserve, Navigation, NewWindow };
 void initialize();
 void shutdown();

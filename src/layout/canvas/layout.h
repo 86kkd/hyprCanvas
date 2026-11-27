@@ -1,6 +1,6 @@
 /**
  * @file layout.h
- * @brief Layout controller for Hyprscroller's tiled workspace orchestration.
+ * @brief Layout controller for HyprCanvas's tiled workspace orchestration.
  *
  * Declares `CanvasLayout`, the Hyprland tiled algorithm implementation that
  * owns the lanes of a canvas, translates Hyprland layout callbacks, and exposes
@@ -86,10 +86,10 @@ public:
 
     // Command-facing control surface from Hyprland config / Lua.
     // The usual call chain is:
-    // keybind -> `hl.plugin.scroller.*` -> `src/plugin/dispatch/` -> one of
+    // keybind -> `hl.plugin.canvas.*` -> `src/plugin/dispatch/` -> one of
     // these methods -> lane/stack helpers -> relayout/focus synchronization.
     void setWindowSize(int workspace, int visibleStacks);
-    void applyStackWidth(ScrollerModel::StackWidth width);
+    void applyStackWidth(CanvasModel::StackWidth width);
     void moveFocus(int workspace, Direction);
     void moveWindow(int workspace, Direction);
     void moveWindowToMonitor(int workspace, Direction);
@@ -104,11 +104,11 @@ private:
     void onWindowRemovedTiling(PHLWINDOW);
     void recalculateWindow(PHLWINDOW);
 
-    std::optional<ScrollerSnapshot::CanvasSnapshot> captureSnapshot() const;
+    std::optional<CanvasLayoutSnapshot::CanvasSnapshot> captureSnapshot() const;
     void persistSnapshot();
     void clearPersistedSnapshot();
     bool maybeRestoreWorkspaceSnapshot();
-    bool restoreSnapshot(const ScrollerSnapshot::CanvasSnapshot &snapshot);
+    bool restoreSnapshot(const CanvasLayoutSnapshot::CanvasSnapshot &snapshot);
     // Disconnect listeners and drop all per-workspace model state.
     void resetRuntimeState();
     // Ensure workspace-bound listeners are attached for this layout's workspace.
@@ -210,7 +210,7 @@ private:
     // Ordered lanes that make up the current canvas.
     List<std::unique_ptr<Lane>> lanes;
     // Cached window -> lane index used to avoid repeated whole-canvas scans.
-    ScrollerCore::OwnerIndex<uintptr_t, Lane> laneByWindow;
+    CanvasCore::OwnerIndex<uintptr_t, Lane> laneByWindow;
     std::unordered_set<uintptr_t> restoredTargetsAwaitingCallback;
     bool restoredGeometryActive = false;
     // Concentrated one-shot focus and cross-monitor handoff state.

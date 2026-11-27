@@ -32,8 +32,8 @@ struct Target {
     int               monitorId = INVALID_MONITOR_ID;
     bool              specialWorkspace = false;
     PHLWINDOW         window = nullptr;
-    ScrollerCore::Box box{};
-    ScrollerCore::Box sourceBox{};
+    CanvasCore::Box box{};
+    CanvasCore::Box sourceBox{};
     bool              synthetic = false;
     PHLWINDOW         stackActiveWindow = nullptr;
 };
@@ -47,13 +47,13 @@ struct WorkspaceNode {
     bool               specialWorkspace = false;
     bool               synthetic = false;
     std::vector<Target> targets;
-    ScrollerCore::Box  box;
+    CanvasCore::Box  box;
 };
 
 struct MonitorRegion {
     int                      monitorId = INVALID_MONITOR_ID;
     PHLMONITOR               monitor = nullptr;
-    ScrollerCore::Box        box;
+    CanvasCore::Box        box;
     std::vector<WorkspaceNode> workspaces;
 };
 
@@ -77,19 +77,19 @@ struct TargetGraphNode {
     int                canvasId = INVALID_CANVAS_ID;
     int                monitorId = INVALID_MONITOR_ID;
     WORKSPACEID        workspaceId = INVALID_WORKSPACE_ID;
-    ScrollerCore::Box  box;
+    CanvasCore::Box  box;
 };
 
 struct CanvasGraphNode {
     int               canvasId = INVALID_CANVAS_ID;
     int               tileX = 0;
     int               tileY = 0;
-    ScrollerCore::Box box;
+    CanvasCore::Box box;
     bool              synthetic = false;
 };
 
 Target makeEmptyTarget(int canvasId, WORKSPACEID workspaceId, int monitorId, bool specialWorkspace,
-                       const ScrollerCore::Box& workspaceBox, bool synthetic);
+                       const CanvasCore::Box& workspaceBox, bool synthetic);
 
 class Model {
   public:

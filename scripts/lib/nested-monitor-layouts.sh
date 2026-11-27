@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 
-hyprscroller_five_monitor_names() {
+hyprcanvas_five_monitor_names() {
     local -n out_ref="$1"
     out_ref=(
         "WAYLAND-1"
@@ -11,7 +11,7 @@ hyprscroller_five_monitor_names() {
     )
 }
 
-hyprscroller_five_outer_titles() {
+hyprcanvas_five_outer_titles() {
     local -n out_ref="$1"
     out_ref=(
         "aquamarine - WAYLAND-1"
@@ -22,7 +22,7 @@ hyprscroller_five_outer_titles() {
     )
 }
 
-hyprscroller_two_orientation_monitor_names() {
+hyprcanvas_two_orientation_monitor_names() {
     local -n out_ref="$1"
     out_ref=(
         "WAYLAND-1"
@@ -30,7 +30,7 @@ hyprscroller_two_orientation_monitor_names() {
     )
 }
 
-hyprscroller_two_orientation_outer_titles() {
+hyprcanvas_two_orientation_outer_titles() {
     local -n out_ref="$1"
     out_ref=(
         "aquamarine - WAYLAND-1"
@@ -38,7 +38,7 @@ hyprscroller_two_orientation_outer_titles() {
     )
 }
 
-hyprscroller_monitor_logical_geometry() {
+hyprcanvas_monitor_logical_geometry() {
     local monitor_json="$1"
     local -n out_x_ref="$2"
     local -n out_y_ref="$3"
@@ -55,7 +55,7 @@ hyprscroller_monitor_logical_geometry() {
     ')"
 }
 
-hyprscroller_compute_five_monitor_outer_layout() {
+hyprcanvas_compute_five_monitor_outer_layout() {
     local outer_monitor_json="$1"
     local landscape_width="$2"
     local landscape_height="$3"
@@ -105,7 +105,7 @@ hyprscroller_compute_five_monitor_outer_layout() {
         "$(( landscape_height + layout_gap + portrait_height + layout_gap ))"
     )
 
-    hyprscroller_monitor_logical_geometry \
+    hyprcanvas_monitor_logical_geometry \
         "$outer_monitor_json" \
         outer_monitor_x \
         outer_monitor_y \
@@ -148,7 +148,7 @@ hyprscroller_compute_five_monitor_outer_layout() {
     done
 }
 
-hyprscroller_compute_two_orientation_outer_layout() {
+hyprcanvas_compute_two_orientation_outer_layout() {
     local outer_monitor_json="$1"
     local landscape_width="$2"
     local landscape_height="$3"
@@ -183,7 +183,7 @@ hyprscroller_compute_two_orientation_outer_layout() {
         0
     )
 
-    hyprscroller_monitor_logical_geometry \
+    hyprcanvas_monitor_logical_geometry \
         "$outer_monitor_json" \
         outer_monitor_x \
         outer_monitor_y \
@@ -226,7 +226,7 @@ hyprscroller_compute_two_orientation_outer_layout() {
     done
 }
 
-hyprscroller_outer_event_socket_path() {
+hyprcanvas_outer_event_socket_path() {
     local signature="${HYPRLAND_INSTANCE_SIGNATURE:-}"
     local runtime_dir="${XDG_RUNTIME_DIR:-/tmp}"
     local candidate
@@ -245,7 +245,7 @@ hyprscroller_outer_event_socket_path() {
     return 1
 }
 
-hyprscroller_install_outer_output_map_time_float_rules() {
+hyprcanvas_install_outer_output_map_time_float_rules() {
     local -n titles_ref="$1"
     local title
 
@@ -254,7 +254,7 @@ hyprscroller_install_outer_output_map_time_float_rules() {
     done
 }
 
-hyprscroller_stream_hyprland_events() {
+hyprcanvas_stream_hyprland_events() {
     local event_socket="$1"
 
     python3 -c '
@@ -263,7 +263,7 @@ import sys
 
 sock = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 sock.connect(sys.argv[1])
-print("__HYPRSCROLLER_EVENT_SOCKET_READY__", flush=True)
+print("__HYPRCANVAS_EVENT_SOCKET_READY__", flush=True)
 
 with sock.makefile("r", encoding="utf-8", errors="replace") as stream:
     for line in stream:
@@ -274,7 +274,7 @@ with sock.makefile("r", encoding="utf-8", errors="replace") as stream:
 
 # Scope previews to the compositor launched with this run's unique config.
 # Other repro scripts may omit the filter and retain their existing behavior.
-hyprscroller_outer_output_clients() {
+hyprcanvas_outer_output_clients() {
     hyprctl clients -j | python3 -c '
 import json, pathlib, sys
 config = sys.argv[1].encode()
@@ -291,10 +291,10 @@ for client in json.load(sys.stdin):
             continue
     clients.append(client)
 print(json.dumps(clients))
-' "${HYPRSCROLLER_OUTER_OWNER_CONFIG:-}"
+' "${HYPRCANVAS_OUTER_OWNER_CONFIG:-}"
 }
 
-hyprscroller_position_outer_window_selector() {
+hyprcanvas_position_outer_window_selector() {
     local selector="$1"
     local outer_monitor_x="$2"
     local outer_monitor_y="$3"
@@ -309,7 +309,7 @@ hyprscroller_position_outer_window_selector() {
     hyprctl eval "hl.dispatch(hl.dsp.window.float({ window = $selector_lua, action = 'set' })); hl.dispatch(hl.dsp.window.resize({ window = $selector_lua, x = ${selector_widths_ref[$index]}, y = ${selector_heights_ref[$index]}, relative = false })); hl.dispatch(hl.dsp.window.move({ window = $selector_lua, x = $(( outer_monitor_x + selector_xs_ref[$index] )), y = $(( outer_monitor_y + selector_ys_ref[$index] )), relative = false }))" >/dev/null
 }
 
-hyprscroller_position_outer_window_index() {
+hyprcanvas_position_outer_window_index() {
     local outer_monitor_x="$1"
     local outer_monitor_y="$2"
     local index="$3"
@@ -320,15 +320,15 @@ hyprscroller_position_outer_window_index() {
     local -n index_heights_ref="$8"
 
     local selector="title:^${index_titles_ref[$index]}$"
-    if [[ -n "${HYPRSCROLLER_OUTER_OWNER_CONFIG:-}" ]]; then
+    if [[ -n "${HYPRCANVAS_OUTER_OWNER_CONFIG:-}" ]]; then
         local address
-        address="$(hyprscroller_outer_output_clients | jq -r --arg title "${index_titles_ref[$index]}" '
+        address="$(hyprcanvas_outer_output_clients | jq -r --arg title "${index_titles_ref[$index]}" '
             map(select(.title == $title)) | if length == 1 then .[0].address else empty end
         ')"
         [[ -n "$address" ]] || return 1
         selector="address:$address"
     fi
-    hyprscroller_position_outer_window_selector \
+    hyprcanvas_position_outer_window_selector \
         "$selector" \
         "$outer_monitor_x" \
         "$outer_monitor_y" \
@@ -339,7 +339,7 @@ hyprscroller_position_outer_window_index() {
         index_heights_ref
 }
 
-hyprscroller_start_outer_output_event_watcher() {
+hyprcanvas_start_outer_output_event_watcher() {
     local -n watcher_pid_ref="$1"
     local event_socket="$2"
     local positioned_state_path="$3"
@@ -375,8 +375,8 @@ hyprscroller_start_outer_output_event_watcher() {
         local positioned_titles="|"
         local positioned_count=0
 
-        hyprscroller_stream_hyprland_events "$event_socket" 2>/dev/null | while IFS= read -r event; do
-            if [[ "$event" == "__HYPRSCROLLER_EVENT_SOCKET_READY__" ]]; then
+        hyprcanvas_stream_hyprland_events "$event_socket" 2>/dev/null | while IFS= read -r event; do
+            if [[ "$event" == "__HYPRCANVAS_EVENT_SOCKET_READY__" ]]; then
                 : >"$ready_path"
                 continue
             fi
@@ -386,8 +386,8 @@ hyprscroller_start_outer_output_event_watcher() {
             payload="${event#openwindow>>}"
             IFS=',' read -r address workspace class title <<<"$payload"
             [[ "$class" == "aquamarine" ]] || continue
-            if [[ -n "${HYPRSCROLLER_OUTER_OWNER_CONFIG:-}" ]]; then
-                hyprscroller_outer_output_clients | jq -e --arg address "${address#0x}" '
+            if [[ -n "${HYPRCANVAS_OUTER_OWNER_CONFIG:-}" ]]; then
+                hyprcanvas_outer_output_clients | jq -e --arg address "${address#0x}" '
                     any(.[]; (.address | ltrimstr("0x")) == $address)
                 ' >/dev/null || continue
             fi
@@ -404,7 +404,7 @@ hyprscroller_start_outer_output_event_watcher() {
 
             positioned_ok=0
             for ((position_attempt = 0; position_attempt < 10; ++position_attempt)); do
-                if hyprscroller_position_outer_window_selector \
+                if hyprcanvas_position_outer_window_selector \
                     "address:${address}" \
                     "$outer_monitor_x" \
                     "$outer_monitor_y" \
@@ -438,7 +438,7 @@ hyprscroller_start_outer_output_event_watcher() {
     watcher_pid_ref="$!"
 }
 
-hyprscroller_wait_for_outer_output_event_watcher_ready() {
+hyprcanvas_wait_for_outer_output_event_watcher_ready() {
     local ready_path="$1"
 
     for ((attempt = 0; attempt < 50; ++attempt)); do
@@ -452,7 +452,7 @@ hyprscroller_wait_for_outer_output_event_watcher_ready() {
     return 1
 }
 
-hyprscroller_outer_output_position_event_count() {
+hyprcanvas_outer_output_position_event_count() {
     local positioned_state_path="$1"
 
     if [[ ! -f "$positioned_state_path" ]]; then
@@ -463,12 +463,12 @@ hyprscroller_outer_output_position_event_count() {
     awk -F '\t' 'NF >= 2 && !seen[$2]++ { count++ } END { print count + 0 }' "$positioned_state_path"
 }
 
-hyprscroller_wait_for_outer_output_position_events() {
+hyprcanvas_wait_for_outer_output_position_events() {
     local positioned_state_path="$1"
     local expected_count="$2"
 
     for ((attempt = 0; attempt < 100; ++attempt)); do
-        if (( "$(hyprscroller_outer_output_position_event_count "$positioned_state_path")" >= expected_count )); then
+        if (( "$(hyprcanvas_outer_output_position_event_count "$positioned_state_path")" >= expected_count )); then
             return 0
         fi
 
@@ -478,7 +478,7 @@ hyprscroller_wait_for_outer_output_position_events() {
     return 1
 }
 
-hyprscroller_create_positioned_wayland_outputs() {
+hyprcanvas_create_positioned_wayland_outputs() {
     local instance="$1"
     local start_count="$2"
     local target_count="$3"
@@ -517,7 +517,7 @@ hyprscroller_create_positioned_wayland_outputs() {
         fi
 
         index=$(( expected_monitor_count - 1 ))
-        hyprscroller_position_outer_window_index \
+        hyprcanvas_position_outer_window_index \
             "$outer_monitor_x" \
             "$outer_monitor_y" \
             "$index" \
@@ -530,7 +530,7 @@ hyprscroller_create_positioned_wayland_outputs() {
     done
 }
 
-hyprscroller_position_outer_windows() {
+hyprcanvas_position_outer_windows() {
     local outer_monitor_x="$1"
     local outer_monitor_y="$2"
     local -n titles_ref="$3"
@@ -541,7 +541,7 @@ hyprscroller_position_outer_windows() {
     local index
 
     for index in "${!titles_ref[@]}"; do
-        hyprscroller_position_outer_window_index \
+        hyprcanvas_position_outer_window_index \
             "$outer_monitor_x" \
             "$outer_monitor_y" \
             "$index" \
@@ -554,7 +554,7 @@ hyprscroller_position_outer_windows() {
     done
 }
 
-hyprscroller_apply_five_monitor_cross_layout() {
+hyprcanvas_apply_five_monitor_cross_layout() {
     local instance="$1"
     local landscape_width="$2"
     local landscape_height="$3"
@@ -579,7 +579,7 @@ hyprscroller_apply_five_monitor_cross_layout() {
         "hl.monitor({ output = 'WAYLAND-5', mode = '${landscape_width}x${landscape_height}@60', position = '${middle_x}x${bottom_y}', scale = 1, transform = 0 })" >/dev/null
 }
 
-hyprscroller_apply_two_orientation_layout() {
+hyprcanvas_apply_two_orientation_layout() {
     local instance="$1"
     local landscape_width="$2"
     local landscape_height="$3"

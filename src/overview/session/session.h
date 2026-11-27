@@ -60,7 +60,7 @@ class Session {
     std::vector<CanvasLayoutState::SyntheticCanvasWorkspace> pendingCanvases_;
 };
 
-ScrollerCore::ServiceSlot<Session>& sessionSlot();
+CanvasCore::ServiceSlot<Session>& sessionSlot();
 Session& session();
 
 } // namespace Overview

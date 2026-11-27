@@ -8,7 +8,7 @@
 
 namespace {
 
-void expect_box_eq(const ScrollerCore::Box &actual, const ScrollerCore::Box &expected, std::string_view label) {
+void expect_box_eq(const CanvasCore::Box &actual, const CanvasCore::Box &expected, std::string_view label) {
     expect_near(actual.x, expected.x, 1e-9, std::string(label) + " x");
     expect_near(actual.y, expected.y, 1e-9, std::string(label) + " y");
     expect_near(actual.w, expected.w, 1e-9, std::string(label) + " w");
@@ -16,7 +16,7 @@ void expect_box_eq(const ScrollerCore::Box &actual, const ScrollerCore::Box &exp
 }
 
 void test_snapshot_round_trip() {
-    using namespace ScrollerSnapshot;
+    using namespace CanvasLayoutSnapshot;
 
     RepositorySnapshot repository;
     CanvasSnapshot canvas;
@@ -90,7 +90,7 @@ void test_snapshot_accepts_legacy_lane_format() {
         "LANE 0 0 0 0 1\n"
         "STACK 1 0 0 0 10 20 300 400 1 2 3 4 11 1\n"
         "WINDOW 11 3 20 300 20 300\n";
-    const auto parsed = ScrollerSnapshot::deserialize_repository(legacy);
+    const auto parsed = CanvasLayoutSnapshot::deserialize_repository(legacy);
     expect_true(parsed.has_value(), "layout snapshot accepts legacy v1 lane format");
     if (!parsed)
         return;
@@ -101,7 +101,7 @@ void test_snapshot_accepts_legacy_lane_format() {
         return;
 
     expect_eq(it->second.lanes.size(), static_cast<size_t>(1), "legacy layout snapshot keeps lanes");
-    expect_eq(it->second.version, ScrollerSnapshot::kLegacyFormatVersion, "legacy snapshot keeps source format version");
+    expect_eq(it->second.version, CanvasLayoutSnapshot::kLegacyFormatVersion, "legacy snapshot keeps source format version");
     expect_eq(it->second.lanes[0].stacks[0].width, 2, "legacy one-half width becomes two visible stacks");
 }
 
@@ -114,7 +114,7 @@ void test_snapshot_maps_legacy_width_presets() {
         "STACK 1 0 0 0 0 0 900 900 0 0 0 0 12 0\n"
         "STACK 2 0 0 0 0 0 1200 900 0 0 0 0 13 0\n"
         "STACK 4 0 0 0 0 0 700 900 0 0 0 0 14 0\n";
-    const auto parsed = ScrollerSnapshot::deserialize_repository(v5);
+    const auto parsed = CanvasLayoutSnapshot::deserialize_repository(v5);
     expect_true(parsed.has_value(), "layout snapshot accepts v5 width presets");
     if (!parsed)
         return;
@@ -126,7 +126,7 @@ void test_snapshot_maps_legacy_width_presets() {
     expect_eq(stacks[3].width, 0, "legacy free width stays free");
     expect_near(stacks[2].geom.w, 1200.0, 1e-9, "legacy two-thirds stack keeps its stored span");
 
-    const auto reparsed = ScrollerSnapshot::deserialize_repository(ScrollerSnapshot::serialize_repository(*parsed));
+    const auto reparsed = CanvasLayoutSnapshot::deserialize_repository(CanvasLayoutSnapshot::serialize_repository(*parsed));
     expect_true(reparsed.has_value() && reparsed->at(4).lanes[0].stacks[0].width == 3,
                 "migrated widths survive a current-format round trip");
 }
@@ -140,8 +140,8 @@ void test_snapshot_ignores_removed_grid_state() {
         "WINDOW 11 3 20 300 20 300\n"
         "GRID 1 0 2 -1 1 0\n"
         "GRIDITEM 11 2 0 1 1\n";
-    const auto parsed = ScrollerSnapshot::deserialize_repository(v3);
-    expect_true(parsed.has_value(), "layout snapshot accepts files written with scrollergrid state");
+    const auto parsed = CanvasLayoutSnapshot::deserialize_repository(v3);
+    expect_true(parsed.has_value(), "layout snapshot accepts files written with canvasgrid state");
     if (!parsed)
         return;
 
@@ -152,7 +152,7 @@ void test_snapshot_ignores_removed_grid_state() {
 
     expect_eq(it->second.lanes.size(), static_cast<size_t>(1), "grid-era snapshot keeps lane state");
     expect_eq(it->second.lanes[0].stacks.size(), static_cast<size_t>(1), "grid lines do not truncate lane stacks");
-    expect_true(ScrollerSnapshot::serialize_repository(*parsed).find("GRID") == std::string::npos,
+    expect_true(CanvasLayoutSnapshot::serialize_repository(*parsed).find("GRID") == std::string::npos,
                 "serialized snapshot no longer writes grid state");
 }
 
@@ -161,19 +161,19 @@ void test_snapshot_preserves_mixed_window_key_versions() {
         "VERSION 5\n"
         "WORKSPACE 1 0 0 4\n"
         "WORKSPACE 2 0 0 5\n";
-    const auto parsed = ScrollerSnapshot::deserialize_repository(mixed);
+    const auto parsed = CanvasLayoutSnapshot::deserialize_repository(mixed);
     expect_true(parsed.has_value(), "layout snapshot accepts mixed key versions during migration");
     if (!parsed)
         return;
 
-    expect_eq(parsed->at(1).version, ScrollerSnapshot::kFullscreenFormatVersion,
+    expect_eq(parsed->at(1).version, CanvasLayoutSnapshot::kFullscreenFormatVersion,
               "mixed snapshot keeps legacy pointer key version");
-    expect_eq(parsed->at(2).version, ScrollerSnapshot::kStableWindowKeyFormatVersion,
+    expect_eq(parsed->at(2).version, CanvasLayoutSnapshot::kStableWindowKeyFormatVersion,
               "mixed snapshot keeps stable window key version");
 }
 
 void test_snapshot_rejects_invalid_version() {
-    const auto parsed = ScrollerSnapshot::deserialize_repository("VERSION 99\n");
+    const auto parsed = CanvasLayoutSnapshot::deserialize_repository("VERSION 99\n");
     expect_true(!parsed.has_value(), "layout snapshot rejects unsupported versions");
 }
 
@@ -183,12 +183,12 @@ void test_snapshot_rejects_malformed_stack_line() {
         "WORKSPACE 4 0 1\n"
         "LANE 0 0 0 1\n"
         "STACK 1 0 0 0 1 2 3\n";
-    const auto parsed = ScrollerSnapshot::deserialize_repository(malformed);
+    const auto parsed = CanvasLayoutSnapshot::deserialize_repository(malformed);
     expect_true(!parsed.has_value(), "layout snapshot rejects malformed stack lines");
 }
 
 void test_canvas_workspace_snapshot_round_trip() {
-    using namespace ScrollerCanvasSnapshot;
+    using namespace CanvasRepoSnapshot;
 
     RepositorySnapshot repository;
     repository.activeCanvasId = 4;
@@ -218,7 +218,7 @@ void test_canvas_workspace_snapshot_round_trip() {
 }
 
 void test_legacy_canvas_members_become_exclusive() {
-    using namespace ScrollerCanvasSnapshot;
+    using namespace CanvasRepoSnapshot;
     RepositorySnapshot repository;
     repository.activeCanvasId = 1; // Stale ACTIVE must not trump visible canvas 0.
     repository.canvases = {
@@ -241,7 +241,7 @@ void test_legacy_canvas_members_become_exclusive() {
 }
 
 void test_canvas_members_follow_monitors() {
-    using namespace ScrollerCanvasSnapshot;
+    using namespace CanvasRepoSnapshot;
 
     const auto visible = visible_members({{.monitorId = 2, .workspaceId = 12}, {.monitorId = 0, .workspaceId = 3}});
     expect_eq(visible.size(), static_cast<size_t>(2), "visible members hold one entry per monitor");
@@ -270,7 +270,7 @@ void test_canvas_members_follow_monitors() {
 }
 
 void test_special_members_are_not_exclusive_pages() {
-    using namespace ScrollerCanvasSnapshot;
+    using namespace CanvasRepoSnapshot;
     RepositorySnapshot repository;
     repository.canvases = {
         {0, 0, 0, {{0, 1, false}, {1, -98, true}}},
@@ -281,7 +281,7 @@ void test_special_members_are_not_exclusive_pages() {
 }
 
 void test_temporary_canvas_lifecycle() {
-    using namespace ScrollerCanvasSnapshot;
+    using namespace CanvasRepoSnapshot;
     RepositorySnapshot repository;
     repository.activeCanvasId = 1;
     repository.canvases = {
@@ -310,7 +310,7 @@ void test_temporary_canvas_lifecycle() {
 }
 
 void test_canvas_workspace_snapshot_rejects_missing_active_line() {
-    const auto parsed = ScrollerCanvasSnapshot::deserialize_repository(
+    const auto parsed = CanvasRepoSnapshot::deserialize_repository(
         "VERSION 1\n"
         "CANVAS 0 0 0 0\n");
     expect_true(!parsed.has_value(), "canvas workspace snapshot rejects missing ACTIVE line");

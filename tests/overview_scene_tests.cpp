@@ -19,7 +19,7 @@ void test_localize_global_box_keeps_monitor_local_axes() {
 }
 
 void test_project_boxes_to_content_preserves_order_and_fits_bounds() {
-    const std::vector<ScrollerCore::Box> source = {
+    const std::vector<CanvasCore::Box> source = {
         {0.0, 0.0, 100.0, 80.0},
         {120.0, 0.0, 90.0, 80.0},
     };
@@ -33,7 +33,7 @@ void test_project_boxes_to_content_preserves_order_and_fits_bounds() {
 }
 
 void test_project_global_boxes_to_content_tracks_workspace_card_position() {
-    const std::vector<ScrollerCore::Box> source = {
+    const std::vector<CanvasCore::Box> source = {
         {0.0, 0.0, 100.0, 80.0},
         {120.0, 0.0, 90.0, 80.0},
     };

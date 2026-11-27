@@ -20,11 +20,11 @@ parser.add_argument('--plugin', type=Path, default=Path(__file__).resolve().pare
 args = parser.parse_args()
 plugin = args.plugin.resolve()
 assert plugin.is_file()
-run = Path(tempfile.mkdtemp(prefix='hyprscroller-canvas-transfer-'))
+run = Path(tempfile.mkdtemp(prefix='hyprcanvas-transfer-'))
 print(f'Artifacts: {run}', flush=True)
 config = run / 'hyprland.lua'
 config.write_text('hl.plugin.load(' + json.dumps(str(plugin)) + ')\n'
-                  'hl.config({general={layout="scroller"},input={follow_mouse=0},'
+                  'hl.config({general={layout="canvas"},input={follow_mouse=0},'
                   'misc={disable_hyprland_logo=true,disable_splash_rendering=true}})\n')
 env = dict(os.environ)
 env.pop('HYPRLAND_INSTANCE_SIGNATURE', None)
@@ -43,7 +43,7 @@ def lua(code):
 
 
 def command(name, direction=None):
-    lua('hl.plugin.scroller.' + name + '(' + (json.dumps(direction) if direction is not None else '') + ')')
+    lua('hl.plugin.canvas.' + name + '(' + (json.dumps(direction) if direction is not None else '') + ')')
     time.sleep(.25)
 
 
@@ -173,7 +173,7 @@ with (run / 'hyprland.log').open('w') as log:
         command('cancel_overview')
         # Rapid round trip must leave focus and deferred pointer work on the final window.
         drain(events)
-        lua('hl.plugin.scroller.move_window_to_workspace("r"); hl.plugin.scroller.move_window_to_workspace("l")')
+        lua('hl.plugin.canvas.move_window_to_workspace("r"); hl.plugin.canvas.move_window_to_workspace("l")')
         time.sleep(.6)
         check(visible() == home and query('activewindow').get('address') == moving, 'rapid round trip preserves focus')
         # Moving beyond the rightmost neighbor creates a fresh canvas. Moving

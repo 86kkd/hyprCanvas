@@ -16,7 +16,7 @@ namespace {
 // setwindowsize <n>: size the active stack so `n` stacks share the monitor
 // workarea along the lane axis.
 void dispatch_setwindowsize(std::string arg) {
-    const auto count = ScrollerModel::parse_visible_stack_count(firstDispatchArg(arg));
+    const auto count = CanvasModel::parse_visible_stack_count(firstDispatchArg(arg));
     if (!count)
         return;
 
@@ -24,7 +24,7 @@ void dispatch_setwindowsize(std::string arg) {
         action.layout->setWindowSize(action.workspace, *count);
 }
 
-// movefocus <dir>: move focus inside scroller layout, with optional monitor
+// movefocus <dir>: move focus inside canvas layout, with optional monitor
 // fallback when the active lane cannot move in requested direction.
 // This is the top of the focus path:
 // keybind -> dispatcher parse -> active canvas -> `CanvasLayout::moveFocus`.
@@ -68,32 +68,32 @@ void dispatch_focusmonitor(std::string arg) {
         return;
     }
 
-    const auto sourceMonitor = ScrollerCore::monitorForKeyboardAction();
+    const auto sourceMonitor = CanvasCore::monitorForKeyboardAction();
     const auto monitorDirection = CanvasLayoutInternal::direction_to_math(*direction);
     if (!g_pCompositor || !sourceMonitor || !monitorDirection) {
         spdlog::warn("dispatch_focusmonitor: no route direction={} source_monitor={}",
-                     ScrollerCore::direction_name(*direction),
+                     CanvasCore::direction_name(*direction),
                      sourceMonitor ? sourceMonitor->m_id : MONITOR_INVALID);
         return;
     }
 
-    const auto targetMonitor = ScrollerCore::HyprlandRuntime::monitorInDirection(sourceMonitor, *monitorDirection);
+    const auto targetMonitor = CanvasCore::HyprlandRuntime::monitorInDirection(sourceMonitor, *monitorDirection);
     if (!targetMonitor) {
         spdlog::info("dispatch_focusmonitor: no adjacent monitor direction={} source_monitor={}",
-                     ScrollerCore::direction_name(*direction),
+                     CanvasCore::direction_name(*direction),
                      sourceMonitor->m_id);
         return;
     }
 
-    const auto targetWorkspaceId = CanvasLayoutInternal::preferred_workspace_id(targetMonitor, ScrollerCore::HyprlandRuntime::activeWorkspaceId(targetMonitor));
-    const auto targetWorkspace = ScrollerCore::HyprlandRuntime::workspaceById(targetWorkspaceId);
+    const auto targetWorkspaceId = CanvasLayoutInternal::preferred_workspace_id(targetMonitor, CanvasCore::HyprlandRuntime::activeWorkspaceId(targetMonitor));
+    const auto targetWorkspace = CanvasCore::HyprlandRuntime::workspaceById(targetWorkspaceId);
     if (!CanvasLayoutInternal::focus_monitor_workspace(targetMonitor,
                                                        targetWorkspace,
                                                        targetWorkspaceId,
                                                        true,
                                                        "dispatch_focusmonitor")) {
         spdlog::warn("dispatch_focusmonitor: failed direction={} target_monitor={} workspace={}",
-                     ScrollerCore::direction_name(*direction),
+                     CanvasCore::direction_name(*direction),
                      targetMonitor->m_id,
                      targetWorkspaceId);
     }
@@ -126,7 +126,7 @@ void dispatch_setmode(std::string arg) {
     });
 }
 
-// togglefullscreen: expand the active scroller window to the monitor bounds.
+// togglefullscreen: expand the active canvas window to the monitor bounds.
 void dispatch_togglefullscreen(std::string arg) {
     (void)arg;
     if (const auto action = workspaceLayoutForAction())
@@ -233,8 +233,8 @@ int lua_toggle_fullscreen(lua_State* state) {
 }
 
 void registerLuaFunction(const char* name, PLUGIN_LUA_FN function) {
-    if (!HyprlandAPI::addLuaFunction(PHANDLE, "scroller", name, function))
-        spdlog::warn("failed to register Lua function hl.plugin.scroller.{}", name);
+    if (!HyprlandAPI::addLuaFunction(PHANDLE, "canvas", name, function))
+        spdlog::warn("failed to register Lua function hl.plugin.canvas.{}", name);
 }
 
 } // namespace

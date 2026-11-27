@@ -28,10 +28,10 @@ int displayMonitor() {
 void notifySwitch(int fromCanvas, int toCanvas) {
     if (fromCanvas == toCanvas || fromCanvas < 0 || toCanvas < 0)
         return;
-    const auto monitor = ScrollerCore::monitorForKeyboardAction();
+    const auto monitor = CanvasCore::monitorForKeyboardAction();
     if (!monitor)
         return;
-    if (const auto old = ScrollerCore::HyprlandRuntime::monitorById(hudMonitor))
+    if (const auto old = CanvasCore::HyprlandRuntime::monitorById(hudMonitor))
         g_pHyprRenderer->damageMonitor(old);
     hudMonitor = monitor->m_id;
     switchedAt = std::chrono::steady_clock::now();
@@ -53,7 +53,7 @@ void notifySwitch(int fromCanvas, int toCanvas) {
             } else {
                 timer->updateTimeout(std::chrono::milliseconds(16));
             }
-            if (const auto output = ScrollerCore::HyprlandRuntime::monitorById(hudMonitor)) {
+            if (const auto output = CanvasCore::HyprlandRuntime::monitorById(hudMonitor)) {
                 g_pHyprRenderer->damageMonitor(output);
                 output->scheduleFrame();
             }
@@ -66,7 +66,7 @@ void notifySwitch(int fromCanvas, int toCanvas) {
     spdlog::debug("canvas_minimap: switch from={} to={} monitor={}", fromCanvas, toCanvas, hudMonitor);
 }
 void reset() {
-    if (const auto monitor = ScrollerCore::HyprlandRuntime::monitorById(hudMonitor))
+    if (const auto monitor = CanvasCore::HyprlandRuntime::monitorById(hudMonitor))
         g_pHyprRenderer->damageMonitor(monitor);
     switchedAt.reset();
     hudMonitor = -1;
@@ -80,9 +80,9 @@ double alpha(steady_tp now) {
 }
 bool visible(PHLMONITOR monitor, steady_tp now) {
     static auto layoutName = CConfigValue<std::string>("general:layout");
-    return *layoutName == "scroller"
+    return *layoutName == "canvas"
         && (!g_pSessionLockManager || !g_pSessionLockManager->isSessionLocked())
-        && scroller::plugin_config::canvasMap()
+        && canvas::plugin_config::canvasMap()
         && monitor && monitor->m_id == displayMonitor() && alpha(now) > 0;
 }
 Map mapForMonitor(PHLMONITOR monitor) {
@@ -103,13 +103,13 @@ Map mapForMonitor(PHLMONITOR monitor) {
             }
         }
     }
-    auto area = ScrollerCore::logical_workarea_box(monitor, 0);
+    auto area = CanvasCore::logical_workarea_box(monitor, 0);
     area.x -= monitor->m_position.x;
     area.y -= monitor->m_position.y;
     return layout(std::move(canvases), repository.activeCanvasId(), selected, area);
 }
 void click(double globalX, double globalY) {
-    const auto monitor = ScrollerCore::HyprlandRuntime::monitorById(displayMonitor());
+    const auto monitor = CanvasCore::HyprlandRuntime::monitorById(displayMonitor());
     if (!session().active() || !visible(monitor, std::chrono::steady_clock::now()))
         return;
     const auto cell = hit(mapForMonitor(monitor), globalX - monitor->m_position.x, globalY - monitor->m_position.y);

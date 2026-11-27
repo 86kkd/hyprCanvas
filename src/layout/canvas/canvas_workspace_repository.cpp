@@ -20,8 +20,8 @@
 namespace CanvasLayoutState {
 namespace {
 
-using SnapshotCanvas = ScrollerCanvasSnapshot::CanvasWorkspaceSnapshot;
-using SnapshotMember = ScrollerCanvasSnapshot::MonitorMemberSnapshot;
+using SnapshotCanvas = CanvasRepoSnapshot::CanvasWorkspaceSnapshot;
+using SnapshotMember = CanvasRepoSnapshot::MonitorMemberSnapshot;
 
 std::string runtime_base_dir() {
     if (const auto* xdgRuntime = std::getenv("XDG_RUNTIME_DIR"); xdgRuntime && xdgRuntime[0] != '\0')
@@ -104,15 +104,15 @@ bool members_match(std::vector<CanvasWorkspaceMember> lhs, std::vector<CanvasWor
     return true;
 }
 
-WORKSPACEID next_workspace_id(const ScrollerCanvasSnapshot::RepositorySnapshot& snapshot,
+WORKSPACEID next_workspace_id(const CanvasRepoSnapshot::RepositorySnapshot& snapshot,
                               const std::vector<SyntheticCanvasWorkspace>& synthetics = {}) {
     WORKSPACEID maxWorkspaceId = 0;
     if (g_pCompositor) {
-        for (const auto& workspaceRef : ScrollerCore::HyprlandRuntime::workspaces()) {
+        for (const auto& workspaceRef : CanvasCore::HyprlandRuntime::workspaces()) {
             const auto workspace = workspaceRef.lock();
             if (!workspace)
                 continue;
-            maxWorkspaceId = std::max(maxWorkspaceId, ScrollerCore::HyprlandRuntime::workspaceId(workspace));
+            maxWorkspaceId = std::max(maxWorkspaceId, CanvasCore::HyprlandRuntime::workspaceId(workspace));
         }
     }
     for (const auto& canvas : snapshot.canvases) {
@@ -126,7 +126,7 @@ WORKSPACEID next_workspace_id(const ScrollerCanvasSnapshot::RepositorySnapshot& 
     return maxWorkspaceId + 1;
 }
 
-int next_canvas_id(const ScrollerCanvasSnapshot::RepositorySnapshot& snapshot,
+int next_canvas_id(const CanvasRepoSnapshot::RepositorySnapshot& snapshot,
                    const std::vector<SyntheticCanvasWorkspace>& synthetics = {}) {
     auto nextId = 0;
     for (const auto& canvas : snapshot.canvases)
@@ -136,14 +136,14 @@ int next_canvas_id(const ScrollerCanvasSnapshot::RepositorySnapshot& snapshot,
     return nextId;
 }
 
-std::vector<CanvasWorkspaceMember> blank_members_for_visible_monitors(const ScrollerCanvasSnapshot::RepositorySnapshot& snapshot,
+std::vector<CanvasWorkspaceMember> blank_members_for_visible_monitors(const CanvasRepoSnapshot::RepositorySnapshot& snapshot,
                                                                      const std::vector<SyntheticCanvasWorkspace>& synthetics = {}) {
     std::vector<CanvasWorkspaceMember> members;
     if (!g_pCompositor)
         return members;
 
     auto workspaceId = next_workspace_id(snapshot, synthetics);
-    for (const auto& monitor : ScrollerCore::HyprlandRuntime::monitors()) {
+    for (const auto& monitor : CanvasCore::HyprlandRuntime::monitors()) {
         if (!monitor)
             continue;
         members.push_back({
@@ -211,8 +211,8 @@ void apply_preview_insertions(std::vector<CanvasWorkspaceRecord>& canvases, cons
 
 } // namespace
 
-ScrollerCore::ServiceSlot<CanvasWorkspaceRepository>& canvasRepositorySlot() {
-    static ScrollerCore::ServiceSlot<CanvasWorkspaceRepository> slot;
+CanvasCore::ServiceSlot<CanvasWorkspaceRepository>& canvasRepositorySlot() {
+    static CanvasCore::ServiceSlot<CanvasWorkspaceRepository> slot;
     return slot;
 }
 
@@ -228,13 +228,13 @@ void CanvasWorkspaceRepository::initialize() {
     loadFromDisk();
     windowOpen_ = Event::bus()->m_events.window.openLate.listen([this](PHLWINDOW window) {
         if (window)
-            promoteWorkspace(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window));
+            promoteWorkspace(CanvasCore::HyprlandRuntime::windowWorkspaceId(window));
     });
     windowMove_ = Event::bus()->m_events.window.moveToWorkspace.listen([this](PHLWINDOW window, PHLWORKSPACE workspace) {
         if (window)
-            promoteWorkspace(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window));
+            promoteWorkspace(CanvasCore::HyprlandRuntime::windowWorkspaceId(window));
         if (workspace)
-            promoteWorkspace(ScrollerCore::HyprlandRuntime::workspaceId(workspace));
+            promoteWorkspace(CanvasCore::HyprlandRuntime::workspaceId(workspace));
     });
 }
 
@@ -245,7 +245,7 @@ void CanvasWorkspaceRepository::shutdown() {
 }
 
 void CanvasWorkspaceRepository::promoteWorkspace(WORKSPACEID workspaceId) {
-    if (ScrollerCanvasSnapshot::reconcile_temporary_canvases(snapshot_, {static_cast<int>(workspaceId)}, false))
+    if (CanvasRepoSnapshot::reconcile_temporary_canvases(snapshot_, {static_cast<int>(workspaceId)}, false))
         flushToDisk();
 }
 
@@ -253,12 +253,12 @@ void CanvasWorkspaceRepository::refreshTemporaryCanvases(bool dropInactive) {
     std::vector<int> occupied;
     for (const auto& canvas : snapshot_.canvases) {
         for (const auto& member : canvas.members) {
-            const auto workspace = ScrollerCore::HyprlandRuntime::workspaceById(member.workspaceId);
+            const auto workspace = CanvasCore::HyprlandRuntime::workspaceById(member.workspaceId);
             if (workspace && workspace->getWindowCount() > 0)
                 occupied.push_back(member.workspaceId);
         }
     }
-    if (ScrollerCanvasSnapshot::reconcile_temporary_canvases(snapshot_, occupied, dropInactive))
+    if (CanvasRepoSnapshot::reconcile_temporary_canvases(snapshot_, occupied, dropInactive))
         flushToDisk();
 }
 
@@ -293,17 +293,17 @@ std::vector<CanvasWorkspaceMember> CanvasWorkspaceRepository::currentVisibleMemb
     if (!g_pCompositor)
         return members;
 
-    std::vector<ScrollerCanvasSnapshot::MonitorWorkspace> monitors;
-    for (const auto& monitor : ScrollerCore::HyprlandRuntime::monitors()) {
+    std::vector<CanvasRepoSnapshot::MonitorWorkspace> monitors;
+    for (const auto& monitor : CanvasCore::HyprlandRuntime::monitors()) {
         if (!monitor)
             continue;
         monitors.push_back({
             .monitorId = static_cast<int>(monitor->m_id),
-            .workspaceId = static_cast<int>(ScrollerCore::HyprlandRuntime::activeWorkspaceId(monitor)),
+            .workspaceId = static_cast<int>(CanvasCore::HyprlandRuntime::activeWorkspaceId(monitor)),
         });
     }
 
-    for (const auto& member : ScrollerCanvasSnapshot::visible_members(std::move(monitors)))
+    for (const auto& member : CanvasRepoSnapshot::visible_members(std::move(monitors)))
         members.push_back({
             .monitorId = member.monitorId,
             .workspaceId = member.workspaceId,
@@ -324,7 +324,7 @@ int CanvasWorkspaceRepository::ensureCurrentVisibleCanvas() {
             // Imported native workspace combinations may share an entire
             // monitor. Preserve what is visible and give older groups their
             // own empty backing workspaces before exposing the canvas graph.
-            ScrollerCanvasSnapshot::make_members_exclusive(snapshot_, canvas.canvasId,
+            CanvasRepoSnapshot::make_members_exclusive(snapshot_, canvas.canvasId,
                                                            static_cast<int>(next_workspace_id(snapshot_)));
             const auto id = canvas.canvasId;
             refreshTemporaryCanvases(true);
@@ -349,7 +349,7 @@ int CanvasWorkspaceRepository::ensureCurrentVisibleCanvas() {
         .members = visible,
     }));
     snapshot_.activeCanvasId = nextId;
-    ScrollerCanvasSnapshot::make_members_exclusive(snapshot_, nextId,
+    CanvasRepoSnapshot::make_members_exclusive(snapshot_, nextId,
                                                    static_cast<int>(next_workspace_id(snapshot_)));
     refreshTemporaryCanvases(true);
     flushToDisk();
@@ -429,13 +429,13 @@ void CanvasWorkspaceRepository::ensureCanvasHasVisibleMembers(int canvasId) {
     std::vector<int> monitorIds;
     for (const auto& member : currentVisibleMembers())
         monitorIds.push_back(member.monitorId);
-    if (!ScrollerCanvasSnapshot::fill_monitor_members(*canvas, monitorIds, static_cast<int>(next_workspace_id(snapshot_))))
+    if (!CanvasRepoSnapshot::fill_monitor_members(*canvas, monitorIds, static_cast<int>(next_workspace_id(snapshot_))))
         return;
     flushToDisk();
 }
 
 std::string CanvasWorkspaceRepository::repositoryPath() const {
-    return runtime_base_dir() + "/hyprscroller-canvas-" + hyprland_instance_signature() + ".state";
+    return runtime_base_dir() + "/hyprcanvas-" + hyprland_instance_signature() + ".state";
 }
 
 void CanvasWorkspaceRepository::loadFromDisk() {
@@ -446,7 +446,7 @@ void CanvasWorkspaceRepository::loadFromDisk() {
         return;
 
     const std::string data((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
-    const auto parsed = ScrollerCanvasSnapshot::deserialize_repository(data);
+    const auto parsed = CanvasRepoSnapshot::deserialize_repository(data);
     if (!parsed) {
         spdlog::warn("canvas_repository: failed to parse snapshot file path={}", repositoryPath());
         return;
@@ -478,7 +478,7 @@ void CanvasWorkspaceRepository::flushToDisk() const {
         return;
     }
 
-    output << ScrollerCanvasSnapshot::serialize_repository(snapshot_);
+    output << CanvasRepoSnapshot::serialize_repository(snapshot_);
     output.close();
 
     std::error_code ec;

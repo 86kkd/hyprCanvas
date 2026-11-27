@@ -41,7 +41,7 @@
 #include "internal.h"
 #include "route.h"
 
-using namespace ScrollerCore;
+using namespace CanvasCore;
 
 namespace {
 
@@ -108,11 +108,11 @@ void CanvasLayout::ensureWorkspaceRuntime() {
         return;
     }
 
-    if (workspaceRuntimeId == ScrollerCore::HyprlandRuntime::workspaceId(workspace) && m_workspaceActiveCallback)
+    if (workspaceRuntimeId == CanvasCore::HyprlandRuntime::workspaceId(workspace) && m_workspaceActiveCallback)
         return;
 
     snapshotRestoreAttempted = false;
-    workspaceRuntimeId = ScrollerCore::HyprlandRuntime::workspaceId(workspace);
+    workspaceRuntimeId = CanvasCore::HyprlandRuntime::workspaceId(workspace);
     m_workspaceActiveCallback = workspace->m_events.activeChanged.listen([this] {
         // Special workspaces can disappear without their hidden canvas ticking.
         // When the active state flips, resync hidden-canvas bookkeeping first,
@@ -123,7 +123,7 @@ void CanvasLayout::ensureWorkspaceRuntime() {
         syncHiddenSpecialWorkspaceCanvases();
         const auto monitor = CanvasLayoutInternal::visible_monitor_for_workspace(workspace);
         if (syncSpecialWorkspaceVisibilityState(monitor) && monitor)
-            relayoutCanvas(monitor, !ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace));
+            relayoutCanvas(monitor, !CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspace));
     });
 }
 
@@ -133,7 +133,7 @@ CanvasLayoutInternal::CanvasBounds CanvasLayoutInternal::compute_canvas_bounds(P
     auto *const PGAPSIN = dynamic_cast<Config::CCssGapData *>(PGAPSINDATA.ptr());
     auto *const PGAPSOUT = dynamic_cast<Config::CCssGapData *>(PGAPSOUTDATA.ptr());
 
-    // Scroller uses one shared interpretation of monitor space. `full` is the
+    // Canvas uses one shared interpretation of monitor space. `full` is the
     // logical monitor rectangle and `max` is the workarea after reserved areas
     // and outer gaps are applied. Every lane relayout path should go through
     // this helper so lane and stack code agree on the same coordinate space.
@@ -141,8 +141,8 @@ CanvasLayoutInternal::CanvasBounds CanvasLayoutInternal::compute_canvas_bounds(P
     const auto gaps_out = PGAPSOUT ? PGAPSOUT->m_top : 0;
 
     return {
-        .full = ScrollerCore::logical_monitor_box(monitor),
-        .max = ScrollerCore::logical_workarea_box(monitor, gaps_out),
+        .full = CanvasCore::logical_monitor_box(monitor),
+        .max = CanvasCore::logical_workarea_box(monitor, gaps_out),
         .gap = static_cast<int>(gaps_in),
     };
 }
@@ -232,14 +232,14 @@ void CanvasLayout::rememberWindowLane(PHLWINDOW window, Lane *lane) {
     // The owner index is an optimization only. Every write path still has to
     // treat it as a cache and keep it synchronized with the authoritative lane
     // list.
-    laneByWindow.remember(ScrollerCore::window_key(window), lane);
+    laneByWindow.remember(CanvasCore::window_key(window), lane);
 }
 
 void CanvasLayout::forgetWindowLane(PHLWINDOW window) {
     if (!window)
         return;
 
-    laneByWindow.forget(ScrollerCore::window_key(window));
+    laneByWindow.forget(CanvasCore::window_key(window));
 }
 
 void CanvasLayout::rememberLaneWindows(Lane *lane) {
@@ -248,7 +248,7 @@ void CanvasLayout::rememberLaneWindows(Lane *lane) {
 
     laneByWindow.remember_owner(lane, [&](auto &&remember) {
         lane->for_each_window([&](PHLWINDOW window) {
-            remember(ScrollerCore::window_key(window));
+            remember(CanvasCore::window_key(window));
         });
     });
 }
@@ -266,7 +266,7 @@ void CanvasLayout::debugVerifyLaneCache() const {
         for (auto laneNode = lanes.first(); laneNode != nullptr; laneNode = laneNode->next()) {
             auto *lane = laneNode->data().get();
             lane->for_each_window([&](PHLWINDOW window) {
-                addExpected(ScrollerCore::window_key(window), lane);
+                addExpected(CanvasCore::window_key(window), lane);
             });
         }
     }));
@@ -321,7 +321,7 @@ bool CanvasLayout::focusManagedWindow(PHLWINDOW window, bool warpCursor, const c
                  ctx,
                  CanvasLayoutInternal::get_workspace_id(),
                  static_cast<const void*>(window.get()),
-                 ScrollerCore::HyprlandRuntime::windowWorkspaceId(window),
+                 CanvasCore::HyprlandRuntime::windowWorkspaceId(window),
                  window->monitorID());
     syncActiveStateFromWorkspaceFocus();
     return false;
@@ -348,7 +348,7 @@ Lane *CanvasLayout::getLaneForWindow(PHLWINDOW window) {
 
     // This is the lane-level sibling of `Lane::getStackForWindow`: consult the
     // cache first, validate the cached owner, then fall back to a full scan.
-    const auto key = ScrollerCore::window_key(window);
+    const auto key = CanvasCore::window_key(window);
     if (auto *cachedLane = laneByWindow.find_valid(key, [&](Lane *owner) {
             return owner && getLaneNode(owner) && owner->has_window(window);
         }))
@@ -383,7 +383,7 @@ void CanvasLayout::prepareForActionContext() {
     const auto workspace = getLayoutWorkspace();
     const auto monitor = getVisibleCanvasMonitor();
     if (syncSpecialWorkspaceVisibilityState(monitor) && workspace && monitor)
-        relayoutCanvas(monitor, !ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace));
+        relayoutCanvas(monitor, !CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspace));
 }
 
 // Relayout the canvas on the monitor currently showing it.
@@ -391,7 +391,7 @@ void CanvasLayout::relayoutVisibleCanvas(PHLMONITOR fallbackMonitor) {
     const auto workspace = getLayoutWorkspace();
     const auto monitor = getVisibleCanvasMonitor(fallbackMonitor);
     if (workspace && monitor)
-        relayoutCanvas(monitor, !ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace));
+        relayoutCanvas(monitor, !CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspace));
 }
 
 // Remove an empty lane and repair active-lane state around the removal point.
@@ -483,7 +483,7 @@ void CanvasLayout::relayoutCanvas(PHLMONITOR monitor, bool honor_fullscreen, boo
     size_t index = 0;
     for (auto lane = lanes.first(); lane != nullptr; lane = lane->next(), ++index) {
         const auto delta = static_cast<double>(index) - static_cast<double>(activeIndex);
-        const Box laneBox = ScrollerCore::mode_pages_lanes_vertically(mode)
+        const Box laneBox = CanvasCore::mode_pages_lanes_vertically(mode)
             ? Box(max.x, max.y + delta * full.h, max.w, max.h)
             : Box(max.x + delta * full.w, max.y, max.w, max.h);
 
@@ -499,8 +499,8 @@ void CanvasLayout::relayoutCanvas(PHLMONITOR monitor, bool honor_fullscreen, boo
 
 // Hyprland callback: add a new tiled target into the current canvas.
 // New reader map:
-// Hyprland knows a window now belongs to the `scroller` layout, so it calls
-// this target hook. From here scroller converts the compositor target into its
+// Hyprland knows a window now belongs to the `canvas` layout, so it calls
+// this target hook. From here canvas converts the compositor target into its
 // own model by forwarding into `onWindowCreatedTiling`.
 void CanvasLayout::newTarget(SP<Layout::ITarget> target) {
     ensureWorkspaceRuntime();
@@ -512,14 +512,14 @@ void CanvasLayout::newTarget(SP<Layout::ITarget> target) {
     if (!window)
         return;
 
-    if (handoffState.hasPendingManualCrossMonitorInsertion(ScrollerCore::window_key(window))) {
+    if (handoffState.hasPendingManualCrossMonitorInsertion(CanvasCore::window_key(window))) {
         spdlog::debug("newTarget: deferring manual cross-monitor registration window={} workspace={}",
                       static_cast<const void*>(window.get()),
-                      ScrollerCore::HyprlandRuntime::windowWorkspaceId(window));
+                      CanvasCore::HyprlandRuntime::windowWorkspaceId(window));
         return;
     }
 
-    spdlog::info("newTarget: window={} workspace={}", static_cast<const void*>(window.get()), ScrollerCore::HyprlandRuntime::windowWorkspaceId(window));
+    spdlog::info("newTarget: window={} workspace={}", static_cast<const void*>(window.get()), CanvasCore::HyprlandRuntime::windowWorkspaceId(window));
     if (onWindowCreatedTiling(window, Math::DIRECTION_DEFAULT)) {
         CanvasLayoutInternal::sync_new_window_pointer(window);
         // During newTarget(), CWindow::layoutTarget() is not guaranteed to be
@@ -550,10 +550,10 @@ void CanvasLayout::movedTarget(SP<Layout::ITarget> target, std::optional<Vector2
     if (!window)
         return;
 
-    if (handoffState.hasPendingManualCrossMonitorInsertion(ScrollerCore::window_key(window))) {
+    if (handoffState.hasPendingManualCrossMonitorInsertion(CanvasCore::window_key(window))) {
         spdlog::debug("movedTarget: deferring manual cross-monitor registration window={} workspace={}",
                       static_cast<const void*>(window.get()),
-                      ScrollerCore::HyprlandRuntime::windowWorkspaceId(window));
+                      CanvasCore::HyprlandRuntime::windowWorkspaceId(window));
         return;
     }
 
@@ -676,19 +676,19 @@ void CanvasLayout::moveTargetInDirection(SP<Layout::ITarget> t, Math::eDirection
     switch (direction) {
         case Math::DIRECTION_LEFT:
             onWindowFocusChange(window);
-            moveWindow(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Left);
+            moveWindow(CanvasCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Left);
             break;
         case Math::DIRECTION_RIGHT:
             onWindowFocusChange(window);
-            moveWindow(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Right);
+            moveWindow(CanvasCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Right);
             break;
         case Math::DIRECTION_UP:
             onWindowFocusChange(window);
-            moveWindow(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Up);
+            moveWindow(CanvasCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Up);
             break;
         case Math::DIRECTION_DOWN:
             onWindowFocusChange(window);
-            moveWindow(ScrollerCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Down);
+            moveWindow(CanvasCore::HyprlandRuntime::windowWorkspaceId(window), Direction::Down);
             break;
         default:
             return;
@@ -712,8 +712,8 @@ bool CanvasLayout::onWindowCreatedTiling(PHLWINDOW window, Math::eDirection)
     if (getLaneForWindow(window) != nullptr) {
         spdlog::debug("onWindowCreatedTiling: window already managed window={} workspace={}",
                       static_cast<const void*>(window.get()),
-                      ScrollerCore::HyprlandRuntime::windowWorkspaceId(window));
-        if (restoredTargetsAwaitingCallback.erase(ScrollerCore::window_key(window)) > 0) {
+                      CanvasCore::HyprlandRuntime::windowWorkspaceId(window));
+        if (restoredTargetsAwaitingCallback.erase(CanvasCore::window_key(window)) > 0) {
             if (auto* lane = getLaneForWindow(window))
                 lane->commit_restored_geometry();
             return false;
@@ -741,12 +741,12 @@ bool CanvasLayout::onWindowCreatedTiling(PHLWINDOW window, Math::eDirection)
 void CanvasLayout::onWindowRemovedTiling(PHLWINDOW window)
 {
     const auto windowPtr = static_cast<const void*>(window.get());
-    const auto workspace = window ? ScrollerCore::HyprlandRuntime::windowWorkspaceId(window) : WORKSPACE_INVALID;
-    restoredTargetsAwaitingCallback.erase(ScrollerCore::window_key(window));
+    const auto workspace = window ? CanvasCore::HyprlandRuntime::windowWorkspaceId(window) : WORKSPACE_INVALID;
+    restoredTargetsAwaitingCallback.erase(CanvasCore::window_key(window));
     restoredGeometryActive = false;
     spdlog::info("onWindowRemovedTiling: window={} workspace={}", windowPtr, workspace);
 
-    ScrollerCore::marksRegistry().remove(window);
+    CanvasCore::marksRegistry().remove(window);
 
     auto s = getLaneForWindow(window);
     if (s == nullptr) {

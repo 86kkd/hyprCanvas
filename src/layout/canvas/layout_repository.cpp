@@ -25,8 +25,8 @@ std::string hyprland_instance_signature() {
 
 } // namespace
 
-ScrollerCore::ServiceSlot<WorkspaceLayoutRepository> &repositorySlot() {
-    static ScrollerCore::ServiceSlot<WorkspaceLayoutRepository> slot;
+CanvasCore::ServiceSlot<WorkspaceLayoutRepository> &repositorySlot() {
+    static CanvasCore::ServiceSlot<WorkspaceLayoutRepository> slot;
     return slot;
 }
 
@@ -42,14 +42,14 @@ void WorkspaceLayoutRepository::initialize() {
     loadFromDisk();
 }
 
-std::optional<ScrollerSnapshot::CanvasSnapshot> WorkspaceLayoutRepository::find(int workspaceId) const {
+std::optional<CanvasLayoutSnapshot::CanvasSnapshot> WorkspaceLayoutRepository::find(int workspaceId) const {
     const auto it = snapshots_.find(workspaceId);
     if (it == snapshots_.end())
         return std::nullopt;
     return it->second;
 }
 
-void WorkspaceLayoutRepository::upsert(ScrollerSnapshot::CanvasSnapshot snapshot) {
+void WorkspaceLayoutRepository::upsert(CanvasLayoutSnapshot::CanvasSnapshot snapshot) {
     initialize();
     snapshots_[snapshot.workspaceId] = std::move(snapshot);
     flushToDisk();
@@ -69,7 +69,7 @@ void WorkspaceLayoutRepository::flush() const {
 }
 
 std::string WorkspaceLayoutRepository::repositoryPath() const {
-    return runtime_base_dir() + "/hyprscroller-layout-" + hyprland_instance_signature() + ".state";
+    return runtime_base_dir() + "/hyprcanvas-layout-" + hyprland_instance_signature() + ".state";
 }
 
 void WorkspaceLayoutRepository::loadFromDisk() {
@@ -80,7 +80,7 @@ void WorkspaceLayoutRepository::loadFromDisk() {
         return;
 
     const std::string data((std::istreambuf_iterator<char>(input)), std::istreambuf_iterator<char>());
-    const auto parsed = ScrollerSnapshot::deserialize_repository(data);
+    const auto parsed = CanvasLayoutSnapshot::deserialize_repository(data);
     if (!parsed) {
         spdlog::warn("layout_repository: failed to parse snapshot file path={}", repositoryPath());
         return;
@@ -112,7 +112,7 @@ void WorkspaceLayoutRepository::flushToDisk() const {
         return;
     }
 
-    output << ScrollerSnapshot::serialize_repository(snapshots_);
+    output << CanvasLayoutSnapshot::serialize_repository(snapshots_);
     output.close();
 
     std::error_code ec;

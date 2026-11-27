@@ -66,10 +66,10 @@ class CanvasWorkspaceRepository {
     CHyprSignalListener windowOpen_;
     CHyprSignalListener windowMove_;
     bool initialized_ = false;
-    ScrollerCanvasSnapshot::RepositorySnapshot snapshot_;
+    CanvasRepoSnapshot::RepositorySnapshot snapshot_;
 };
 
-ScrollerCore::ServiceSlot<CanvasWorkspaceRepository>& canvasRepositorySlot();
+CanvasCore::ServiceSlot<CanvasWorkspaceRepository>& canvasRepositorySlot();
 CanvasWorkspaceRepository& canvasRepository();
 
 } // namespace CanvasLayoutState

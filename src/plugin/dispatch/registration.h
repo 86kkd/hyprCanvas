@@ -1,6 +1,6 @@
 /**
  * @file plugin/dispatch/registration.h
- * @brief Dispatcher registration entrypoint for scroller layout commands.
+ * @brief Dispatcher registration entrypoint for canvas layout commands.
  *
  * Hyprland 0.57 exposes plugin commands through Lua functions. This header
  * keeps the registration API intentionally narrow so the rest of the plugin
@@ -9,6 +9,6 @@
 #pragma once
 
 namespace dispatchers {
-    // Register functions exposed as `hl.plugin.scroller.*` to Lua configs.
+    // Register functions exposed as `hl.plugin.canvas.*` to Lua configs.
     void addLuaFunctions();
 }

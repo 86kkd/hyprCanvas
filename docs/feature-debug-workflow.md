@@ -134,7 +134,7 @@
 例如：
 
 - “增加一个 overview 里的新选择行为”
-- “让 scroller 在 layout switch 后恢复当前 workspace 布局”
+- “让 canvas 在 layout switch 后恢复当前 workspace 布局”
 - “让某个 dispatcher 在 column 模式下新增一种尺寸策略”
 
 最小纵向切片的目标不是“功能做完”，而是：
@@ -456,7 +456,7 @@ ctest --test-dir Debug --output-on-failure
 
 - 在 nested `Hyprland` 里创建 overview 场景
 - 构造图片预览窗口和多个终端窗口
-- 自动打开 `scroller:toggleoverview`
+- 自动打开 `canvas:toggleoverview`
 - 让 preview 渲染路径稳定可观察
 
 ### 如何缩小到正确层
@@ -498,7 +498,7 @@ ctest --test-dir Debug --output-on-failure
 
 ### 现象
 
-- overview 中执行 `scroller:movefocus u/d/l/r` 时，偶尔会跳到视觉上并不是邻居的目标
+- overview 中执行 `canvas:movefocus u/d/l/r` 时，偶尔会跳到视觉上并不是邻居的目标
 - 在两张 workspace 卡片并排、卡片内部再投影窗口预览的场景里，`movefocus` 会跳到另一张卡片里的对角线窗口
 
 ### 复现方式

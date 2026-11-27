@@ -264,7 +264,7 @@ def make_header(cols):
 def render_editor(cols, rows):
     out = make_header(cols) + [""]
     code_lines = [
-        (142, "namespace scroller::canvas {", "kw"),
+        (142, "namespace canvas::canvas {", "kw"),
         (143, "", ""),
         (144, "void CanvasController::activate(CanvasId id) {", "fn"),
         (145, "  auto* canvas = repo_.findCanvas(id);", "code"),
@@ -319,7 +319,7 @@ def render_metrics(cols, rows, tick):
     out.append("")
     out.append(f"  {fg(148,226,213)}{BOLD}ACTIVE LAYOUT STATE{RESET}")
     kv = [
-        ("Engine",     "HyprCanvas v0.57 (scroller)", (205,214,244)),
+        ("Engine",     "HyprCanvas v0.57 (canvas)", (205,214,244)),
         ("Monitors",   "Landscape row + Portrait col", (137,180,250)),
         ("Card Stack", "3+ windows fan out cleanly", (166,227,161)),
         ("Canvas Map", "Auto-HUD on switch & overview", (249,226,175)),
@@ -559,7 +559,7 @@ def main() -> None:
         f"hl.plugin.load({json.dumps(str(plugin))})\n"
         "hl.config({\n"
         "  general = {\n"
-        "    layout = 'scroller',\n"
+        "    layout = 'canvas',\n"
         "    gaps_in = 8,\n"
         "    gaps_out = 16,\n"
         "    border_size = 3,\n"
@@ -619,8 +619,8 @@ def main() -> None:
     def query(name: str):
         return json.loads(ctl(name, "-j"))
 
-    def scroller(name: str, arg=None, wait: float = 0.55) -> None:
-        call = f"hl.plugin.scroller.{name}({json.dumps(arg) if arg is not None else ''})"
+    def canvas(name: str, arg=None, wait: float = 0.55) -> None:
+        call = f"hl.plugin.canvas.{name}({json.dumps(arg) if arg is not None else ''})"
         lua(call)
         time.sleep(wait)
 
@@ -696,7 +696,7 @@ def main() -> None:
 
         # Pre-populate Canvas 2 (to the right) first so Canvas 2 is rich & ready
         lua('hl.dispatch(hl.dsp.focus({monitor="DEMO-L"}))')
-        scroller("switch_workspace", "r", wait=0.45)
+        canvas("switch_workspace", "r", wait=0.45)
         launch("demo-c2-code", "canvas2_code")
         lua('hl.dispatch(hl.dsp.focus({monitor="DEMO-P"}))')
         launch("demo-c2-test", "canvas2_test")
@@ -704,7 +704,7 @@ def main() -> None:
 
         # Return to Canvas 1 and populate Landscape (3 stacks) + Portrait (2 stacks)
         lua('hl.dispatch(hl.dsp.focus({monitor="DEMO-L"}))')
-        scroller("switch_workspace", "l", wait=0.45)
+        canvas("switch_workspace", "l", wait=0.45)
         lua('hl.dispatch(hl.dsp.focus({monitor="DEMO-P"}))')
         w_docs = launch("demo-docs", "docs")
         w_logs = launch("demo-logs", "logs")
@@ -746,65 +746,65 @@ def main() -> None:
         # ---- CHAPTER 1: Auto Orientation & Scrolling Lanes ----
         beat(1, "Auto Orientation & Scrolling Lanes", "Win + H / L", "Scroll horizontally across stacks on Landscape (auto row)")
         time.sleep(0.8)
-        scroller("move_focus", "r", wait=0.8)
-        scroller("move_focus", "r", wait=0.8)
-        scroller("move_focus", "r", wait=0.8)
+        canvas("move_focus", "r", wait=0.8)
+        canvas("move_focus", "r", wait=0.8)
+        canvas("move_focus", "r", wait=0.8)
 
         beat(1, "Auto Orientation & Scrolling Lanes", "Ctrl + Win + L  ·  Win + J / K", "Jump to Portrait (auto col) and scroll vertically")
-        scroller("focus_monitor", "r", wait=0.75)
-        scroller("move_focus", "d", wait=0.8)
-        scroller("move_focus", "u", wait=0.75)
-        scroller("focus_monitor", "l", wait=0.65)
+        canvas("focus_monitor", "r", wait=0.75)
+        canvas("move_focus", "d", wait=0.8)
+        canvas("move_focus", "u", wait=0.75)
+        canvas("focus_monitor", "l", wait=0.65)
 
         # ---- CHAPTER 2: Overlapping Card Stacks ----
         beat(2, "Overlapping Card Stacks", "Win + Alt + H", "Merge 3+ windows into a fanned overlapping card stack")
         focus_win(w_metrics, wait=0.35)
-        scroller("move_window", "l", wait=0.85)  # merge metrics into editor stack (2)
+        canvas("move_window", "l", wait=0.85)  # merge metrics into editor stack (2)
         focus_win(w_fetch, wait=0.35)
-        scroller("move_window", "l", wait=1.05)  # merge fetch into stack -> 3-card overlapping deck!
+        canvas("move_window", "l", wait=1.05)  # merge fetch into stack -> 3-card overlapping deck!
 
         beat(2, "Overlapping Card Stacks", "Win + J / K", "Cycle cards inside the stack — focused window pops to front")
-        scroller("move_focus", "u", wait=0.9)
-        scroller("move_focus", "u", wait=0.9)
-        scroller("move_focus", "d", wait=0.9)
-        scroller("move_focus", "d", wait=0.9)
+        canvas("move_focus", "u", wait=0.9)
+        canvas("move_focus", "u", wait=0.9)
+        canvas("move_focus", "d", wait=0.9)
+        canvas("move_focus", "d", wait=0.9)
 
         # ---- CHAPTER 3: Swap & Expand Stack ----
         beat(3, "Swap & Expand Stack", "Win + Shift + L", "Swap active windows across adjacent stacks in place")
-        scroller("swap_window", "r", wait=1.2)
-        scroller("swap_window", "l", wait=1.0)
+        canvas("swap_window", "r", wait=1.2)
+        canvas("swap_window", "l", wait=1.0)
 
         beat(3, "Swap & Expand Stack", "Win + F", "Expand the focused stack to fill the monitor, press again to restore")
-        scroller("toggle_fullscreen", wait=1.45)
-        scroller("toggle_fullscreen", wait=1.05)
+        canvas("toggle_fullscreen", wait=1.45)
+        canvas("toggle_fullscreen", wait=1.05)
 
         # ---- CHAPTER 4: Cross-Monitor Direct Transfer ----
         beat(4, "Cross-Monitor Transfer", "Ctrl + Win + Alt + L", "Send focused window straight to Portrait — auto-adapts to col")
-        scroller("move_focus", "r", wait=0.45)
-        scroller("move_window_to_monitor", "r", wait=1.5)
+        canvas("move_focus", "r", wait=0.45)
+        canvas("move_window_to_monitor", "r", wait=1.5)
 
         beat(4, "Cross-Monitor Transfer", "Ctrl + Win + Alt + H", "Bring the window back to Landscape while keeping focus")
-        scroller("move_window_to_monitor", "l", wait=1.2)
+        canvas("move_window_to_monitor", "l", wait=1.2)
 
         # ---- CHAPTER 5: Synchronized 2D Canvas Workspaces ----
         beat(5, "Synchronized 2D Canvas Workspaces", "Win + . / N", "Switch ALL monitors together as one 2D canvas (with live Canvas Map)")
-        scroller("switch_workspace", "r", wait=1.55)
-        scroller("switch_workspace", "l", wait=1.35)
+        canvas("switch_workspace", "r", wait=1.55)
+        canvas("switch_workspace", "l", wait=1.35)
 
         beat(5, "Synchronized 2D Canvas Workspaces", "Win + Alt + .", "Carry focused window into an adjacent canvas — all monitors follow")
-        scroller("move_window_to_workspace", "r", wait=1.7)
+        canvas("move_window_to_workspace", "r", wait=1.7)
 
         # ---- CHAPTER 6: Interactive 2D Canvas Overview ----
         beat(6, "Interactive 2D Overview", "Win + I", "Open live Canvas Overview without disturbing tiled geometry")
-        scroller("toggle_overview", wait=1.6)
+        canvas("toggle_overview", wait=1.6)
 
         beat(6, "Interactive 2D Overview", "Win + H / L  ·  Ctrl + Win + H", "Preview canvases & select stacks across monitors")
-        scroller("focus_monitor", "l", wait=1.35)
-        scroller("move_focus", "l", wait=1.15)
-        scroller("move_focus", "r", wait=1.15)
+        canvas("focus_monitor", "l", wait=1.35)
+        canvas("move_focus", "l", wait=1.15)
+        canvas("move_focus", "r", wait=1.15)
 
         beat(6, "Interactive 2D Overview", "Win + I", "Accept selection to land directly on the target canvas & window")
-        scroller("toggle_overview", wait=1.8)
+        canvas("toggle_overview", wait=1.8)
 
         total_dur = time.monotonic() - t0
         print(f"Recorded choreography duration: {total_dur:.2f}s ({len(beats)} beats)", flush=True)

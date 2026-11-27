@@ -21,17 +21,17 @@
 namespace Overview {
 namespace {
 
-using ScrollerCore::window_key;
+using CanvasCore::window_key;
 
-Vector2D box_position(const ScrollerCore::Box& box) {
+Vector2D box_position(const CanvasCore::Box& box) {
     return Vector2D(box.x, box.y);
 }
 
-Vector2D box_size(const ScrollerCore::Box& box) {
+Vector2D box_size(const CanvasCore::Box& box) {
     return Vector2D(std::max(1.0, box.w), std::max(1.0, box.h));
 }
 
-bool valid_preview_box(const ScrollerCore::Box& box) {
+bool valid_preview_box(const CanvasCore::Box& box) {
     return finiteBox(box) && box.w > 1.0 && box.h > 1.0;
 }
 
@@ -68,7 +68,7 @@ void attach_preview_damage_callback(PHLANIMVAR<Vector2D>& animation, int monitor
         return;
 
     animation->setUpdateCallback([monitorId](auto) {
-        if (const auto monitor = ScrollerCore::HyprlandRuntime::monitorById(monitorId))
+        if (const auto monitor = CanvasCore::HyprlandRuntime::monitorById(monitorId))
             g_pHyprRenderer->damageMonitor(monitor);
     });
 }
@@ -176,7 +176,7 @@ bool RenderState::selectionAnimationActive(int monitorId, steady_tp now) const {
     return it != selectionPulses_.end() && now - it->second.startedAt < kSelectionDuration;
 }
 
-ScrollerCore::Box RenderState::animatedSelectionBox(const ScrollerCore::Box& selectionBox, int monitorId, steady_tp now) const {
+CanvasCore::Box RenderState::animatedSelectionBox(const CanvasCore::Box& selectionBox, int monitorId, steady_tp now) const {
     const auto it = selectionPulses_.find(monitorId);
     if (it == selectionPulses_.end())
         return selectionBox;
@@ -241,7 +241,7 @@ bool RenderState::previewAnimationActive(int monitorId) const {
     return false;
 }
 
-ScrollerCore::Box RenderState::animatedPreviewBox(int canvasId, int monitorId, PHLWINDOW window, const ScrollerCore::Box& fallbackBox) const {
+CanvasCore::Box RenderState::animatedPreviewBox(int canvasId, int monitorId, PHLWINDOW window, const CanvasCore::Box& fallbackBox) const {
     const auto it = previewAnimations_.find(previewKey(canvasId, monitorId, window_key(window)));
     if (it == previewAnimations_.end() || it->second.monitorId != monitorId)
         return fallbackBox;
@@ -275,8 +275,8 @@ void RenderState::clearTextCache() {
     textCache_.clear();
 }
 
-ScrollerCore::ServiceSlot<RenderState>& renderStateSlot() {
-    static ScrollerCore::ServiceSlot<RenderState> slot;
+CanvasCore::ServiceSlot<RenderState>& renderStateSlot() {
+    static CanvasCore::ServiceSlot<RenderState> slot;
     return slot;
 }
 

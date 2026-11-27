@@ -5,7 +5,7 @@
 
 void run_minimap_tests() {
     using namespace Overview::Minimap;
-    const ScrollerCore::Box area{10, 20, 1000, 700};
+    const CanvasCore::Box area{10, 20, 1000, 700};
     const auto map = layout({{20, 2, 0}, {10, 0, 0}, {30, 2, -1, true}}, 10, 20, area);
     auto find = [&](int id) { return *std::find_if(map.cells.begin(), map.cells.end(), [&](const auto& c) { return c.canvas.id == id; }); };
     const auto first = find(10), second = find(20), third = find(30);
@@ -27,7 +27,7 @@ void run_minimap_tests() {
     expect_true(distant.right && distant.up && !distant.left && !distant.down, "off-map canvases indicate their real directions");
     const auto extreme = layout({{1, INT_MIN, INT_MIN}, {2, INT_MAX, INT_MAX}}, 1, 1, area);
     expect_true(extreme.right && extreme.down, "extreme sparse coordinates do not overflow");
-    for (const auto& bounds : std::vector<ScrollerCore::Box>{{0, 0, 180, 180}, {0, 0, 600, 1000}}) {
+    for (const auto& bounds : std::vector<CanvasCore::Box>{{0, 0, 180, 180}, {0, 0, 600, 1000}}) {
         const auto small = layout({{1, 0, 0}, {2, 2, 2}}, 1, 1, bounds);
         for (const auto& cell : small.cells)
             expect_true(cell.box.x >= 0 && cell.box.y >= 0 && cell.box.x + cell.box.w <= bounds.w && cell.box.y + cell.box.h <= bounds.h, "cells fit small and portrait outputs");

@@ -23,17 +23,17 @@
 #include "core/monitor_geometry_runtime.h"
 #include "core/window_key.h"
 
-using ScrollerCore::Box;
-using ScrollerModel::Stack;
-using ScrollerModel::StackWidth;
+using CanvasCore::Box;
+using CanvasModel::Stack;
+using CanvasModel::StackWidth;
 
 Lane::Lane(PHLWINDOW window)
     : ephemeral(false), gap(0), mode(Mode::Row), active(nullptr) {
-    const auto monitor = ScrollerCore::HyprlandRuntime::monitorById(window->monitorID());
+    const auto monitor = CanvasCore::HyprlandRuntime::monitorById(window->monitorID());
     if (!monitor)
         return;
 
-    mode = ScrollerCore::default_mode_for_monitor(monitor);
+    mode = CanvasCore::default_mode_for_monitor(monitor);
     update_sizes(monitor);
 }
 
@@ -51,7 +51,7 @@ Stack *Lane::getStackForWindow(PHLWINDOW window) const {
 
     // `stackByWindow` is a cache over the authoritative stack list. Validate a
     // cached owner before trusting it, then fall back to a whole-lane scan.
-    const auto key = ScrollerCore::window_key(window);
+    const auto key = CanvasCore::window_key(window);
     if (auto *cachedStack = stackByWindow.find_valid(key, [&](Stack *owner) {
             return owner && getStackNode(owner) && owner->has_window(window);
         }))
@@ -88,14 +88,14 @@ void Lane::rememberWindowStack(PHLWINDOW window, Stack *stack) {
         return;
     }
 
-    stackByWindow.remember(ScrollerCore::window_key(window), stack);
+    stackByWindow.remember(CanvasCore::window_key(window), stack);
 }
 
 void Lane::forgetWindowStack(PHLWINDOW window) {
     if (!window)
         return;
 
-    stackByWindow.forget(ScrollerCore::window_key(window));
+    stackByWindow.forget(CanvasCore::window_key(window));
 }
 
 void Lane::rememberStackWindows(Stack *stack) {
@@ -104,7 +104,7 @@ void Lane::rememberStackWindows(Stack *stack) {
 
     stackByWindow.remember_owner(stack, [&](auto &&remember) {
         stack->for_each_window([&](PHLWINDOW window) {
-            remember(ScrollerCore::window_key(window));
+            remember(CanvasCore::window_key(window));
         });
     });
 }
@@ -122,7 +122,7 @@ void Lane::debugVerifyStackCache() const {
         for (auto col = stacks.first(); col != nullptr; col = col->next()) {
             auto *stack = col->data().get();
             stack->for_each_window([&](PHLWINDOW window) {
-                addExpected(ScrollerCore::window_key(window), stack);
+                addExpected(CanvasCore::window_key(window), stack);
             });
         }
     }));
@@ -153,8 +153,8 @@ bool Lane::has_window(PHLWINDOW window) const {
     return getStackForWindow(window) != nullptr;
 }
 
-std::vector<ScrollerModel::WindowGeometryEntry> Lane::capture_window_boxes() const {
-    std::vector<ScrollerModel::WindowGeometryEntry> boxes;
+std::vector<CanvasModel::WindowGeometryEntry> Lane::capture_window_boxes() const {
+    std::vector<CanvasModel::WindowGeometryEntry> boxes;
     for (auto stackNode = stacks.first(); stackNode != nullptr; stackNode = stackNode->next()) {
         const auto stackBoxes = stackNode->data()->capture_window_boxes(calculate_gap_x(stackNode), gap);
         boxes.insert(boxes.end(), stackBoxes.begin(), stackBoxes.end());
@@ -207,7 +207,7 @@ ActiveWindowRestorePlan Lane::capture_active_window_restore_plan(Direction direc
     // handoff should put the window back next to those siblings instead of
     // materializing a brand-new stack.
     plan.restoreIntoCurrentStack = true;
-    plan.insertBeforeCurrent = stack->active_at_edge(ScrollerCore::stack_item_backward_direction(mode));
+    plan.insertBeforeCurrent = stack->active_at_edge(CanvasCore::stack_item_backward_direction(mode));
     return plan;
 }
 
@@ -296,7 +296,7 @@ void Lane::position_stack_relative_to_reference(Stack *stack, const Stack *refer
     if (!stack || !reference)
         return;
 
-    const auto backward = ScrollerCore::local_item_backward_direction(mode);
+    const auto backward = CanvasCore::local_item_backward_direction(mode);
     if (mode == Mode::Column) {
         const auto y = direction == backward
             ? reference->get_geom_y() - stack->get_geom_h()
@@ -331,7 +331,7 @@ void Lane::insert_window_payload(ActiveWindowPayload payload, Direction directio
     }
     const bool singleWindowLane = stacks.size() == 1 && stacks.first()->data()->size() == 1;
     if (singleWindowLane)
-        stacks.first()->data()->update_width(ScrollerModel::global_stack_width(), max.w, max.h);
+        stacks.first()->data()->update_width(CanvasModel::global_stack_width(), max.w, max.h);
 
     auto stack = create_stack_from_payload(std::move(payload));
     if (!stack)
@@ -339,7 +339,7 @@ void Lane::insert_window_payload(ActiveWindowPayload payload, Direction directio
     auto *stackPtr = stack.get();
     const auto compositorWindow = stackPtr->get_active_window();
     if (singleWindowLane)
-        stackPtr->update_width(ScrollerModel::global_stack_width(), max.w, max.h);
+        stackPtr->update_width(CanvasModel::global_stack_width(), max.w, max.h);
     stackPtr->set_geom_pos(max.x, max.y);
     if (!active) {
         stacks.push_back(std::move(stack));
@@ -455,8 +455,8 @@ void Lane::set_active_stack_by_index(size_t index) {
     active = node ? node : stacks.first();
 }
 
-ScrollerSnapshot::LaneSnapshot Lane::capture_snapshot() const {
-    ScrollerSnapshot::LaneSnapshot snapshot;
+CanvasLayoutSnapshot::LaneSnapshot Lane::capture_snapshot() const {
+    CanvasLayoutSnapshot::LaneSnapshot snapshot;
     snapshot.mode = static_cast<int>(mode);
     snapshot.ephemeral = ephemeral;
 

@@ -18,14 +18,14 @@ parser.add_argument('--plugin', type=Path, default=Path(__file__).resolve().pare
 args = parser.parse_args()
 plugin = args.plugin.resolve()
 assert plugin.is_file(), plugin
-run = Path(tempfile.mkdtemp(prefix='hyprscroller-canvas-map-'))
+run = Path(tempfile.mkdtemp(prefix='hyprcanvas-map-'))
 print(f'Artifacts: {run}', flush=True)
 pointer = run / 'virtual-pointer-click'
 subprocess.run(['cc', '-Wall', '-Wextra', str(Path(__file__).parent / 'lib/virtual-pointer-click.c'),
                 '-o', str(pointer), *subprocess.check_output(['pkg-config', '--cflags', '--libs', 'wayland-client'], text=True).split()], check=True)
 config = run / 'hyprland.lua'
 config.write_text('hl.plugin.load(' + json.dumps(str(plugin)) + ')\n'
-                  'hl.config({general={layout="scroller"},input={follow_mouse=0},'
+                  'hl.config({general={layout="canvas"},input={follow_mouse=0},'
                   'animations={enabled=false},misc={disable_hyprland_logo=true,disable_splash_rendering=true}})\n')
 env = dict(os.environ)
 env.pop('HYPRLAND_INSTANCE_SIGNATURE', None)
@@ -44,7 +44,7 @@ def lua(code, delay=.15):
 
 
 def command(name, argument=None):
-    lua('hl.plugin.scroller.' + name + '(' + (json.dumps(argument) if argument is not None else '') + ')')
+    lua('hl.plugin.canvas.' + name + '(' + (json.dumps(argument) if argument is not None else '') + ')')
 
 
 def screenshot(name, output='MAP-A'):
@@ -66,7 +66,7 @@ def check(condition, description):
 
 
 def repository():
-    path = Path(os.environ.get('XDG_RUNTIME_DIR', '/tmp')) / f'hyprscroller-canvas-{instance}.state'
+    path = Path(os.environ.get('XDG_RUNTIME_DIR', '/tmp')) / f'hyprcanvas-{instance}.state'
     return path.read_text()
 
 
@@ -150,9 +150,9 @@ with (run / 'hyprland.log').open('w') as log:
         portrait = screenshot('overview-scaled-portrait', 'MAP-B')
         # Geometry is monitor logical space, rendered into scaled physical pixels.
         check(gold_count(portrait) > 60, 'map renders on scaled portrait output')
-        lua('hl.config({plugin={scroller={canvas_map=0}}})')
+        lua('hl.config({plugin={canvas={canvas_map=0}}})')
         check(gold_count(screenshot('overview-disabled', 'MAP-B')) == 0, 'configuration disables map during overview')
-        lua('hl.config({plugin={scroller={canvas_map=1}}})')
+        lua('hl.config({plugin={canvas={canvas_map=1}}})')
         check(gold_count(screenshot('overview-enabled', 'MAP-B')) > 60, 'configuration restores overview map')
         command('cancel_overview')
         lua('hl.config({general={layout="dwindle"}})')

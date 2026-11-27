@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace ScrollerCore {
+namespace CanvasCore {
 
 bool box_intersects(const Box& a, const Box& b) {
     return a.x + a.w > b.x &&
@@ -44,4 +44,4 @@ WorkareaPageBox project_box_to_workarea_page(const Box& logicalBox,
     };
 }
 
-} // namespace ScrollerCore
+} // namespace CanvasCore

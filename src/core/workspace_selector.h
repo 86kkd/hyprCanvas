@@ -8,7 +8,7 @@
 
 #include "hyprland_runtime.h"
 
-namespace ScrollerCore {
+namespace CanvasCore {
 
 inline std::string workspace_selector(PHLWORKSPACE workspace) {
     if (!workspace)
@@ -17,7 +17,7 @@ inline std::string workspace_selector(PHLWORKSPACE workspace) {
     if (!workspace->displayName().empty())
         return workspace->displayName();
 
-    return std::to_string(ScrollerCore::HyprlandRuntime::workspaceId(workspace));
+    return std::to_string(CanvasCore::HyprlandRuntime::workspaceId(workspace));
 }
 
-} // namespace ScrollerCore
+} // namespace CanvasCore

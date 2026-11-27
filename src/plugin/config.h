@@ -6,7 +6,7 @@
 #include <hyprland/src/config/values/ConfigValues.hpp>
 #include <hyprland/src/plugins/PluginAPI.hpp>
 
-namespace scroller::plugin_config {
+namespace canvas::plugin_config {
 
 inline constexpr const char*     kDefaultColumnWidth = "2";
 inline constexpr Config::INTEGER kDefaultFocusWrap = 0;
@@ -15,7 +15,7 @@ inline constexpr Config::INTEGER kDefaultCanvasMap = 1;
 inline constexpr Config::INTEGER kDefaultFreeColumnBorder = 0xff9e1515;
 #endif
 
-// Primary options live under `plugin:hyprCanvas:*`. Legacy `plugin:scroller:*`
+// Primary options live under `plugin:hyprCanvas:*`. Legacy `plugin:canvas:*`
 // options remain registered as backward-compatible fallbacks.
 inline SP<Config::Values::CStringValue> columnDefaultWidthValue;
 inline SP<Config::Values::CIntValue>    focusWrapValue;
@@ -51,7 +51,7 @@ ValueType resolveOption(const ConfigValuePtr& primary,
 
 inline void registerConfigValues(HANDLE handle) {
     const auto widthDescription = "How many stacks a new stack's span should share the workarea with (1-8), or floating.";
-    const auto focusWrapDescription = "Whether scroller focus wraps at lane and stack edges.";
+    const auto focusWrapDescription = "Whether canvas focus wraps at lane and stack edges.";
     const auto canvasMapDescription = "Show the canvas map after switches and during overview.";
 
     columnDefaultWidthValue = Config::Values::makeConfigValue<Config::Values::CStringValue>(
@@ -74,12 +74,12 @@ inline void registerConfigValues(HANDLE handle) {
         Config::Values::SIntValueOptions{.min = Config::INTEGER{0}, .max = Config::INTEGER{1}});
 
     legacyColumnDefaultWidthValue = Config::Values::makeConfigValue<Config::Values::CStringValue>(
-        "plugin:scroller:column_default_width",
+        "plugin:canvas:column_default_width",
         widthDescription,
         Config::STRING{kDefaultColumnWidth},
         {});
     legacyFocusWrapValue = Config::Values::makeConfigValue<Config::Values::CIntValue>(
-        "plugin:scroller:focus_wrap",
+        "plugin:canvas:focus_wrap",
         focusWrapDescription,
         kDefaultFocusWrap,
         Config::Values::SIntValueOptions{
@@ -87,7 +87,7 @@ inline void registerConfigValues(HANDLE handle) {
             .max = Config::INTEGER{1},
         });
     legacyCanvasMapValue = Config::Values::makeConfigValue<Config::Values::CIntValue>(
-        "plugin:scroller:canvas_map",
+        "plugin:canvas:canvas_map",
         canvasMapDescription,
         kDefaultCanvasMap,
         Config::Values::SIntValueOptions{.min = Config::INTEGER{0}, .max = Config::INTEGER{1}});
@@ -100,14 +100,14 @@ inline void registerConfigValues(HANDLE handle) {
     HyprlandAPI::addConfigValueV2(handle, legacyFocusWrapValue);
 
 #ifdef COLORS_IPC
-    const auto freeBorderDescription = "Border color for free-sized scroller columns.";
+    const auto freeBorderDescription = "Border color for free-sized canvas columns.";
     freeColumnBorderValue = Config::Values::makeConfigValue<Config::Values::CColorValue>(
         "plugin:hyprCanvas:col.freecolumn_border",
         freeBorderDescription,
         kDefaultFreeColumnBorder,
         {});
     legacyFreeColumnBorderValue = Config::Values::makeConfigValue<Config::Values::CColorValue>(
-        "plugin:scroller:col.freecolumn_border",
+        "plugin:canvas:col.freecolumn_border",
         freeBorderDescription,
         kDefaultFreeColumnBorder,
         {});
@@ -135,4 +135,4 @@ inline Config::CGradientValueData freeColumnBorder() {
 }
 #endif
 
-} // namespace scroller::plugin_config
+} // namespace canvas::plugin_config

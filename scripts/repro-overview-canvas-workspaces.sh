@@ -234,7 +234,7 @@ launch_terminal_window() {
 }
 
 outer_client_count() {
-    hyprscroller_outer_output_clients | jq '
+    hyprcanvas_outer_output_clients | jq '
         map(select(.class == "aquamarine" and (.title | test("^aquamarine - WAYLAND-[0-9]+$"))))
         | length
     '
@@ -255,7 +255,7 @@ wait_for_outer_output_window_count() {
 }
 
 collect_outer_windows_json() {
-    hyprscroller_outer_output_clients | jq '
+    hyprcanvas_outer_output_clients | jq '
         map(select(.class == "aquamarine" and (.title | test("^aquamarine - WAYLAND-[1-5]$"))))
         | sort_by(.title)
     '
@@ -268,14 +268,14 @@ compute_outer_output_layout() {
     ')"
     [[ -n "$outer_monitor_json" ]] || die "could not resolve outer monitor geometry for $OUTER_MONITOR"
 
-    hyprscroller_monitor_logical_geometry \
+    hyprcanvas_monitor_logical_geometry \
         "$outer_monitor_json" \
         OUTER_MONITOR_X \
         OUTER_MONITOR_Y \
         OUTER_MONITOR_WIDTH \
         OUTER_MONITOR_HEIGHT
 
-    hyprscroller_compute_five_monitor_outer_layout \
+    hyprcanvas_compute_five_monitor_outer_layout \
         "$outer_monitor_json" \
         "$WINDOW_WIDTH" \
         "$WINDOW_HEIGHT" \
@@ -323,8 +323,8 @@ OUTER_OUTPUT_EVENT_STATE=""
 OUTER_OUTPUT_EVENT_READY=""
 OUTER_OUTPUT_MAP_TIME_RULES_INSTALLED=0
 
-hyprscroller_five_monitor_names NESTED_MONITOR_NAMES
-hyprscroller_five_outer_titles OUTER_OUTPUT_TITLES
+hyprcanvas_five_monitor_names NESTED_MONITOR_NAMES
+hyprcanvas_five_outer_titles OUTER_OUTPUT_TITLES
 
 # Match the unique config path, so concurrent or pre-existing nested sessions
 # cannot be mistaken for this run during startup or cleanup.
@@ -375,7 +375,7 @@ cleanup() {
 follow_session() {
     printf '\nTest session is active. Streaming %s\nPress Ctrl+C to close all five test outputs.\n' "$LOG_PATH"
     printf 'Target this session explicitly: ./scripts/hsctl -i %s kitty\n' "$NESTED_INSTANCE"
-    printf 'Fish: set -gx HYPRSCROLLER_INSTANCE %s\n' "$NESTED_INSTANCE"
+    printf 'Fish: set -gx HYPRCANVAS_INSTANCE %s\n' "$NESTED_INSTANCE"
     tail -n 20 -F -- "$LOG_PATH" &
     LOG_FOLLOW_PID=$!
     # A short foreground wait lets Bash handle Ctrl+C promptly, and also lets
@@ -460,9 +460,9 @@ fi
 
 prepare_outer_output_layout
 
-RUN_DIR="$(mktemp -d /tmp/hyprscroller-overview-canvas.XXXXXX)"
+RUN_DIR="$(mktemp -d /tmp/hyprcanvas-overview-canvas.XXXXXX)"
 CONFIG_PATH="$RUN_DIR/hyprland.lua"
-HYPRSCROLLER_OUTER_OWNER_CONFIG="$CONFIG_PATH"
+HYPRCANVAS_OUTER_OWNER_CONFIG="$CONFIG_PATH"
 printf 'Preparing five-monitor test on %s\nRun directory: %s\nPlugin: %s\n' "$OUTER_MONITOR" "$RUN_DIR" "$PLUGIN_PATH"
 LOG_PATH="$RUN_DIR/hyprland.log"
 LAUNCHER_PATH="$RUN_DIR/launch-nested.sh"
@@ -470,7 +470,7 @@ RESULT_PATH="$RUN_DIR/result.json"
 OUTER_OUTPUT_EVENT_STATE="$RUN_DIR/outer-output-events.tsv"
 OUTER_OUTPUT_EVENT_READY="$RUN_DIR/outer-output-events.ready"
 
-hyprscroller_install_outer_output_map_time_float_rules OUTER_OUTPUT_TITLES \
+hyprcanvas_install_outer_output_map_time_float_rules OUTER_OUTPUT_TITLES \
     || die "failed to install map-time float rules for outer nested output windows"
 OUTER_OUTPUT_MAP_TIME_RULES_INSTALLED=1
 
@@ -478,7 +478,7 @@ cat >"$CONFIG_PATH" <<EOF
 hl.plugin.load($(lua_string "$PLUGIN_PATH"))
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
 hl.config({
-    general = { layout = "scroller", gaps_in = 4, gaps_out = 8, border_size = 2 },
+    general = { layout = "canvas", gaps_in = 4, gaps_out = 8, border_size = 2 },
     decoration = { rounding = 6 },
     misc = { disable_hyprland_logo = true, disable_splash_rendering = true },
     input = { kb_layout = "us" },
@@ -489,15 +489,15 @@ local function bind(key, action)
 end
 bind("RETURN", function() hl.exec_cmd($(lua_string "$TERMINAL_KIND")) end)
 bind("SHIFT + Q", hl.dsp.exit())
-bind("O", function() hl.plugin.scroller.toggle_overview() end)
-bind("ESCAPE", function() hl.plugin.scroller.cancel_overview() end)
-bind("TAB", function() hl.plugin.scroller.switch_workspace("r") end)
-bind("SHIFT + TAB", function() hl.plugin.scroller.switch_workspace("l") end)
+bind("O", function() hl.plugin.canvas.toggle_overview() end)
+bind("ESCAPE", function() hl.plugin.canvas.cancel_overview() end)
+bind("TAB", function() hl.plugin.canvas.switch_workspace("r") end)
+bind("SHIFT + TAB", function() hl.plugin.canvas.switch_workspace("l") end)
 for _, spec in ipairs({ {"LEFT", "l"}, {"RIGHT", "r"}, {"UP", "u"}, {"DOWN", "d"} }) do
     local key, direction = spec[1], spec[2]
-    bind(key, function() hl.plugin.scroller.move_focus(direction) end)
-    bind("SHIFT + " .. key, function() hl.plugin.scroller.move_window(direction) end)
-    bind("SUPER + " .. key, function() hl.plugin.scroller.focus_monitor(direction) end)
+    bind(key, function() hl.plugin.canvas.move_focus(direction) end)
+    bind("SHIFT + " .. key, function() hl.plugin.canvas.move_window(direction) end)
+    bind("SUPER + " .. key, function() hl.plugin.canvas.focus_monitor(direction) end)
 end
 EOF
 
@@ -507,9 +507,9 @@ exec $(quote_command env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c "$C
 EOF
 chmod +x "$LAUNCHER_PATH"
 
-OUTER_OUTPUT_EVENT_SOCKET="$(hyprscroller_outer_event_socket_path)" \
+OUTER_OUTPUT_EVENT_SOCKET="$(hyprcanvas_outer_event_socket_path)" \
     || die "could not resolve outer Hyprland event socket"
-hyprscroller_start_outer_output_event_watcher \
+hyprcanvas_start_outer_output_event_watcher \
     OUTER_OUTPUT_EVENT_WATCHER_PID \
     "$OUTER_OUTPUT_EVENT_SOCKET" \
     "$OUTER_OUTPUT_EVENT_STATE" \
@@ -521,7 +521,7 @@ hyprscroller_start_outer_output_event_watcher \
     OUTER_OUTPUT_YS \
     OUTER_OUTPUT_WIDTHS \
     OUTER_OUTPUT_HEIGHTS
-hyprscroller_wait_for_outer_output_event_watcher_ready "$OUTER_OUTPUT_EVENT_READY" \
+hyprcanvas_wait_for_outer_output_event_watcher_ready "$OUTER_OUTPUT_EVENT_READY" \
     || die "timed out waiting for outer output event watcher"
 
 printf 'Starting nested Hyprland (log: %s)...\n' "$LOG_PATH"
@@ -545,7 +545,7 @@ NESTED_SOCKET="$(hyprctl instances -j | jq -r --arg instance "$NESTED_INSTANCE" 
 [[ -n "$NESTED_SOCKET" ]] || die "could not resolve nested Wayland socket"
 
 wait_for_outer_output_window_count 1 || die "timed out waiting for the first outer nested output window"
-hyprscroller_position_outer_window_index \
+hyprcanvas_position_outer_window_index \
     "$OUTER_MONITOR_X" \
     "$OUTER_MONITOR_Y" \
     0 \
@@ -556,7 +556,7 @@ hyprscroller_position_outer_window_index \
     OUTER_OUTPUT_HEIGHTS \
     || die "failed to apply first outer nested output geometry"
 printf 'Creating the remaining four Wayland outputs...\n'
-hyprscroller_create_positioned_wayland_outputs \
+hyprcanvas_create_positioned_wayland_outputs \
     "$NESTED_INSTANCE" \
     1 \
     5 \
@@ -571,10 +571,10 @@ hyprscroller_create_positioned_wayland_outputs \
     OUTER_OUTPUT_HEIGHTS \
     || die "timed out creating five nested wayland outputs"
 
-hyprscroller_wait_for_outer_output_position_events "$OUTER_OUTPUT_EVENT_STATE" 5 \
+hyprcanvas_wait_for_outer_output_position_events "$OUTER_OUTPUT_EVENT_STATE" 5 \
     || die "outer output event watcher did not position all five nested output windows"
 
-hyprscroller_position_outer_windows \
+hyprcanvas_position_outer_windows \
     "$OUTER_MONITOR_X" \
     "$OUTER_MONITOR_Y" \
     OUTER_OUTPUT_TITLES \
@@ -646,7 +646,7 @@ if [[ "$WITH_TEST_WINDOWS" -eq 1 ]]; then
     focus_nested_window "class:$SOURCE_CLASS"
 fi
 sleep 0.3
-hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.focus_monitor("r")' >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.canvas.focus_monitor("r")' >/dev/null
 wait_for_nested_focused_monitor "$TARGET_MONITOR" || true
 NORMAL_FOCUSED_MONITOR="$(nested_focused_monitor)"
 NORMAL_FOCUS_OK=0
@@ -654,39 +654,39 @@ if [[ "$NORMAL_FOCUSED_MONITOR" == "$TARGET_MONITOR" ]]; then
     NORMAL_FOCUS_OK=1
 fi
 
-hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.focus_monitor("l")' >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.canvas.focus_monitor("l")' >/dev/null
 wait_for_nested_focused_monitor "$SOURCE_MONITOR" || true
 hyprctl -i "$NESTED_INSTANCE" dispatch "hl.dsp.focus({ monitor = $(lua_string "$SOURCE_MONITOR") })" >/dev/null
 if [[ "$WITH_TEST_WINDOWS" -eq 1 ]]; then
     focus_nested_window "class:$SOURCE_CLASS"
 fi
 sleep 0.3
-hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.toggle_overview()' >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.canvas.toggle_overview()' >/dev/null
 sleep "$OVERVIEW_HOLD_SECONDS"
-hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.focus_monitor("r")' >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.canvas.focus_monitor("r")' >/dev/null
 sleep 0.4
 DURING_CREATE_PREVIEW_MONITORS_JSON="$(hyprctl -i "$NESTED_INSTANCE" monitors -j)"
 DURING_CREATE_SOURCE_WORKSPACE="$(printf '%s\n' "$DURING_CREATE_PREVIEW_MONITORS_JSON" | jq -r --arg monitor "$SOURCE_MONITOR" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
 DURING_CREATE_TARGET_WORKSPACE="$(printf '%s\n' "$DURING_CREATE_PREVIEW_MONITORS_JSON" | jq -r --arg monitor "$TARGET_MONITOR" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
-hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.toggle_overview()' >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.canvas.toggle_overview()' >/dev/null
 sleep 0.7
 
 AFTER_CREATE_MONITORS_JSON="$(hyprctl -i "$NESTED_INSTANCE" monitors -j)"
 AFTER_CREATE_SOURCE_WORKSPACE="$(printf '%s\n' "$AFTER_CREATE_MONITORS_JSON" | jq -r --arg monitor "$SOURCE_MONITOR" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
 AFTER_CREATE_TARGET_WORKSPACE="$(printf '%s\n' "$AFTER_CREATE_MONITORS_JSON" | jq -r --arg monitor "$TARGET_MONITOR" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
 
-hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.toggle_overview()' >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.canvas.toggle_overview()' >/dev/null
 sleep "$OVERVIEW_HOLD_SECONDS"
-hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.focus_monitor("l")' >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.canvas.focus_monitor("l")' >/dev/null
 sleep 0.4
 DURING_RETURN_PREVIEW_MONITORS_JSON="$(hyprctl -i "$NESTED_INSTANCE" monitors -j)"
 DURING_RETURN_SOURCE_WORKSPACE="$(printf '%s\n' "$DURING_RETURN_PREVIEW_MONITORS_JSON" | jq -r --arg monitor "$SOURCE_MONITOR" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
 DURING_RETURN_TARGET_WORKSPACE="$(printf '%s\n' "$DURING_RETURN_PREVIEW_MONITORS_JSON" | jq -r --arg monitor "$TARGET_MONITOR" '.[] | select(.name == $monitor) | .activeWorkspace.id')"
-hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.scroller.toggle_overview()' >/dev/null
+hyprctl -i "$NESTED_INSTANCE" eval 'hl.plugin.canvas.toggle_overview()' >/dev/null
 sleep 0.7
 
 RUNTIME_BASE_DIR="${XDG_RUNTIME_DIR:-/tmp}"
-RUNTIME_STATE="$RUNTIME_BASE_DIR/hyprscroller-canvas-$NESTED_INSTANCE.state"
+RUNTIME_STATE="$RUNTIME_BASE_DIR/hyprcanvas-$NESTED_INSTANCE.state"
 RUNTIME_STATE_COPY="$RUN_DIR/runtime-state.txt"
 if [[ -f "$RUNTIME_STATE" ]]; then
     cp "$RUNTIME_STATE" "$RUNTIME_STATE_COPY"
@@ -697,7 +697,7 @@ fi
 OUTER_WINDOWS_JSON="$(collect_outer_windows_json)"
 OUTER_WINDOW_COUNT="$(jq 'length' <<<"$OUTER_WINDOWS_JSON")"
 [[ "$OUTER_WINDOW_COUNT" -eq 5 ]] || die "expected five preview windows owned by $NESTED_INSTANCE, found $OUTER_WINDOW_COUNT"
-OUTER_OUTPUT_EVENT_COUNT="$(hyprscroller_outer_output_position_event_count "$OUTER_OUTPUT_EVENT_STATE")"
+OUTER_OUTPUT_EVENT_COUNT="$(hyprcanvas_outer_output_position_event_count "$OUTER_OUTPUT_EVENT_STATE")"
 
 jq -n \
   --argjson initialMonitors "$INITIAL_MONITORS_JSON" \

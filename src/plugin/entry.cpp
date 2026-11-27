@@ -130,7 +130,7 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 // Register config values, Lua commands, and the tiled algorithm implementation.
 // For code readers, this is the root of the plugin's runtime graph:
 // Hyprland loads the plugin -> `PLUGIN_INIT` runs -> Lua commands are registered
-// -> `CanvasLayout` is registered as the `scroller` tiled algorithm.
+// -> `CanvasLayout` is registered as the `canvas` tiled algorithm.
 //
 // The returned description tuple is shown by Hyprland/plugin tooling as:
 // { name, description, author, version }.
@@ -142,27 +142,27 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     spdlog::info("pluginInit handle={} hyprland_abi={}", static_cast<const void*>(handle), __hyprland_api_get_client_hash());
 
     spdlog::info("pluginInit: registering config values");
-    scroller::plugin_config::registerConfigValues(PHANDLE);
+    canvas::plugin_config::registerConfigValues(PHANDLE);
     spdlog::info("pluginInit: config values registered");
 
     spdlog::info("pluginInit: registering Lua functions");
     dispatchers::addLuaFunctions();
     spdlog::info("pluginInit: Lua functions registered");
 
-    // Register scroller as a custom tiled algorithm only after all config values
+    // Register canvas as a custom tiled algorithm only after all config values
     // it may read during initial workspace population have been registered.
-    spdlog::info("pluginInit: registering tiled algorithm scroller");
+    spdlog::info("pluginInit: registering tiled algorithm canvas");
     HyprlandAPI::addTiledAlgo(
         PHANDLE,
-        "scroller",
+        "canvas",
         &typeid(CanvasLayout),
         []() -> UP<Layout::ITiledAlgorithm> { return makeUnique<CanvasLayout>(); });
     spdlog::info("pluginInit: tiled algorithm registered");
 
     spdlog::info("pluginInit: initializing overview renderer hooks");
     Overview::initializeRendererHooks(PHANDLE);
-    ScrollerCore::FocusPointerSync::initialize();
-    ScrollerModel::DeckPointer::initialize();
+    CanvasCore::FocusPointerSync::initialize();
+    CanvasModel::DeckPointer::initialize();
     spdlog::info("pluginInit: overview renderer hooks initialized");
 
     // Export the same plugin identifier as the hyprpm manifest.
@@ -172,13 +172,13 @@ APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
 // Plugin shutdown hook: flush snapshots and release all managed service slots
 // in reverse dependency order.
 APICALL EXPORT void PLUGIN_EXIT() {
-    ScrollerCore::FocusPointerSync::shutdown();
-    ScrollerModel::DeckPointer::shutdown();
-    for (const auto &workspaceRef : ScrollerCore::HyprlandRuntime::workspaces()) {
+    CanvasCore::FocusPointerSync::shutdown();
+    CanvasModel::DeckPointer::shutdown();
+    for (const auto &workspaceRef : CanvasCore::HyprlandRuntime::workspaces()) {
         const auto workspace = workspaceRef.lock();
         if (!workspace)
             continue;
-        if (auto *layout = CanvasLayoutInternal::get_canvas_for_workspace(ScrollerCore::HyprlandRuntime::workspaceId(workspace)))
+        if (auto *layout = CanvasLayoutInternal::get_canvas_for_workspace(CanvasCore::HyprlandRuntime::workspaceId(workspace)))
             layout->persistCurrentSnapshot();
     }
     Overview::shutdownRendererHooks(PHANDLE);
@@ -189,6 +189,6 @@ APICALL EXPORT void PLUGIN_EXIT() {
     CanvasLayoutState::canvasRepository().shutdown();
     CanvasLayoutState::canvasRepositorySlot().reset();
     CanvasLayoutState::repositorySlot().reset();
-    ScrollerCore::marksSlot().reset();
+    CanvasCore::marksSlot().reset();
     spdlog::info("pluginExit");
 }

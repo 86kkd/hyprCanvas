@@ -1,6 +1,6 @@
 /**
  * @file stack.h
- * @brief Core model layer for scroller layout state.
+ * @brief Core model layer for canvas layout state.
  *
  * This module owns the lightweight in-memory objects that represent
  * tiled layout data independent of monitor/lane orchestration.
@@ -29,11 +29,11 @@
 #include "model/stack/label.h"
 #include "model/stack/width.h"
 
-namespace ScrollerModel {
+namespace CanvasModel {
 
 struct WindowGeometryEntry {
     PHLWINDOW         window = nullptr;
-    ScrollerCore::Box box;
+    CanvasCore::Box box;
     DeckLabelEdge labelEdge = DeckLabelEdge::None;
     double labelSpan = 0.0;
     bool beforeActive = false;
@@ -70,9 +70,9 @@ public:
     void set_deck_label(DeckLabelEdge edge, double span = 0.0);
     // Access original compositor window handle.
     PHLWINDOWREF ptr() const;
-    // Return logical geometry height used by scroller model.
+    // Return logical geometry height used by canvas model.
     double get_geom_h() const;
-    // Return logical geometry origin used by scroller model.
+    // Return logical geometry origin used by canvas model.
     double get_geom_y() const;
     // Store logical geometry height used by layout calculations.
     void set_geom_h(double geom_h);
@@ -85,7 +85,7 @@ public:
     // Inspect the last saved logical geometry.
     double get_saved_geom_y() const;
     double get_saved_geom_h() const;
-    // Scroller-fullsize state of the stack this window lived in before it
+    // Canvas-fullsize state of the stack this window lived in before it
     // joined its current stack; unset for windows that never joined one.
     std::optional<bool> get_fullsize_before_join() const;
     void set_fullsize_before_join(std::optional<bool> fullsize);
@@ -99,7 +99,7 @@ public:
     // Restore all persisted logical window state in one step.
     void restore_state(WindowHeight h, double geom_y, double geom_h, double mem_y, double mem_h);
     // Export this window's persisted logical state.
-    ScrollerSnapshot::WindowSnapshot capture_snapshot() const;
+    CanvasLayoutSnapshot::WindowSnapshot capture_snapshot() const;
 
 private:
     SP<StackLabelDecoration> labelDecoration;
@@ -194,9 +194,9 @@ public:
     // Apply relative scale to all windows in this stack.
     void scale(const Vector2D &bmin, const Vector2D &start, double scale, double gap);
     // Toggle fullscreen state request and report the target fullscreen flag.
-    bool toggle_fullscreen(const ScrollerCore::Box &fullbbox);
+    bool toggle_fullscreen(const CanvasCore::Box &fullbbox);
     // Set fullscreen target bbox for internal bookkeeping.
-    void set_fullscreen(const ScrollerCore::Box &fullbbox);
+    void set_fullscreen(const CanvasCore::Box &fullbbox);
     // Return true when stack-managed fullscreen is active.
     bool expanded() const;
     // Fullsize uses a focused-window deck even with only two members.
@@ -216,7 +216,7 @@ public:
     void set_geom_pos(double x, double y);
 
     // Recompute active-window geometry and propagate updates to siblings.
-    void recalculate_stack_geometry(const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox);
+    void recalculate_stack_geometry(const Vector2D &gap_x, double gap, const CanvasCore::Box &visibleBox);
     // Return currently active compositor window.
     PHLWINDOW get_active_window();
     // Return whether the active model window is already at a stack edge.
@@ -238,7 +238,7 @@ public:
 
     // Width and height mode inspection + mutation.
     StackWidth get_width() const;
-    const ScrollerCore::Box &get_saved_geom() const;
+    const CanvasCore::Box &get_saved_geom() const;
     void set_width_free();
 #ifdef COLORS_IPC
     std::string get_width_name() const;
@@ -251,17 +251,17 @@ public:
     // temporary span and only change the span they restore to.
     void apply_width(StackWidth cwidth, double maxw, double maxh);
     // Scale every window proportionally so together they fill the stack span.
-    void fit_windows_to_span(const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox);
+    void fit_windows_to_span(const Vector2D &gap_x, double gap, const CanvasCore::Box &visibleBox);
     // Resize width and optional active height if height delta is valid.
-    void resize_active_window(const ScrollerCore::Box &bounds, const Vector2D &gap_x, double gap, const Vector2D &delta);
+    void resize_active_window(const CanvasCore::Box &bounds, const Vector2D &gap_x, double gap, const Vector2D &delta);
     // Append a window model without applying insert heuristics. Used only when rebuilding snapshots.
     void append_restored_window(std::unique_ptr<Window> window);
     // Restore stack-wide persisted geometry and behavior flags.
     void restore_state(StackWidth restoredWidth,
-                       const ScrollerCore::Box &restoredGeom, const ScrollerCore::Box &restoredMemGeom,
+                       const CanvasCore::Box &restoredGeom, const CanvasCore::Box &restoredMemGeom,
                        bool restoredFullscreened, bool restoredMaximized);
     // Export this stack's persisted state and ordered windows.
-    ScrollerSnapshot::StackSnapshot capture_snapshot() const;
+    CanvasLayoutSnapshot::StackSnapshot capture_snapshot() const;
 
 private:
     using WindowNode = ListNode<std::unique_ptr<Window>>;
@@ -271,11 +271,11 @@ private:
     // Find the list node that owns a given compositor window.
     WindowNode *findWindowNode(PHLWINDOW window) const;
     // Shift a window range so the active window stays visible inside the stack viewport.
-    void adjust_windows(WindowNode *win, const Vector2D &gap_x, double gap, const ScrollerCore::Box &visibleBox);
+    void adjust_windows(WindowNode *win, const Vector2D &gap_x, double gap, const CanvasCore::Box &visibleBox);
 
     // Restore point for stack-level geometry transforms.
     struct Memory {
-        ScrollerCore::Box geom;
+        CanvasCore::Box geom;
     };
 
     // Current horizontal width mode of the stack.
@@ -287,15 +287,15 @@ private:
     // Whether this stack already has stable initial geometry.
     bool initialized = false;
     // Current stack geometry in canvas coordinates.
-    ScrollerCore::Box geom;
-    // Scroller-managed fullscreen state.
+    CanvasCore::Box geom;
+    // Canvas-managed fullscreen state.
     bool fullscreened = false;
     // Stack-level maximized state.
     bool maxdim = false;
     // Saved stack geometry for temporary transforms.
     Memory mem;
     // Full monitor box used by fullscreen behavior.
-    ScrollerCore::Box full;
+    CanvasCore::Box full;
     // Currently active model window node.
     WindowNode *active = nullptr;
     // Last selected model, cleared before removal; transient presentation state.
@@ -304,4 +304,4 @@ private:
     List<std::unique_ptr<Window>> windows;
 };
 
-} // namespace ScrollerModel
+} // namespace CanvasModel

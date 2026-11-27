@@ -26,35 +26,35 @@
 #include "core/window_key.h"
 #include "plugin/config.h"
 
-namespace ScrollerModel::StackInternal {
+namespace CanvasModel::StackInternal {
 
-// These helpers translate one `ScrollerCore::Box` into "what does this mean
+// These helpers translate one `CanvasCore::Box` into "what does this mean
 // along the stack's scrolling axis versus the cross axis?" They are small, but
 // they remove a huge amount of mode-dependent branching from later code.
-double stack_local_origin(const ScrollerCore::Box &geom, Mode mode) {
+double stack_local_origin(const CanvasCore::Box &geom, Mode mode) {
     return mode == Mode::Column ? geom.x : geom.y;
 }
 
-double stack_local_span(const ScrollerCore::Box &geom, Mode mode) {
+double stack_local_span(const CanvasCore::Box &geom, Mode mode) {
     return mode == Mode::Column ? geom.w : geom.h;
 }
 
-double stack_cross_span(const ScrollerCore::Box &geom, Mode mode) {
+double stack_cross_span(const CanvasCore::Box &geom, Mode mode) {
     return mode == Mode::Column ? geom.h : geom.w;
 }
 
-double stack_primary_span(const ScrollerCore::Box &geom, Mode mode) {
+double stack_primary_span(const CanvasCore::Box &geom, Mode mode) {
     return mode == Mode::Column ? geom.h : geom.w;
 }
 
-double local_viewport_end(const ScrollerCore::Box &geom, Mode mode) {
+double local_viewport_end(const CanvasCore::Box &geom, Mode mode) {
     return stack_local_origin(geom, mode) + stack_local_span(geom, mode);
 }
 
 // Turn a logical geometry request back into compositor-space coordinates. The
 // caller passes values in stack-local vocabulary (`local_pos`, `local_size`);
 // these helpers remap them onto x/y/w/h depending on the current mode.
-Vector2D compose_window_position(const ScrollerCore::Box &geom, Mode mode, double border,
+Vector2D compose_window_position(const CanvasCore::Box &geom, Mode mode, double border,
                                  const Vector2D &cross_gap, double local_pos, double local_gap) {
     if (mode == Mode::Column)
         return Vector2D(local_pos + border + local_gap, geom.y + border + cross_gap.x);
@@ -62,7 +62,7 @@ Vector2D compose_window_position(const ScrollerCore::Box &geom, Mode mode, doubl
     return Vector2D(geom.x + border + cross_gap.x, local_pos + border + local_gap);
 }
 
-Vector2D compose_window_size(const ScrollerCore::Box &geom, Mode mode, double border,
+Vector2D compose_window_size(const CanvasCore::Box &geom, Mode mode, double border,
                              const Vector2D &cross_gap, double local_size,
                              double local_gap0, double local_gap1) {
     const auto cross_size = std::max(stack_cross_span(geom, mode) - 2.0 * border - cross_gap.x - cross_gap.y, 1.0);
@@ -77,7 +77,7 @@ StackWidthPreset parse_stack_width_preset(PHLWINDOW window, double fallback_maxw
     // The setting is a visible-stack count, or "floating" to seed the stack
     // from the window's last known floating size when possible.
     const auto defaultWidth = global_stack_width();
-    const std::string preset = scroller::plugin_config::columnDefaultWidth();
+    const std::string preset = canvas::plugin_config::columnDefaultWidth();
     if (visible_stacks_override() || preset != "floating")
         return {.width = defaultWidth, .maxw = fallback_maxw};
 
@@ -88,22 +88,22 @@ StackWidthPreset parse_stack_width_preset(PHLWINDOW window, double fallback_maxw
     return {.width = defaultWidth, .maxw = fallback_maxw};
 }
 
-bool is_window_fully_visible(Window *window, const ScrollerCore::Box &geom, Mode mode) {
+bool is_window_fully_visible(Window *window, const CanvasCore::Box &geom, Mode mode) {
     if (!window)
         return false;
 
     const auto p0 = std::round(window->get_geom_y());
     const auto p1 = std::round(window->get_geom_y() + window->get_geom_h());
-    return ScrollerCore::Interval::fully_visible(p0, p1, stack_local_origin(geom, mode), local_viewport_end(geom, mode));
+    return CanvasCore::Interval::fully_visible(p0, p1, stack_local_origin(geom, mode), local_viewport_end(geom, mode));
 }
 
-bool is_window_intersect_viewport(Window *window, const ScrollerCore::Box &geom, Mode mode) {
+bool is_window_intersect_viewport(Window *window, const CanvasCore::Box &geom, Mode mode) {
     if (!window)
         return false;
 
     const auto p0 = window->get_geom_y();
     const auto p1 = window->get_geom_y() + window->get_geom_h();
-    return ScrollerCore::Interval::intersects(p0, p1, stack_local_origin(geom, mode), local_viewport_end(geom, mode));
+    return CanvasCore::Interval::intersects(p0, p1, stack_local_origin(geom, mode), local_viewport_end(geom, mode));
 }
 
 // Keep Hyprland's layout target in sync after stack code mutates the logical
@@ -118,18 +118,18 @@ void sync_window_target_geometry(PHLWINDOW window) {
         return;
 
     target->setPositionGlobal(Hyprutils::Math::CBox(
-        ScrollerCore::HyprlandRuntime::windowPosition(window),
-        ScrollerCore::HyprlandRuntime::windowSize(window)));
+        CanvasCore::HyprlandRuntime::windowPosition(window),
+        CanvasCore::HyprlandRuntime::windowSize(window)));
 }
 
-} // namespace ScrollerModel::StackInternal
+} // namespace CanvasModel::StackInternal
 
-namespace ScrollerModel {
+namespace CanvasModel {
 
 StackWidth global_stack_width() {
     if (const auto count = visible_stacks_override())
         return StackWidth::visible(*count);
-    if (const auto count = parse_visible_stack_count(scroller::plugin_config::columnDefaultWidth()))
+    if (const auto count = parse_visible_stack_count(canvas::plugin_config::columnDefaultWidth()))
         return StackWidth::visible(*count);
     return StackWidth::visible(StackWidth::kDefaultVisibleStacks);
 }
@@ -226,7 +226,7 @@ bool Stack::fullscreen() const {
         return false;
 
     auto window = active->data()->ptr().lock();
-    return ScrollerCore::HyprlandRuntime::windowIsFullscreen(window);
+    return CanvasCore::HyprlandRuntime::windowIsFullscreen(window);
 }
 
 bool Stack::uses_deck() const {
@@ -288,7 +288,7 @@ StackWidth Stack::get_width() const {
     return width;
 }
 
-const ScrollerCore::Box &Stack::get_saved_geom() const {
+const CanvasCore::Box &Stack::get_saved_geom() const {
     return mem.geom;
 }
 
@@ -349,7 +349,7 @@ void Stack::append_restored_window(std::unique_ptr<Window> window) {
 }
 
 void Stack::restore_state(StackWidth restoredWidth,
-                          const ScrollerCore::Box &restoredGeom, const ScrollerCore::Box &restoredMemGeom,
+                          const CanvasCore::Box &restoredGeom, const CanvasCore::Box &restoredMemGeom,
                           bool restoredFullscreened, bool restoredMaximized) {
     width = restoredWidth;
     geom = restoredGeom;
@@ -359,15 +359,15 @@ void Stack::restore_state(StackWidth restoredWidth,
     initialized = true;
 }
 
-ScrollerSnapshot::StackSnapshot Stack::capture_snapshot() const {
-    ScrollerSnapshot::StackSnapshot snapshot;
+CanvasLayoutSnapshot::StackSnapshot Stack::capture_snapshot() const {
+    CanvasLayoutSnapshot::StackSnapshot snapshot;
     snapshot.width = width.to_snapshot();
     snapshot.fullscreened = fullscreened;
     snapshot.maximized = maxdim;
     snapshot.geom = geom;
     snapshot.memGeom = mem.geom;
     snapshot.activeWindowKey = active
-        ? ScrollerCore::window_key(active->data()->ptr().lock())
+        ? CanvasCore::window_key(active->data()->ptr().lock())
         : 0;
     for_each_window_model([&](const Window *window) {
         if (window)
@@ -376,4 +376,4 @@ ScrollerSnapshot::StackSnapshot Stack::capture_snapshot() const {
     return snapshot;
 }
 
-} // namespace ScrollerModel
+} // namespace CanvasModel

@@ -5,7 +5,7 @@
 #include <string_view>
 #include <vector>
 
-namespace ScrollerCanvasSnapshot {
+namespace CanvasRepoSnapshot {
 
 constexpr int kFormatVersion = 1;
 
@@ -59,4 +59,4 @@ bool reconcile_temporary_canvases(RepositorySnapshot& snapshot, const std::vecto
 std::string                      serialize_repository(const RepositorySnapshot& snapshot);
 std::optional<RepositorySnapshot> deserialize_repository(std::string_view data);
 
-} // namespace ScrollerCanvasSnapshot
+} // namespace CanvasRepoSnapshot

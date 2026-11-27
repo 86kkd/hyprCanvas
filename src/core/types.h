@@ -10,7 +10,7 @@ inline constexpr WORKSPACEID WORKSPACE_INVALID = -1;
 enum class Direction { Left, Right, Up, Down, Begin, End, Center };
 enum class Mode { Row, Column };
 
-namespace ScrollerCore {
+namespace CanvasCore {
 
 // Lightweight bbox shared by pure geometry helpers and layout code.
 struct Box {
@@ -38,4 +38,4 @@ struct Box {
     double h = 0.0;
 };
 
-} // namespace ScrollerCore
+} // namespace CanvasCore

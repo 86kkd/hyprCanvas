@@ -11,11 +11,11 @@
 namespace CanvasLayoutInternal {
 
 bool direction_moves_between_lanes(Mode mode, Direction direction) {
-    return ScrollerCore::direction_moves_between_lanes(mode, direction);
+    return CanvasCore::direction_moves_between_lanes(mode, direction);
 }
 
 bool direction_inserts_before_current(Mode mode, Direction direction) {
-    return ScrollerCore::direction_inserts_before_current(mode, direction);
+    return CanvasCore::direction_inserts_before_current(mode, direction);
 }
 
 // Hidden special workspaces can temporarily leave the canvas focused on a blank

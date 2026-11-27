@@ -5,7 +5,7 @@
 
 #include "types.h"
 
-namespace ScrollerCore {
+namespace CanvasCore {
 
 // Canvas coordinates, unlike native workspace IDs, encode spatial direction.
 // Normalize in tile space: a distant jump still travels one screen extent,
@@ -20,4 +20,4 @@ inline Hyprutils::Math::Vector2D canvas_transition_offset(int sourceX, int sourc
     return {dx / distance * monitorSize.x, dy / distance * monitorSize.y};
 }
 
-} // namespace ScrollerCore
+} // namespace CanvasCore

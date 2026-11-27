@@ -8,7 +8,7 @@
 #include <string_view>
 #include <vector>
 
-namespace ScrollerSnapshot {
+namespace CanvasLayoutSnapshot {
 namespace {
 
 // LANE/STACK lines keep a column for the removed Auto/Lazy reorder policy so
@@ -104,11 +104,11 @@ std::vector<std::string_view> split_tokens(std::string_view line) {
     return tokens;
 }
 
-void append_box(std::ostringstream &out, const ScrollerCore::Box &box) {
+void append_box(std::ostringstream &out, const CanvasCore::Box &box) {
     out << box.x << ' ' << box.y << ' ' << box.w << ' ' << box.h;
 }
 
-bool parse_box(const std::vector<std::string_view> &tokens, size_t index, ScrollerCore::Box &box) {
+bool parse_box(const std::vector<std::string_view> &tokens, size_t index, CanvasCore::Box &box) {
     return index + 3 < tokens.size() &&
            parse_token(tokens[index + 0], box.x) &&
            parse_token(tokens[index + 1], box.y) &&
@@ -280,7 +280,7 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
             continue;
         }
 
-        // Older files may still carry state from the removed scrollergrid
+        // Older files may still carry state from the removed canvasgrid
         // layout. Accept those lines so lane state from the same file restores.
         if (tokens[0] == "GRID" || tokens[0] == "GRIDITEM") {
             if (!currentCanvas || formatVersion < kGridFormatVersion)
@@ -299,4 +299,4 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
     return snapshots;
 }
 
-} // namespace ScrollerSnapshot
+} // namespace CanvasLayoutSnapshot

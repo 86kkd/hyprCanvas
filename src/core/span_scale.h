@@ -2,7 +2,7 @@
 
 #include "core/linked_list.h"
 
-namespace ScrollerCore {
+namespace CanvasCore {
 
 // Scale every node in an inclusive range so the combined span matches targetSpan.
 template <typename T, typename GetSpanFn, typename SetSpanFn>
@@ -34,4 +34,4 @@ bool scale_range_to_span(ListNode<T> *from,
     return true;
 }
 
-} // namespace ScrollerCore
+} // namespace CanvasCore

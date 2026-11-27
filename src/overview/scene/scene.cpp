@@ -26,7 +26,7 @@
 namespace Overview {
 namespace {
 
-using ScrollerCore::Box;
+using CanvasCore::Box;
 
 // Scene DTOs live in monitor-local compositor space. Hyprland already applies
 // the monitor transform when it renders that pass, so pre-rotating here makes
@@ -62,7 +62,7 @@ std::string workspace_label(PHLWORKSPACE workspace, WORKSPACEID workspaceId) {
     if (!workspace->displayName().empty())
         return workspace->displayName();
 
-    return std::to_string(ScrollerCore::HyprlandRuntime::workspaceId(workspace));
+    return std::to_string(CanvasCore::HyprlandRuntime::workspaceId(workspace));
 }
 
 std::string empty_target_label(const Target& target) {
@@ -114,8 +114,8 @@ std::optional<SceneMonitor> buildSceneForMonitor(PHLMONITOR monitor, const Model
         sceneWorkspace.box = localize_box(monitor, workspace.box);
         sceneWorkspace.contentBox = sceneWorkspace.box;
 
-        const auto workspaceRef = ScrollerCore::HyprlandRuntime::workspaceById(workspace.workspaceId);
-        sceneWorkspace.special = workspaceRef ? ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspaceRef) : false;
+        const auto workspaceRef = CanvasCore::HyprlandRuntime::workspaceById(workspace.workspaceId);
+        sceneWorkspace.special = workspaceRef ? CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspaceRef) : false;
         sceneWorkspace.label = workspace_label(workspaceRef, workspace.workspaceId);
 
         sceneWorkspace.targets.reserve(workspace.targets.size());

@@ -4,7 +4,7 @@
 
 #include "types.h"
 
-namespace ScrollerCore {
+namespace CanvasCore {
 
 // Minimal geometry input needed to compute overview projection bounds.
 struct OverviewRect {
@@ -49,4 +49,4 @@ LocalRenderInterval rendered_local_interval(double local_pos, double local_size,
 OverviewProjection compute_overview_projection(std::span<const OverviewRect> items,
                                                const Box &visible_box);
 
-} // namespace ScrollerCore
+} // namespace CanvasCore

@@ -5,7 +5,7 @@
 
 #include "types.h"
 
-namespace ScrollerCore {
+namespace CanvasCore {
 
 // Human-readable direction label used in logs and tests.
 const char *direction_name(Direction direction);
@@ -22,4 +22,4 @@ std::optional<Direction> parse_direction_arg(std::string_view arg);
 // Parse setmode dispatcher arguments into a layout mode.
 std::optional<Mode> parse_mode_arg(std::string_view arg);
 
-} // namespace ScrollerCore
+} // namespace CanvasCore

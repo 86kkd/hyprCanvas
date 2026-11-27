@@ -107,7 +107,7 @@ void project_workspace_targets(PHLMONITOR monitor, WorkspaceNode& workspace) {
 
     const auto contentBox = workspace.box;
     std::vector<size_t> windowIndexes;
-    std::vector<ScrollerCore::Box> sourceBoxes;
+    std::vector<CanvasCore::Box> sourceBoxes;
     windowIndexes.reserve(workspace.targets.size());
     sourceBoxes.reserve(workspace.targets.size());
 
@@ -445,7 +445,7 @@ void Model::rebuild(const std::vector<CanvasLayoutState::SyntheticCanvasWorkspac
     const auto anchorTileX = anchorCanvas ? anchorCanvas->tileX : 0;
     const auto anchorTileY = anchorCanvas ? anchorCanvas->tileY : 0;
 
-    for (const auto& monitor : ScrollerCore::HyprlandRuntime::monitors()) {
+    for (const auto& monitor : CanvasCore::HyprlandRuntime::monitors()) {
         if (!monitor)
             continue;
 

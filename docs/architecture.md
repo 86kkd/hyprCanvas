@@ -4,7 +4,7 @@ This document is the newcomer-oriented map of the codebase. It is meant to
 answer one question first:
 
 How does a Hyprland event or keybinding end up moving windows inside
-hyprscroller?
+hyprcanvas?
 
 A Chinese version lives in [`architecture-cn.md`](./architecture-cn.md).
 
@@ -20,9 +20,9 @@ Most of the project can be understood as one pipeline:
 1. Hyprland loads the plugin through `PLUGIN_INIT` in
    [`src/plugin/entry.cpp`](../src/plugin/entry.cpp).
 2. `PLUGIN_INIT` registers:
-   - config values under `plugin:hyprCanvas:*` (with `plugin:scroller:*` aliases)
-   - Lua commands under `hl.plugin.scroller.*` such as `move_focus`
-   - `CanvasLayout` as the tiled algorithm named `scroller`
+   - config values under `plugin:hyprCanvas:*` (with `plugin:canvas:*` aliases)
+   - Lua commands under `hl.plugin.canvas.*` such as `move_focus`
+   - `CanvasLayout` as the tiled algorithm named `canvas`
    - overview renderer hooks plus focus/deck pointer helpers
 3. Hyprland later calls either:
    - Lua functions in [`src/plugin/dispatch/`](../src/plugin/dispatch/)
@@ -55,7 +55,7 @@ this order:
 ```text
 Canvas Workspace              one whole multi-monitor desktop (plugin-side grouping)
   └─ Hyprland workspace × N   one member per monitor, N = monitor count
-        └─ CanvasLayout       the `scroller` instance of that workspace
+        └─ CanvasLayout       the `canvas` instance of that workspace
               └─ Lane → Stack → window
 ```
 
@@ -81,7 +81,7 @@ Canvas Workspace              one whole multi-monitor desktop (plugin-side group
 
 ## Core Concepts
 
-There are four main runtime objects for the default `scroller` layout.
+There are four main runtime objects for the default `canvas` layout.
 
 ### Plugin
 
@@ -93,7 +93,7 @@ Its job is to:
 - initialize logging and layout/canvas repositories
 - register config values
 - register Lua commands via `dispatchers::addLuaFunctions()`
-- register `CanvasLayout` as the `scroller` tiled algorithm
+- register `CanvasLayout` as the `canvas` tiled algorithm
 - initialize overview renderer hooks, focus-pointer sync, and deck-pointer
   hit testing
 
@@ -146,12 +146,12 @@ answers "what exactly happens to the windows inside that stack?"
 
 ### Window
 
-The actual Hyprland window object still comes from Hyprland. Hyprscroller keeps
+The actual Hyprland window object still comes from Hyprland. HyprCanvas keeps
 lightweight bookkeeping around it, but the compositor remains the source of
 truth for the real client.
 
-`scroller` is the only tiled algorithm this plugin registers. The former
-`scrollergrid` cell layout was removed; directional routing stays on
+`canvas` is the only tiled algorithm this plugin registers. The former
+`canvasgrid` cell layout was removed; directional routing stays on
 lane/stack (see [`topology-neighbor-index.md`](./topology-neighbor-index.md)).
 
 ## Main Flows
@@ -165,8 +165,8 @@ Read `PLUGIN_INIT` first. It does these things in order:
 1. sets up logging
 2. initializes layout and canvas repositories
 3. registers config values
-4. registers Lua commands under `hl.plugin.scroller.*`
-5. registers the `scroller` tiled algorithm
+4. registers Lua commands under `hl.plugin.canvas.*`
+5. registers the `canvas` tiled algorithm
 6. initializes overview renderer hooks plus focus/deck pointer helpers
 
 Config registration happens before tiled-algorithm registration on purpose:
@@ -196,7 +196,7 @@ The main implementation lives in
 
 Directional focus starts in a Lua command:
 
-1. A keybinding calls `hl.plugin.scroller.move_focus("l")` or similar.
+1. A keybinding calls `hl.plugin.canvas.move_focus("l")` or similar.
 2. [`src/plugin/dispatch/layout_commands.cpp`](../src/plugin/dispatch/layout_commands.cpp)
    parses the direction and resolves the active `CanvasLayout`.
 3. `CanvasLayout::moveFocus` builds a `TopologyIndex` (lane, stack, and
@@ -217,7 +217,7 @@ The main implementation lives in
 
 Directional window movement starts similarly:
 
-1. A keybinding calls `hl.plugin.scroller.move_window(...)`.
+1. A keybinding calls `hl.plugin.canvas.move_window(...)`.
 2. The Lua command resolves the active `CanvasLayout`.
 3. `CanvasLayout::moveWindow` asks the same `neighbor` query with the
    move-window intent, which decides whether the window:
@@ -253,7 +253,7 @@ Plugin ABI entrypoints and one-time registration.
 
 ### `src/plugin/dispatch`
 
-String/Lua argument parsing and routing from `hl.plugin.scroller.*` into
+String/Lua argument parsing and routing from `hl.plugin.canvas.*` into
 strongly typed layout methods.
 
 - `registration.cpp`: bootstrap that calls the two registration groups
@@ -263,7 +263,7 @@ strongly typed layout methods.
 
 ### `src/layout/canvas`
 
-Workspace-level control plane for `scroller`.
+Workspace-level control plane for `canvas`.
 
 - `core.cpp`: target callbacks, workspace ownership, lane cache, lifecycle
 - `snapshot.cpp`: workspace layout snapshot capture, persistence, and restore
@@ -342,8 +342,8 @@ If you are new to the project, use this order:
    the public methods on `CanvasLayout`.
 5. Trace one lifecycle end to end:
    - new window: `newTarget -> onWindowCreatedTiling`
-   - focus: `hl.plugin.scroller.move_focus -> dispatch_movefocus -> moveFocus`
-   - move window: `hl.plugin.scroller.move_window -> dispatch_movewindow -> moveWindow`
+   - focus: `hl.plugin.canvas.move_focus -> dispatch_movefocus -> moveFocus`
+   - move window: `hl.plugin.canvas.move_window -> dispatch_movewindow -> moveWindow`
 6. Only then dive into lane and stack code.
 
 That order keeps the mental model top-down. If you start at `Stack` first, the
@@ -352,6 +352,6 @@ local code will make sense, but the overall runtime picture usually will not.
 ## Hyprland 0.57 Note
 
 Hyprland 0.57 no longer registers plugin dispatchers. Keybindings must call
-Lua functions under `hl.plugin.scroller`, not the older `scroller:movefocus`
+Lua functions under `hl.plugin.canvas`, not the older `canvas:movefocus`
 dispatcher style. Plugin config values such as `plugin:hyprCanvas:focus_wrap`
-(and legacy `plugin:scroller:focus_wrap`) are still registered separately through `addConfigValueV2`.
+(and legacy `plugin:canvas:focus_wrap`) are still registered separately through `addConfigValueV2`.

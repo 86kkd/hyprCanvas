@@ -11,13 +11,13 @@
 namespace {
 
 void test_overview_projection() {
-    const ScrollerCore::Box visible(0.0, 0.0, 200.0, 100.0);
-    const std::vector<ScrollerCore::OverviewRect> items = {
+    const CanvasCore::Box visible(0.0, 0.0, 200.0, 100.0);
+    const std::vector<CanvasCore::OverviewRect> items = {
         {.x0 = 10.0, .x1 = 60.0, .y0 = 20.0, .y1 = 70.0},
         {.x0 = 60.0, .x1 = 110.0, .y0 = 10.0, .y1 = 90.0},
     };
 
-    const auto projection = ScrollerCore::compute_overview_projection(items, visible);
+    const auto projection = CanvasCore::compute_overview_projection(items, visible);
     expect_near(projection.min.x, 10.0, 1e-9, "overview projection tracks minimum x");
     expect_near(projection.min.y, 10.0, 1e-9, "overview projection tracks minimum y");
     expect_near(projection.max.x, 110.0, 1e-9, "overview projection tracks maximum x");
@@ -28,10 +28,10 @@ void test_overview_projection() {
     expect_near(projection.offset.x, 37.5, 1e-9, "overview projection centers on x");
     expect_near(projection.offset.y, 0.0, 1e-9, "overview projection centers on y");
 
-    const std::vector<ScrollerCore::OverviewRect> degenerate = {
+    const std::vector<CanvasCore::OverviewRect> degenerate = {
         {.x0 = 50.0, .x1 = 50.0, .y0 = 10.0, .y1 = 40.0},
     };
-    const auto degenerateProjection = ScrollerCore::compute_overview_projection(degenerate, visible);
+    const auto degenerateProjection = CanvasCore::compute_overview_projection(degenerate, visible);
     expect_near(degenerateProjection.scale, 1.0, 1e-9, "degenerate projection keeps scale at 1");
     expect_near(degenerateProjection.offset.x, 50.0, 1e-9, "degenerate projection preserves raw x offset");
     expect_near(degenerateProjection.offset.y, 10.0, 1e-9, "degenerate projection preserves raw y offset");
@@ -85,11 +85,11 @@ void test_overview_target_selection_across_monitors() {
 }
 
 void test_overview_target_selection_prefers_rendered_neighbor() {
-    const std::vector<ScrollerCore::Box> workspaceOneBoxes = {
+    const std::vector<CanvasCore::Box> workspaceOneBoxes = {
         {0.0, 0.0, 100.0, 80.0},
         {0.0, 120.0, 100.0, 80.0},
     };
-    const std::vector<ScrollerCore::Box> workspaceTwoBoxes = {
+    const std::vector<CanvasCore::Box> workspaceTwoBoxes = {
         {0.0, 0.0, 100.0, 80.0},
         {0.0, 120.0, 100.0, 80.0},
         {0.0, 240.0, 100.0, 80.0},

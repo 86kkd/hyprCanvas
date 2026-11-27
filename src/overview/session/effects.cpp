@@ -27,7 +27,7 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
     }
 
     PHLWORKSPACE getWorkspaceByID(WORKSPACEID workspaceId) const override {
-        return g_pCompositor ? ScrollerCore::HyprlandRuntime::workspaceById(workspaceId) : nullptr;
+        return g_pCompositor ? CanvasCore::HyprlandRuntime::workspaceById(workspaceId) : nullptr;
     }
 
     std::vector<PHLWORKSPACE> getWorkspaces() const override {
@@ -35,7 +35,7 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
         if (!g_pCompositor)
             return workspaces;
 
-        for (const auto& workspaceRef : ScrollerCore::HyprlandRuntime::workspaces()) {
+        for (const auto& workspaceRef : CanvasCore::HyprlandRuntime::workspaces()) {
             const auto workspace = workspaceRef.lock();
             if (workspace)
                 workspaces.push_back(workspace);
@@ -45,11 +45,11 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
     }
 
     PHLMONITOR getMonitorFromID(MONITORID monitorId) const override {
-        return g_pCompositor ? ScrollerCore::HyprlandRuntime::monitorById(monitorId) : nullptr;
+        return g_pCompositor ? CanvasCore::HyprlandRuntime::monitorById(monitorId) : nullptr;
     }
 
     PHLMONITOR getFocusedMonitor() const override {
-        return g_pCompositor ? ScrollerCore::HyprlandRuntime::monitorForKeyboardAction() : nullptr;
+        return g_pCompositor ? CanvasCore::HyprlandRuntime::monitorForKeyboardAction() : nullptr;
     }
 
     MONITORID monitorId(PHLMONITOR monitor) const override {
@@ -57,7 +57,7 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
     }
 
     WORKSPACEID workspaceId(PHLWORKSPACE workspace) const override {
-        return workspace ? ScrollerCore::HyprlandRuntime::workspaceId(workspace) : WORKSPACE_INVALID;
+        return workspace ? CanvasCore::HyprlandRuntime::workspaceId(workspace) : WORKSPACE_INVALID;
     }
 
     MONITORID workspaceMonitorId(PHLWORKSPACE workspace) const override {
@@ -65,7 +65,7 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
     }
 
     bool isWorkspaceSpecial(PHLWORKSPACE workspace) const override {
-        return workspace && ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace);
+        return workspace && CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspace);
     }
 
     PHLWINDOW workspaceLastFocusedWindow(PHLWORKSPACE workspace) const override {
@@ -88,7 +88,7 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
         if (!workspace || !window)
             return;
 
-        auto* layout = CanvasLayoutInternal::get_canvas_for_workspace(ScrollerCore::HyprlandRuntime::workspaceId(workspace));
+        auto* layout = CanvasLayoutInternal::get_canvas_for_workspace(CanvasCore::HyprlandRuntime::workspaceId(workspace));
         if (!layout)
             return;
 
@@ -100,7 +100,7 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
         if (!workspace)
             return;
 
-        auto* layout = CanvasLayoutInternal::get_canvas_for_workspace(ScrollerCore::HyprlandRuntime::workspaceId(workspace));
+        auto* layout = CanvasLayoutInternal::get_canvas_for_workspace(CanvasCore::HyprlandRuntime::workspaceId(workspace));
         if (!layout)
             return;
 

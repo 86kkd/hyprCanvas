@@ -58,7 +58,7 @@ Target makeEmptyTarget(int canvasId,
                        WORKSPACEID workspaceId,
                        int monitorId,
                        bool specialWorkspace,
-                       const ScrollerCore::Box& workspaceBox,
+                       const CanvasCore::Box& workspaceBox,
                        bool synthetic) {
     Target target;
     target.type = TargetType::EmptyWorkspace;

@@ -8,7 +8,7 @@
 #include <cstdint>
 
 namespace Overview::Minimap {
-Map layout(std::vector<Canvas> canvases, int current, int selected, const ScrollerCore::Box& area) {
+Map layout(std::vector<Canvas> canvases, int current, int selected, const CanvasCore::Box& area) {
     Map map;
     if (canvases.empty() || area.w < 180 || area.h < 180)
         return map;

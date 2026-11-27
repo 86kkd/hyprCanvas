@@ -25,7 +25,7 @@ Neighbor local(LocalMove move, size_t stackIndex, std::optional<size_t> windowIn
 // Lane-axis exit: an existing neighbor lane wins, then another monitor, then
 // a new lane at the canvas edge.
 Neighbor lane_neighbor(const TopologyIndex &index, const NeighborQuery &query, bool allowCreate) {
-    const bool backward = query.direction == ScrollerCore::lane_backward_direction(index.mode);
+    const bool backward = query.direction == CanvasCore::lane_backward_direction(index.mode);
     if (backward ? index.laneIndex > 0 : index.laneIndex + 1 < index.laneCount)
         return {
             .kind = NeighborKind::AdjacentLane,
@@ -44,7 +44,7 @@ Neighbor lane_neighbor(const TopologyIndex &index, const NeighborQuery &query, b
 // Lane-axis commands first walk the windows of the active stack, because the
 // stack-item axis and the lane axis are the same screen axis.
 std::optional<Neighbor> stack_window_neighbor(const TopologyIndex &index, const NeighborQuery &query) {
-    const bool backward = query.direction == ScrollerCore::stack_item_backward_direction(index.mode);
+    const bool backward = query.direction == CanvasCore::stack_item_backward_direction(index.mode);
     const bool focus = query.intent == NeighborIntent::Focus;
     if (backward ? index.windowIndex > 0 : index.windowIndex + 1 < index.windowCount)
         return local(focus ? LocalMove::Focus : LocalMove::ReorderWindow, index.stackIndex,
@@ -66,8 +66,8 @@ Neighbor local_focus_neighbor(const TopologyIndex &index, const NeighborQuery &q
         break;
     }
 
-    const bool backward = query.direction == ScrollerCore::local_item_backward_direction(index.mode);
-    if (!backward && query.direction != ScrollerCore::local_item_forward_direction(index.mode))
+    const bool backward = query.direction == CanvasCore::local_item_backward_direction(index.mode);
+    if (!backward && query.direction != CanvasCore::local_item_forward_direction(index.mode))
         return query.monitorInDirection ? cross_monitor() : no_op();
 
     if (backward ? index.stackIndex > 0 : index.stackIndex < last)
@@ -90,8 +90,8 @@ Neighbor local_move_neighbor(const TopologyIndex &index, const NeighborQuery &qu
         break;
     }
 
-    const bool backward = query.direction == ScrollerCore::local_item_backward_direction(index.mode);
-    if (!backward && query.direction != ScrollerCore::local_item_forward_direction(index.mode))
+    const bool backward = query.direction == CanvasCore::local_item_backward_direction(index.mode);
+    if (!backward && query.direction != CanvasCore::local_item_forward_direction(index.mode))
         return no_op();
 
     // A multi-window stack always splits locally, even at the lane edge;
@@ -110,7 +110,7 @@ Neighbor neighbor(const TopologyIndex &index, const NeighborQuery &query) {
         return no_op();
 
     const bool focus = query.intent == NeighborIntent::Focus;
-    if (ScrollerCore::direction_moves_between_lanes(index.mode, query.direction)) {
+    if (CanvasCore::direction_moves_between_lanes(index.mode, query.direction)) {
         if (!index.laneEmpty()) {
             if (const auto inStack = stack_window_neighbor(index, query))
                 return *inStack;
@@ -126,8 +126,8 @@ Neighbor neighbor(const TopologyIndex &index, const NeighborQuery &query) {
 }
 
 Neighbor swap_window_neighbor(const TopologyIndex &index, Direction direction) {
-    if (direction != ScrollerCore::local_item_backward_direction(index.mode) &&
-        direction != ScrollerCore::local_item_forward_direction(index.mode))
+    if (direction != CanvasCore::local_item_backward_direction(index.mode) &&
+        direction != CanvasCore::local_item_forward_direction(index.mode))
         return no_op();
     const auto target = neighbor(index, {.intent = NeighborIntent::Focus, .direction = direction});
     if (target.kind != NeighborKind::LocalTarget || target.stackIndex == index.stackIndex)

@@ -8,7 +8,7 @@
  */
 #include "layout_profile.h"
 
-namespace ScrollerCore {
+namespace CanvasCore {
 
 // A monitor is treated as landscape when width dominates height; otherwise it
 // uses portrait semantics.
@@ -114,4 +114,4 @@ Hyprutils::Math::Vector2D predict_window_size(Mode mode, const Box& bounds) {
     return {0.5 * bounds.w, bounds.h};
 }
 
-} // namespace ScrollerCore
+} // namespace CanvasCore

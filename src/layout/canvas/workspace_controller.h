@@ -54,7 +54,7 @@ class CanvasWorkspaceController {
     CanvasWorkspaceRepository* repository_ = nullptr;
 };
 
-ScrollerCore::ServiceSlot<CanvasWorkspaceController>& workspaceControllerSlot();
+CanvasCore::ServiceSlot<CanvasWorkspaceController>& workspaceControllerSlot();
 CanvasWorkspaceController& workspaceController();
 
 } // namespace CanvasLayoutState

@@ -26,19 +26,19 @@ namespace {
 // Special workspaces can be rendered on a different monitor than the fallback
 // monitor passed into relayout. Use the active window to recover the real one.
 PHLMONITOR effective_workspace_monitor(Lane* lane, PHLMONITOR monitor, PHLWORKSPACE workspace) {
-    if (!lane || !monitor || !workspace || !ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace))
+    if (!lane || !monitor || !workspace || !CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspace))
         return monitor;
 
     const auto active_window = lane->get_active_window();
     if (!active_window)
         return monitor;
 
-    const auto active_monitor = ScrollerCore::HyprlandRuntime::monitorById(active_window->monitorID());
+    const auto active_monitor = CanvasCore::HyprlandRuntime::monitorById(active_window->monitorID());
     if (!active_monitor || active_monitor == monitor)
         return monitor;
 
     spdlog::debug("recalculate_workspace_lane: overriding special workspace monitor workspace={} from_monitor={} to_monitor={} active_window={}",
-                  ScrollerCore::HyprlandRuntime::workspaceId(workspace),
+                  CanvasCore::HyprlandRuntime::workspaceId(workspace),
                   monitor->m_id,
                   active_monitor->m_id,
                   static_cast<const void*>(active_window.get()));
@@ -47,13 +47,13 @@ PHLMONITOR effective_workspace_monitor(Lane* lane, PHLMONITOR monitor, PHLWORKSP
 
 // Primary score: how close a candidate window is to the crossing edge.
 double primary_cross_monitor_score(PHLWINDOW window, PHLMONITOR monitor, Direction direction) {
-    const auto window_position = ScrollerCore::HyprlandRuntime::windowPosition(window);
-    const auto window_size = ScrollerCore::HyprlandRuntime::windowSize(window);
+    const auto window_position = CanvasCore::HyprlandRuntime::windowPosition(window);
+    const auto window_size = CanvasCore::HyprlandRuntime::windowSize(window);
     const auto window_left = window_position.x;
     const auto window_right = window_position.x + window_size.x;
     const auto window_top = window_position.y;
     const auto window_bottom = window_position.y + window_size.y;
-    const auto monitor_box = ScrollerCore::logical_monitor_box(monitor);
+    const auto monitor_box = CanvasCore::logical_monitor_box(monitor);
     const auto monitor_left = monitor_box.x;
     const auto monitor_right = monitor_box.x + monitor_box.w;
     const auto monitor_top = monitor_box.y;
@@ -102,8 +102,8 @@ void recalculate_workspace_lane(Lane* lane, PHLMONITOR monitor, PHLWORKSPACE wor
 
     monitor = effective_workspace_monitor(lane, monitor, workspace);
     lane->update_sizes(monitor);
-    if (honor_fullscreen && ScrollerCore::HyprlandRuntime::workspaceHasFullscreen(workspace) &&
-        ScrollerCore::HyprlandRuntime::workspaceFullscreenMode(workspace) == Fullscreen::FSMODE_FULLSCREEN) {
+    if (honor_fullscreen && CanvasCore::HyprlandRuntime::workspaceHasFullscreen(workspace) &&
+        CanvasCore::HyprlandRuntime::workspaceFullscreenMode(workspace) == Fullscreen::FSMODE_FULLSCREEN) {
         lane->set_fullscreen_active_window();
         return;
     }
@@ -118,11 +118,11 @@ WORKSPACEID preferred_workspace_id(PHLMONITOR monitor, WORKSPACEID) {
 
     // Special workspaces have priority because, visually, they are what the
     // user is actually seeing on that monitor when they are open.
-    const auto special_workspace_id = ScrollerCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor);
-    if (ScrollerCore::HyprlandRuntime::workspaceById(special_workspace_id))
+    const auto special_workspace_id = CanvasCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor);
+    if (CanvasCore::HyprlandRuntime::workspaceById(special_workspace_id))
         return special_workspace_id;
 
-    return ScrollerCore::HyprlandRuntime::activeWorkspaceId(monitor);
+    return CanvasCore::HyprlandRuntime::activeWorkspaceId(monitor);
 }
 
 // Resolve the monitor currently showing a workspace, including special workspaces.
@@ -130,11 +130,11 @@ PHLMONITOR visible_monitor_for_workspace(PHLWORKSPACE workspace) {
     if (!workspace)
         return nullptr;
 
-    if (!ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace))
-        return ScrollerCore::HyprlandRuntime::monitorById(workspace->monitorID());
+    if (!CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspace))
+        return CanvasCore::HyprlandRuntime::monitorById(workspace->monitorID());
 
-    for (const auto& monitor : ScrollerCore::HyprlandRuntime::monitors()) {
-        if (monitor && ScrollerCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor) == ScrollerCore::HyprlandRuntime::workspaceId(workspace))
+    for (const auto& monitor : CanvasCore::HyprlandRuntime::monitors()) {
+        if (monitor && CanvasCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor) == CanvasCore::HyprlandRuntime::workspaceId(workspace))
             return monitor;
     }
 
@@ -143,7 +143,7 @@ PHLMONITOR visible_monitor_for_workspace(PHLWORKSPACE workspace) {
 
 // Lookup the `CanvasLayout` instance bound to a workspace.
 CanvasLayout* get_canvas_for_workspace(const WORKSPACEID workspace_id) {
-    const auto workspace = ScrollerCore::HyprlandRuntime::workspaceById(workspace_id);
+    const auto workspace = CanvasCore::HyprlandRuntime::workspaceById(workspace_id);
     if (!workspace || !workspace->space())
         return nullptr;
 
@@ -183,8 +183,8 @@ PHLWINDOW pick_cross_monitor_target_window(PHLMONITOR monitor, WORKSPACEID works
     // We only consider mapped tiled windows on the destination workspace. The
     // score prefers windows nearest the crossing edge, then windows aligned with
     // the source window on the perpendicular axis.
-    for (const auto& window : ScrollerCore::HyprlandRuntime::windows()) {
-        if (!window || ScrollerCore::HyprlandRuntime::windowWorkspaceId(window) != workspace_id || window->isFloating() || !window->mapped() || window->isHidden())
+    for (const auto& window : CanvasCore::HyprlandRuntime::windows()) {
+        if (!window || CanvasCore::HyprlandRuntime::windowWorkspaceId(window) != workspace_id || window->isFloating() || !window->mapped() || window->isHidden())
             continue;
 
         const auto primary = primary_cross_monitor_score(window, monitor, direction);
@@ -201,14 +201,14 @@ PHLWINDOW pick_cross_monitor_target_window(PHLMONITOR monitor, WORKSPACEID works
 
 // Return the current action workspace id from the active monitor context.
 int get_workspace_id() {
-    const auto monitor = ScrollerCore::monitorForKeyboardAction();
+    const auto monitor = CanvasCore::monitorForKeyboardAction();
     if (!monitor)
         return -1;
 
-    const auto workspace_id = preferred_workspace_id(monitor, ScrollerCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor));
+    const auto workspace_id = preferred_workspace_id(monitor, CanvasCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor));
     if (workspace_id == WORKSPACE_INVALID)
         return -1;
-    if (ScrollerCore::HyprlandRuntime::workspaceById(workspace_id) == nullptr)
+    if (CanvasCore::HyprlandRuntime::workspaceById(workspace_id) == nullptr)
         return -1;
 
     return workspace_id;
@@ -220,14 +220,14 @@ void CanvasLayout::syncHiddenSpecialWorkspaceCanvases()
     // Hidden special workspaces still keep a backing canvas. If that canvas only
     // contains an empty ephemeral lane, refresh its visibility bookkeeping so it
     // does not retain stale "visible" state from the last monitor it was on.
-    for (const auto& workspaceRef : ScrollerCore::HyprlandRuntime::workspaces()) {
+    for (const auto& workspaceRef : CanvasCore::HyprlandRuntime::workspaces()) {
         const auto workspace = workspaceRef.lock();
-        if (!workspace || !ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace))
+        if (!workspace || !CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspace))
             continue;
         if (CanvasLayoutInternal::visible_monitor_for_workspace(workspace))
             continue;
 
-        auto* layout = CanvasLayoutInternal::get_canvas_for_workspace(ScrollerCore::HyprlandRuntime::workspaceId(workspace));
+        auto* layout = CanvasLayoutInternal::get_canvas_for_workspace(CanvasCore::HyprlandRuntime::workspaceId(workspace));
         if (!layout || !layout->activeLane || !layout->activeLane->data())
             continue;
 
@@ -257,5 +257,5 @@ void CanvasLayout::recalculateMonitor(const int &monitor_id)
         return;
 
     g_pHyprRenderer->damageMonitor(monitor);
-    relayoutCanvas(monitor, !ScrollerCore::HyprlandRuntime::isSpecialWorkspace(workspace));
+    relayoutCanvas(monitor, !CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspace));
 }
