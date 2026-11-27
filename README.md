@@ -31,15 +31,11 @@ overview.
 | **Keyboard movement** | Reorder windows, join or split stacks, exchange windows between stacks, and move between monitors. |
 | **Focus and sizing** | Choose how many stacks fit on screen, expand a stack, or jump to a named window mark. |
 
-<details>
-<summary>Earlier scrolling-layout demo</summary>
+## Showcase
 
-![Scrolling layout demonstration from hyprscroller](videos/hyprscroller.gif)
+![HyprCanvas dual-monitor showcase](videos/hyprcanvas-showcase.gif)
 
-This inherited demo illustrates the scrolling layout. It predates the current
-canvas overview and card-stack behavior.
-
-</details>
+*Landscape (`auto row`) + Portrait (`auto col`) dual-monitor demo covering scrolling lanes, overlapping card stacks, in-place stack swap & expand, cross-monitor window transfer, synchronized 2D canvas workspaces with Canvas Map, and interactive Overview. Full 1080p60 recording: [`videos/hyprcanvas-showcase.mp4`](videos/hyprcanvas-showcase.mp4).*
 
 ## Compatibility
 
