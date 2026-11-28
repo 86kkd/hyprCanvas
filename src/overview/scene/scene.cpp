@@ -26,7 +26,7 @@
 namespace Overview {
 namespace {
 
-using CanvasCore::Box;
+using KartaCore::Box;
 
 // Scene DTOs live in monitor-local compositor space. Hyprland already applies
 // the monitor transform when it renders that pass, so pre-rotating here makes
@@ -45,7 +45,7 @@ bool target_matches_selection(const Target& target, const Target* selection) {
         return false;
 
     return target.type == selection->type
-        && target.canvasId == selection->canvasId
+        && target.kartaId == selection->kartaId
         && target.workspaceId == selection->workspaceId
         && target.monitorId == selection->monitorId
         && (target.window == selection->window
@@ -62,7 +62,7 @@ std::string workspace_label(PHLWORKSPACE workspace, WORKSPACEID workspaceId) {
     if (!workspace->displayName().empty())
         return workspace->displayName();
 
-    return std::to_string(CanvasCore::HyprlandRuntime::workspaceId(workspace));
+    return std::to_string(KartaCore::HyprlandRuntime::workspaceId(workspace));
 }
 
 std::string empty_target_label(const Target& target) {
@@ -82,7 +82,7 @@ std::string window_target_label(PHLWINDOW window) {
 
 SceneTarget build_scene_target(PHLMONITOR monitor, const Target& target, const Target* selection) {
     return {
-        .canvasId = target.canvasId,
+        .kartaId = target.kartaId,
         .type = target.type,
         .box = localize_box(monitor, target.box),
         .window = target.window,
@@ -114,8 +114,8 @@ std::optional<SceneMonitor> buildSceneForMonitor(PHLMONITOR monitor, const Model
         sceneWorkspace.box = localize_box(monitor, workspace.box);
         sceneWorkspace.contentBox = sceneWorkspace.box;
 
-        const auto workspaceRef = CanvasCore::HyprlandRuntime::workspaceById(workspace.workspaceId);
-        sceneWorkspace.special = workspaceRef ? CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspaceRef) : false;
+        const auto workspaceRef = KartaCore::HyprlandRuntime::workspaceById(workspace.workspaceId);
+        sceneWorkspace.special = workspaceRef ? KartaCore::HyprlandRuntime::isSpecialWorkspace(workspaceRef) : false;
         sceneWorkspace.label = workspace_label(workspaceRef, workspace.workspaceId);
 
         sceneWorkspace.targets.reserve(workspace.targets.size());

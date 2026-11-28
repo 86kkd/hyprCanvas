@@ -122,8 +122,8 @@ struct FakeSessionEffectsRuntime final : Overview::SessionEffects::Runtime {
         return it == workspaces.end() ? nullptr : it->second.visibleMonitor;
     }
 
-    void syncCanvasTargetWindow(PHLWORKSPACE workspace, PHLWINDOW window, MONITORID monitorId) const override {
-        callLog.emplace_back("sync_canvas_target_window");
+    void syncKartaTargetWindow(PHLWORKSPACE workspace, PHLWINDOW window, MONITORID monitorId) const override {
+        callLog.emplace_back("sync_karta_target_window");
         lastFocusedWorkspaceId = workspaceId(workspace);
         lastSyncedWindow = window ? static_cast<const void*>(window.get()) : nullptr;
         lastSyncedMonitorId = monitorId;
@@ -220,15 +220,15 @@ void test_accept_window_target_runs_focus_sync_switch_chain() {
     expect_true(!runtime.lastRequireMonitorFocus,
                 "acceptTarget lets window activation finish cross-monitor handoff");
     expect_eq(runtime.lastSyncedWindow, static_cast<const void*>(window.get()),
-              "acceptTarget syncs the selected window into the canvas state");
+              "acceptTarget syncs the selected window into the karta state");
     expect_eq(runtime.lastSyncedMonitorId, static_cast<MONITORID>(2),
-              "acceptTarget recalculates the canvas on the resolved monitor");
+              "acceptTarget recalculates the karta on the resolved monitor");
     expect_eq(runtime.lastSwitchedWindow, static_cast<const void*>(window.get()),
               "acceptTarget switches to the selected window after sync");
     expect_true(runtime.lastSwitchWarpCursor,
                 "acceptTarget warps the cursor when activating the selected window");
     expect_call_sequence(runtime.callLog,
-                         {"focus_monitor_workspace", "sync_canvas_target_window", "switch_to_window"},
+                         {"focus_monitor_workspace", "sync_karta_target_window", "switch_to_window"},
                          "acceptTarget preserves the focus/sync/switch call order");
     (void)windowMonitor;
 }
@@ -252,7 +252,7 @@ void test_accept_window_target_stops_after_focus_failure() {
                 "acceptTarget fails when workspace focus does not resolve");
     expect_call_sequence(runtime.callLog,
                          {"focus_monitor_workspace"},
-                         "acceptTarget stops before canvas sync when workspace focus fails");
+                         "acceptTarget stops before karta sync when workspace focus fails");
 }
 
 void test_accept_empty_workspace_target_only_focuses_workspace() {
@@ -308,7 +308,7 @@ void test_restore_origin_prefers_original_window_when_still_mapped() {
     expect_true(!runtime.lastSwitchWarpCursor,
                 "restoreOrigin does not warp the cursor when restoring origin");
     expect_call_sequence(runtime.callLog,
-                         {"focus_monitor_workspace", "sync_canvas_target_window", "switch_to_window"},
+                         {"focus_monitor_workspace", "sync_karta_target_window", "switch_to_window"},
                          "restoreOrigin uses the same focus/sync/switch chain for mapped windows");
     (void)fallbackMonitor;
     (void)windowMonitor;

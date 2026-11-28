@@ -6,7 +6,7 @@
 
 namespace Render { class ITexture; }
 
-namespace CanvasModel {
+namespace KartaModel {
 
 enum class DeckLabelEdge { None, Top, Bottom, Left, Right };
 
@@ -22,7 +22,7 @@ public:
     eDecorationType getDecorationType() override { return DECORATION_CUSTOM; }
     eDecorationLayer getDecorationLayer() override { return DECORATION_LAYER_OVER; }
     uint64_t getDecorationFlags() override { return DECORATION_NON_SOLID; }
-    std::string getDisplayName() override { return "Canvas stack label"; }
+    std::string getDisplayName() override { return "Karta stack label"; }
     void updateWindow(PHLWINDOW) override;
     void damageEntire() override;
 private:
@@ -35,4 +35,4 @@ private:
     SP<Render::ITexture> texture;
 };
 
-} // namespace CanvasModel
+} // namespace KartaModel

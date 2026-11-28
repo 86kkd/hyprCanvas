@@ -1,4 +1,4 @@
-# Load with: source /path/to/hyprcanvas/scripts/completions/hsctl.fish
+# Load with: source /path/to/karta/scripts/completions/hsctl.fish
 # Or copy to ~/.config/fish/completions/hsctl.fish for automatic loading.
 
 # Return only positional tokens, skipping the global instance option and value.
@@ -68,10 +68,10 @@ complete -c hsctl -n __hsctl_option_scope -s h -l help -d 'Show help'
 
 for entry in \
     'focus:Move window focus' 'move:Move window' 'swap:Swap adjacent windows' \
-    'move-workspace:Move window to adjacent canvas and follow' \
+    'move-workspace:Move window to adjacent karta and follow' \
     'move-monitor:Move window to adjacent monitor and follow' \
-    'monitor:Focus monitor or overview canvas' 'focusmonitor:Alias for monitor' \
-    'workspace:Switch canvas workspace' 'canvas:Alias for workspace' \
+    'monitor:Focus monitor or overview karta' 'focusmonitor:Alias for monitor' \
+    'workspace:Switch karta workspace' 'karta:Alias for workspace' \
     'marks:Manage window marks' 'mark:Alias for marks' \
     'size:Set visible stack count' 'mode:Set layout orientation' \
     'fullscreen:Expand or restore stack' 'overview:Toggle overview' 'ov:Alias for overview' \
@@ -85,9 +85,9 @@ for entry in \
     complete -c hsctl -n __hsctl_at_command -a $parts[1] -d $parts[2]
 end
 
-complete -c hsctl -n '__hsctl_argument focus move move-monitor move-workspace swap monitor focusmonitor workspace canvas' -a 'l r u d left right up down dn'
+complete -c hsctl -n '__hsctl_argument focus move move-monitor move-workspace swap monitor focusmonitor workspace karta' -a 'l r u d left right up down dn'
 complete -c hsctl -n '__hsctl_argument focus move' -a 'begin b beginning end e'
-complete -c hsctl -n '__hsctl_argument workspace canvas' -a '1 2 3 4 5 6 7 8 9 10'
+complete -c hsctl -n '__hsctl_argument workspace karta' -a '1 2 3 4 5 6 7 8 9 10'
 complete -c hsctl -n '__hsctl_argument size' -a '1 2 3 4 5 6 7 8'
 complete -c hsctl -n '__hsctl_argument mode' -a 'row col'
 complete -c hsctl -n '__hsctl_argument overview ov' -a 'accept cancel confirm enter abort close'

@@ -7,7 +7,7 @@
 #include <lua.hpp>
 
 #include "core/core.h"
-#include "layout/canvas/workspace_controller.h"
+#include "layout/karta/workspace_controller.h"
 #include "model/stack/width.h"
 
 namespace dispatchers::detail {
@@ -16,7 +16,7 @@ namespace {
 // setwindowsize <n>: size the active stack so `n` stacks share the monitor
 // workarea along the lane axis.
 void dispatch_setwindowsize(std::string arg) {
-    const auto count = CanvasModel::parse_visible_stack_count(firstDispatchArg(arg));
+    const auto count = KartaModel::parse_visible_stack_count(firstDispatchArg(arg));
     if (!count)
         return;
 
@@ -24,10 +24,10 @@ void dispatch_setwindowsize(std::string arg) {
         action.layout->setWindowSize(action.workspace, *count);
 }
 
-// movefocus <dir>: move focus inside canvas layout, with optional monitor
+// movefocus <dir>: move focus inside karta layout, with optional monitor
 // fallback when the active lane cannot move in requested direction.
 // This is the top of the focus path:
-// keybind -> dispatcher parse -> active canvas -> `CanvasLayout::moveFocus`.
+// keybind -> dispatcher parse -> active karta -> `KartaLayout::moveFocus`.
 void dispatch_movefocus(std::string arg) {
     const auto direction = parsedDirectionArg(arg);
     if (!direction) {
@@ -50,11 +50,11 @@ void dispatch_movefocus(std::string arg) {
     }
 
     spdlog::warn("dispatch_movefocus: no layout for arg='{}', fallback builtin", arg);
-    CanvasLayoutInternal::dispatch_builtin_movefocus(*direction);
+    KartaLayoutInternal::dispatch_builtin_movefocus(*direction);
 }
 
 // focusmonitor <dir>: move monitor focus in normal mode, or move between
-// canvas-workspace tiles in overview mode.
+// karta-workspace tiles in overview mode.
 void dispatch_focusmonitor(std::string arg) {
     const auto direction = parsedDirectionArg(arg);
     if (!direction) {
@@ -64,36 +64,36 @@ void dispatch_focusmonitor(std::string arg) {
 
     if (Overview::session().active()) {
         spdlog::info("dispatch_focusmonitor: overview arg='{}'", arg);
-        overviewSessionForDispatch().moveCanvasSelection(*direction);
+        overviewSessionForDispatch().moveKartaSelection(*direction);
         return;
     }
 
-    const auto sourceMonitor = CanvasCore::monitorForKeyboardAction();
-    const auto monitorDirection = CanvasLayoutInternal::direction_to_math(*direction);
+    const auto sourceMonitor = KartaCore::monitorForKeyboardAction();
+    const auto monitorDirection = KartaLayoutInternal::direction_to_math(*direction);
     if (!g_pCompositor || !sourceMonitor || !monitorDirection) {
         spdlog::warn("dispatch_focusmonitor: no route direction={} source_monitor={}",
-                     CanvasCore::direction_name(*direction),
+                     KartaCore::direction_name(*direction),
                      sourceMonitor ? sourceMonitor->m_id : MONITOR_INVALID);
         return;
     }
 
-    const auto targetMonitor = CanvasCore::HyprlandRuntime::monitorInDirection(sourceMonitor, *monitorDirection);
+    const auto targetMonitor = KartaCore::HyprlandRuntime::monitorInDirection(sourceMonitor, *monitorDirection);
     if (!targetMonitor) {
         spdlog::info("dispatch_focusmonitor: no adjacent monitor direction={} source_monitor={}",
-                     CanvasCore::direction_name(*direction),
+                     KartaCore::direction_name(*direction),
                      sourceMonitor->m_id);
         return;
     }
 
-    const auto targetWorkspaceId = CanvasLayoutInternal::preferred_workspace_id(targetMonitor, CanvasCore::HyprlandRuntime::activeWorkspaceId(targetMonitor));
-    const auto targetWorkspace = CanvasCore::HyprlandRuntime::workspaceById(targetWorkspaceId);
-    if (!CanvasLayoutInternal::focus_monitor_workspace(targetMonitor,
+    const auto targetWorkspaceId = KartaLayoutInternal::preferred_workspace_id(targetMonitor, KartaCore::HyprlandRuntime::activeWorkspaceId(targetMonitor));
+    const auto targetWorkspace = KartaCore::HyprlandRuntime::workspaceById(targetWorkspaceId);
+    if (!KartaLayoutInternal::focus_monitor_workspace(targetMonitor,
                                                        targetWorkspace,
                                                        targetWorkspaceId,
                                                        true,
                                                        "dispatch_focusmonitor")) {
         spdlog::warn("dispatch_focusmonitor: failed direction={} target_monitor={} workspace={}",
-                     CanvasCore::direction_name(*direction),
+                     KartaCore::direction_name(*direction),
                      targetMonitor->m_id,
                      targetWorkspaceId);
     }
@@ -101,7 +101,7 @@ void dispatch_focusmonitor(std::string arg) {
 
 // movewindow <dir>: reorder active window inside lane/stack.
 // This is the top of the window-move path:
-// keybind -> dispatcher parse -> active canvas -> `CanvasLayout::moveWindow`.
+// keybind -> dispatcher parse -> active karta -> `KartaLayout::moveWindow`.
 void dispatch_movewindow(std::string arg) {
     const auto direction = parsedDirectionArg(arg);
     if (!direction) {
@@ -126,7 +126,7 @@ void dispatch_setmode(std::string arg) {
     });
 }
 
-// togglefullscreen: expand the active canvas window to the monitor bounds.
+// togglefullscreen: expand the active karta window to the monitor bounds.
 void dispatch_togglefullscreen(std::string arg) {
     (void)arg;
     if (const auto action = workspaceLayoutForAction())
@@ -161,7 +161,7 @@ int lua_focus_monitor(lua_State* state) {
     return 0;
 }
 
-// Switch canvases directly via `CanvasWorkspaceController` in desktop mode, or
+// Switch kartas directly via `KartaWorkspaceController` in desktop mode, or
 // update the preview selection when Overview is already open.
 int lua_switch_workspace(lua_State* state) {
     const auto argument = luaStringArg(state);
@@ -177,11 +177,11 @@ int lua_switch_workspace(lua_State* state) {
     auto& overview = Overview::session();
     if (overview.active()) {
         overview.markInputHandled();
-        (void)(direction ? overview.moveCanvasSelection(*direction) : overview.selectCanvasNumber(number));
+        (void)(direction ? overview.moveKartaSelection(*direction) : overview.selectKartaNumber(number));
         return 0;
     }
 
-    auto& controller = CanvasLayoutState::workspaceController();
+    auto& controller = KartaLayoutState::workspaceController();
     (void)(direction ? controller.switchByDirection(*direction) : controller.switchByNumber(number));
     return 0;
 }
@@ -195,7 +195,7 @@ int lua_move_window_to_monitor(lua_State* state) {
     if (Overview::session().active())
         return 0;
     const auto direction = parsedDirectionArg(luaStringArg(state));
-    if (!direction || !CanvasLayoutInternal::direction_to_math(*direction))
+    if (!direction || !KartaLayoutInternal::direction_to_math(*direction))
         return 0;
     if (const auto action = workspaceLayoutForAction())
         action.layout->moveWindowToMonitor(action.workspace, *direction);
@@ -207,7 +207,7 @@ int lua_move_window_to_workspace(lua_State* state) {
         return 0;
     const auto direction = parsedDirectionArg(luaStringArg(state));
     if (direction)
-        (void)CanvasLayoutState::workspaceController().moveFocusedWindowToCanvas(*direction);
+        (void)KartaLayoutState::workspaceController().moveFocusedWindowToKarta(*direction);
     return 0;
 }
 
@@ -233,8 +233,8 @@ int lua_toggle_fullscreen(lua_State* state) {
 }
 
 void registerLuaFunction(const char* name, PLUGIN_LUA_FN function) {
-    if (!HyprlandAPI::addLuaFunction(PHANDLE, "canvas", name, function))
-        spdlog::warn("failed to register Lua function hl.plugin.canvas.{}", name);
+    if (!HyprlandAPI::addLuaFunction(PHANDLE, "karta", name, function))
+        spdlog::warn("failed to register Lua function hl.plugin.karta.{}", name);
 }
 
 } // namespace

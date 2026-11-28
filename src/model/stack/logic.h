@@ -9,7 +9,7 @@
 #include "core/linked_list.h"
 #include "core/types.h"
 
-namespace CanvasModel::StackLogic {
+namespace KartaModel::StackLogic {
 
 // Visible shares along the stack axis: primary 61.8%, secondary 19.1%,
 // all remaining strips 19.1%, shared equally regardless of window count.
@@ -28,8 +28,8 @@ inline double deck_peek(size_t count, double localSpan, bool fullsize = false) {
 // A single rectangular hit area for the exposed top/bottom (or left/right)
 // strip. Side slivers are deliberately not extra focus targets. Painter order
 // is back to front; use rendered boxes, not animation goals.
-inline CanvasCore::Box deck_hit_box(std::span<const CanvasCore::Box> boxes, size_t index,
-                                      bool beforeActive, Mode mode, const CanvasCore::Box& viewport) {
+inline KartaCore::Box deck_hit_box(std::span<const KartaCore::Box> boxes, size_t index,
+                                      bool beforeActive, Mode mode, const KartaCore::Box& viewport) {
     if (index >= boxes.size())
         return {};
     auto box = boxes[index];
@@ -136,4 +136,4 @@ ListNode<T> *next_active_after_removal(ListNode<T> *active, ListNode<T> *last) {
     return active != last ? active->next() : active->prev();
 }
 
-} // namespace CanvasModel::StackLogic
+} // namespace KartaModel::StackLogic

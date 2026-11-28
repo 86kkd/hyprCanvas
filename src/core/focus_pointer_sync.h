@@ -2,7 +2,7 @@
 
 #include <hyprland/src/desktop/DesktopTypes.hpp>
 
-namespace CanvasCore::FocusPointerSync {
+namespace KartaCore::FocusPointerSync {
 enum class Policy { Preserve, Navigation, NewWindow };
 void initialize();
 void shutdown();

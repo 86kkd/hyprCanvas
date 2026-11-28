@@ -11,11 +11,11 @@
 
 namespace Overview {
 
-// One window can occur in multiple legacy canvas combinations. Its previews
-// must never share animation coordinates across canvas tiles or monitors.
+// One window can occur in multiple legacy karta combinations. Its previews
+// must never share animation coordinates across karta tiles or monitors.
 using PreviewKey = std::tuple<int, int, std::uintptr_t>;
-inline PreviewKey previewKey(int canvasId, int monitorId, std::uintptr_t window) {
-    return {canvasId, monitorId, window};
+inline PreviewKey previewKey(int kartaId, int monitorId, std::uintptr_t window) {
+    return {kartaId, monitorId, window};
 }
 
 using steady_tp = std::chrono::steady_clock::time_point;

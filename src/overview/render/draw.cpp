@@ -38,7 +38,7 @@
 namespace Overview {
 namespace {
 
-using CanvasCore::Box;
+using KartaCore::Box;
 using Render::GL::CHyprOpenGLImpl;
 using Render::GL::g_pHyprOpenGL;
 
@@ -141,7 +141,7 @@ Box scaled_target_box(const Box& box, double overlayAlpha) {
 }
 
 Box animated_window_draw_box(const RenderState& state, int monitorId, const SceneTarget& target, double overlayAlpha) {
-    return scaled_target_box(state.animatedPreviewBox(target.canvasId, monitorId, target.window, target.box), overlayAlpha);
+    return scaled_target_box(state.animatedPreviewBox(target.kartaId, monitorId, target.window, target.box), overlayAlpha);
 }
 
 // Snapshot previews try to mimic the live window's rounded-corner style after
@@ -450,7 +450,7 @@ void drawSceneMonitor(Render::CRenderContext& ctx, const SceneMonitor& scene, st
 
 // Both the transient desktop HUD and persistent overview map use these same
 // boxes and styles. Hit-testing consumes the unmodified logical boxes.
-void drawCanvasMap(Render::CRenderContext& ctx, const Minimap::Map& map, double alpha, double scale, RenderState& state) {
+void drawKartaMap(Render::CRenderContext& ctx, const Minimap::Map& map, double alpha, double scale, RenderState& state) {
     if (map.cells.empty() || alpha <= 0)
         return;
     // OpenGL consumes monitor pixel coordinates, while map geometry and input
@@ -469,12 +469,12 @@ void drawCanvasMap(Render::CRenderContext& ctx, const Minimap::Map& map, double 
     const auto& bounds = map.panel;
     const float a = static_cast<float>(alpha);
     rect(ctx, bounds, bounds, Style::titleBackdrop(0.96F * a), 12);
-    text(ctx, state, "CANVAS MAP", {bounds.x + 12, bounds.y + 7, bounds.w - 24, 18}, bounds, Style::titleText(a), 14, 600);
+    text(ctx, state, "KARTA MAP", {bounds.x + 12, bounds.y + 7, bounds.w - 24, 18}, bounds, Style::titleText(a), 14, 600);
     for (const auto& cell : map.cells) {
         const auto& b = cell.box;
-        if (cell.create || cell.canvas.synthetic || cell.canvas.temporary) {
+        if (cell.create || cell.karta.synthetic || cell.karta.temporary) {
             // Dashed edges distinguish temporary/possible destinations from
-            // retained canvases even without color perception.
+            // retained kartas even without color perception.
             for (double x = b.x; x < b.x + b.w; x += 8) {
                 const double w = std::min(4.0, b.x + b.w - x);
                 rect(ctx, {x, b.y, w, 1}, bounds, Style::previewBorder(false, a), 0);
@@ -494,7 +494,7 @@ void drawCanvasMap(Render::CRenderContext& ctx, const Minimap::Map& map, double 
         }
         if (cell.selected)
             outline(ctx, b, bounds, Style::selectionOutline(a), 5);
-        const auto label = cell.create ? "+" : std::to_string(cell.number) + (cell.canvas.synthetic || cell.canvas.temporary ? "*" : "");
+        const auto label = cell.create ? "+" : std::to_string(cell.number) + (cell.karta.synthetic || cell.karta.temporary ? "*" : "");
         text(ctx, state, label, {b.x + 8, b.y + 9, b.w - 14, b.h - 15}, bounds, Style::titleText(a), 14, 600);
     }
     std::string footer = "";
@@ -502,7 +502,7 @@ void drawCanvasMap(Render::CRenderContext& ctx, const Minimap::Map& map, double 
         if (cell.current) footer = "Now " + std::to_string(cell.number);
     for (const auto& cell : map.cells)
         if (cell.selected && !cell.current) footer += " / View " + std::to_string(cell.number);
-    if (footer.empty()) footer = "Canvas map";
+    if (footer.empty()) footer = "Karta map";
     if (map.left) footer += " <";
     if (map.up) footer += " ^";
     if (map.down) footer += " v";

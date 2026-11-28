@@ -54,14 +54,14 @@ CRegion OverviewPassElement::opaqueRegion(Render::CRenderContext&) {
     return {};
 }
 
-std::optional<CBox> CanvasMapPassElement::boundingBox(Render::CRenderContext&) {
+std::optional<CBox> KartaMapPassElement::boundingBox(Render::CRenderContext&) {
     return monitor_ ? std::optional<CBox>{CBox{{}, monitor_->m_transformedSize}} : std::nullopt;
 }
 
-std::vector<UP<IPassElement>> CanvasMapPassElement::draw(Render::CRenderContext& ctx) {
+std::vector<UP<IPassElement>> KartaMapPassElement::draw(Render::CRenderContext& ctx) {
     const auto now = std::chrono::steady_clock::now();
     if (Minimap::visible(monitor_, now))
-        drawCanvasMap(ctx, Minimap::mapForMonitor(monitor_), Minimap::alpha(now), monitor_->m_scale, renderState());
+        drawKartaMap(ctx, Minimap::mapForMonitor(monitor_), Minimap::alpha(now), monitor_->m_scale, renderState());
     return {};
 }
 

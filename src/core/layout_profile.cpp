@@ -3,12 +3,12 @@
  * @brief Centralized policy table for row/column layout behavior.
  *
  * The code in this file deliberately stays small and declarative. It answers
- * "which strategy should be used?" questions, while lane/stack/canvas code is
+ * "which strategy should be used?" questions, while lane/stack/karta code is
  * responsible for actually mutating geometry.
  */
 #include "layout_profile.h"
 
-namespace CanvasCore {
+namespace KartaCore {
 
 // A monitor is treated as landscape when width dominates height; otherwise it
 // uses portrait semantics.
@@ -114,4 +114,4 @@ Hyprutils::Math::Vector2D predict_window_size(Mode mode, const Box& bounds) {
     return {0.5 * bounds.w, bounds.h};
 }
 
-} // namespace CanvasCore
+} // namespace KartaCore

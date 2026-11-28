@@ -1,18 +1,18 @@
 # 快捷键需求与现实约束
 
-本文整理用户已确认的快捷键需求、实际指法及当前方案，供后续调整配置时参考。当前映射以 `examples/canvas-layout.lua` 为依据；文档不代表对正在重构的插件重新完成了运行验证。
+本文整理用户已确认的快捷键需求、实际指法及当前方案，供后续调整配置时参考。当前映射以 `examples/karta-layout.lua` 为依据；文档不代表对正在重构的插件重新完成了运行验证。
 
 ## 1. 目标与键位分区
 
 使用 F75／75% 键盘，主要通过左手修饰键和右手方向键操作桌面。
 
-- **H/J/K/L 表示当前可见 canvas 内的操作**：单体窗口移动焦点、搬动窗口、交换窗口，以及叠加 `Ctrl` 后的显示器焦点与跨屏搬窗口。
-- **N/M/,/. 专用于 canvas workspace 空间操作**：四方向切换二维 canvas workspace，以及携带窗口跨 canvas 移动。
+- **H/J/K/L 表示当前可见 karta 内的操作**：单体窗口移动焦点、搬动窗口、交换窗口，以及叠加 `Ctrl` 后的显示器焦点与跨屏搬窗口。
+- **N/M/,/. 专用于 karta workspace 空间操作**：四方向切换二维 karta workspace，以及携带窗口跨 karta 移动。
 - 两排方向一致，保持左／下／上／右的顺序。
 - workspace 是二维空间，需要四方向导航，不能简化为上一页／下一页。
 - “整体”指操作的目标空间，不表示把整个 workspace 搬到另一个显示器。
 
-| 方向 | 当前 canvas（窗口／显示器） | Canvas Workspace 空间 |
+| 方向 | 当前 karta（窗口／显示器） | Karta Workspace 空间 |
 | --- | --- | --- |
 | 左 | H | N |
 | 下 | J | M |
@@ -50,19 +50,19 @@
 本方案围绕四条原则收敛出最终映射，避免“只看单个组合好按，整体语义却互相冲突”：
 
 1. **命名空间隔离（全员带 `Win`）**
-   - 所有 canvas 方向操作统一收进 `Win` 命名空间，明确区分“桌面控制（带 `Win`）”与“应用内快捷键（不带 `Win`）”。
+   - 所有 karta 方向操作统一收进 `Win` 命名空间，明确区分“桌面控制（带 `Win`）”与“应用内快捷键（不带 `Win`）”。
    - 因此放弃原先占用 `Ctrl + Shift + H/J/K/L` 的 `swap_window`（会覆盖终端、浏览器与编辑器里的常用快捷键），改为 `Win + Shift + H/J/K/L`，并把 `Ctrl + Shift + H/J/K/L` 完整归还给应用。
 2. **修饰键正交代数（一修饰键一语义）**
-   - **`Win`**：第一层导航（`H/J/K/L` 为窗口焦点，`N/M/,/.` 为切换 canvas workspace）。
-   - **`+ Alt`**：永远表示在对应导航组合上**携带窗口搬运**（`Win` → `Win + Alt`、`Ctrl + Win` → `Ctrl + Win + Alt`），窗口、显示器与 canvas 三层保持同一套肌肉和心智模型。
-   - **`+ Ctrl`**：专用于上排 `H/J/K/L` 从**窗口粒度升级到物理显示器粒度**（`Ctrl + Win` 切显示器焦点，`Ctrl + Win + Alt` 直接跨屏搬窗），右手停留在主键基准行即可完成当前 canvas 内的全部操作，不再需要探到下排按三键。
+   - **`Win`**：第一层导航（`H/J/K/L` 为窗口焦点，`N/M/,/.` 为切换 karta workspace）。
+   - **`+ Alt`**：永远表示在对应导航组合上**携带窗口搬运**（`Win` → `Win + Alt`、`Ctrl + Win` → `Ctrl + Win + Alt`），窗口、显示器与 karta 三层保持同一套肌肉和心智模型。
+   - **`+ Ctrl`**：专用于上排 `H/J/K/L` 从**窗口粒度升级到物理显示器粒度**（`Ctrl + Win` 切显示器焦点，`Ctrl + Win + Alt` 直接跨屏搬窗），右手停留在主键基准行即可完成当前 karta 内的全部操作，不再需要探到下排按三键。
    - **`Win + Shift`**：专用于上排 `H/J/K/L` 的**原地交换（`swap_window`）**，与导航/搬运逻辑解耦。
 3. **连续动作优先（零换指主链路）**
    - 最高频的“导航 → 搬运 → 回到导航”全部落在 `Win` ↔ `Win + Alt` 上：小指始终锚定 `Win`，无名指按放 `Alt` 即可切换，无需换指。
    - `Win + Shift`（小指抬高按 `Shift`、无名指放低按 `Win`）作为独立起手舒适，但换指成本高于追加 `Alt`，因此只分配给频率低于搬动的 `swap_window`。
-4. **两排空间边界与优先级（当前 canvas 归上排，跨 canvas 归下排）**
-   - 7 组方向动作包含 3 对“导航 + 搬运”（单窗、显示器、canvas workspace）与 1 组交换。
-   - 将窗口与显示器统一放在上排 `H/J/K/L`（`Win` 管窗口，`Ctrl + Win` 升级管显示器），让下排 `N/M/,/.` 专职二维 canvas workspace 且只使用最顺手的 `Win` / `Win + Alt`，避免在下排伸手按 `Ctrl + Win + Alt`。
+4. **两排空间边界与优先级（当前 karta 归上排，跨 karta 归下排）**
+   - 7 组方向动作包含 3 对“导航 + 搬运”（单窗、显示器、karta workspace）与 1 组交换。
+   - 将窗口与显示器统一放在上排 `H/J/K/L`（`Win` 管窗口，`Ctrl + Win` 升级管显示器），让下排 `N/M/,/.` 专职二维 karta workspace 且只使用最顺手的 `Win` / `Win + Alt`，避免在下排伸手按 `Ctrl + Win + Alt`。
    - 由于 `move_focus` 与 `move_window` 在布局边界本身即可跨屏，三键 `Ctrl + Win + Alt + H/J/K/L` 仅用于低频直达跨屏搬窗，实际触发频率低。
 
 ### 仍存在的折中
@@ -87,7 +87,7 @@
 | Overview 打开／确认退出 | Win + I | `toggle_overview` |
 | 展开／恢复 stack | Win + F | `toggle_fullscreen` |
 
-在 canvas 中，`Ctrl + Shift + H/J/K/L`、`Ctrl + Win + N/M/,/.`、`Ctrl + Win + Alt + N/M/,/.` 以及 `Win + Shift + N/M/,/.` 均已解绑。
+在 karta 中，`Ctrl + Shift + H/J/K/L`、`Ctrl + Win + N/M/,/.`、`Ctrl + Win + Alt + N/M/,/.` 以及 `Win + Shift + N/M/,/.` 均已解绑。
 
 ## 4. 已确定、不再占用方向组合的功能
 
@@ -103,9 +103,9 @@
 
 - `move_window` 依据本地布局拓扑搬动，可能涉及重排、合并、拆分或到达边界后的跨屏行为。
 - `move_window_to_monitor` 直接搬到相邻物理显示器，焦点跟随窗口。
-- `move_window_to_workspace` 搬到相邻 canvas 中同一物理显示器对应的工作区，并跟随切换整个 canvas。
+- `move_window_to_workspace` 搬到相邻 karta 中同一物理显示器对应的工作区，并跟随切换整个 karta。
 
-canvas workspace 包含多个显示器各自的原生 workspace。切换 canvas 应保持这组成员关系，不能简单用原生 workspace 编号加减代替。
+karta workspace 包含多个显示器各自的原生 workspace。切换 karta 应保持这组成员关系，不能简单用原生 workspace 编号加减代替。
 
 ### 焦点验收要求
 
@@ -113,30 +113,30 @@ canvas workspace 包含多个显示器各自的原生 workspace。切换 canvas 
 - 除最终 activewindow 外，还要检查移动过程中的瞬时焦点事件，避免“先异常刷新，再恢复”的问题被最终状态掩盖。
 - 搬走窗口后，源 workspace 应记住合理的剩余窗口；切回来恢复该选择，而不是无条件选择第一个窗口。
 - 其他显示器的焦点记忆不能被改写。
-- 必须覆盖源页最后一个窗口、空目标、新建 canvas、快速往返、鼠标跟随和 `no_warps` 场景。
+- 必须覆盖源页最后一个窗口、空目标、新建 karta、快速往返、鼠标跟随和 `no_warps` 场景。
 - 延迟鼠标同步不能把焦点或指针拉回已离开的窗口。
 - 跨 workspace 接口当前针对平铺窗口；浮动窗口、特殊 workspace、overview 中调用和非法方向应保持无操作。
 
 ## 6. 与现有桌面配置共存的约束
 
-本方案只接管 canvas 模式的相关按键。用户所谓“默认快捷键”包括本机发行配置和用户自定义，并不全是 Hyprland 内置默认。
+本方案只接管 karta 模式的相关按键。用户所谓“默认快捷键”包括本机发行配置和用户自定义，并不全是 Hyprland 内置默认。
 
-- 进入 canvas 时，先移除同组合的原有绑定，再安装插件动作，避免一键触发多个动作。
+- 进入 karta 时，先移除同组合的原有绑定，再安装插件动作，避免一键触发多个动作。
 - 切回 master/dwindle 时，恢复原有用途，移除插件专用组合，不能留下吞键的空回调。
 - 同步维护 `ChangeLayout.sh`：初始化、切换布局以及重复刷新都不能叠加绑定。
 - 保留 Win + Y 布局切换等无关功能。
-- 原桌面预设的 Win + Shift + N（通知面板）、Win + Shift + M（音乐入口）和 Win + Shift + K（快捷键搜索）用户不使用：canvas 中释放 Win + Shift + K 给 `swap_window`（切回 master/dwindle 时恢复），并解绑未使用的 Win + Shift + N/M/,/.。
-- canvas 中解绑 Ctrl + Shift + H/J/K/L，使其完整归还给应用程序；切回 master/dwindle 时恢复原有的 Ctrl + Shift + H/L 跨工作区移动。
-- canvas 中不应启用绕过 canvas 成员关系的原生编号窗口转移或整工作区跨显示器移动。
-- Tab、数字和滚轮等已有 canvas 导航入口可以保留；这次分区不是要求删除所有其他导航方式。
+- 原桌面预设的 Win + Shift + N（通知面板）、Win + Shift + M（音乐入口）和 Win + Shift + K（快捷键搜索）用户不使用：karta 中释放 Win + Shift + K 给 `swap_window`（切回 master/dwindle 时恢复），并解绑未使用的 Win + Shift + N/M/,/.。
+- karta 中解绑 Ctrl + Shift + H/J/K/L，使其完整归还给应用程序；切回 master/dwindle 时恢复原有的 Ctrl + Shift + H/L 跨工作区移动。
+- karta 中不应启用绕过 karta 成员关系的原生编号窗口转移或整工作区跨显示器移动。
+- Tab、数字和滚轮等已有 karta 导航入口可以保留；这次分区不是要求删除所有其他导航方式。
 
 ## 7. 文件与版本管理
 
-- 项目示例：`examples/canvas-layout.lua`。
-- 本机生效配置：`~/.config/hypr/lua/canvas-layout.lua`。
+- 项目示例：`examples/karta-layout.lua`。
+- 本机生效配置：`~/.config/hypr/lua/karta-layout.lua`。
 - 本机加载入口：`~/.config/hypr/hyprland.lua`。
 - 布局切换脚本：`~/.config/hypr/scripts/ChangeLayout.sh`；项目参考版本在 `examples/ChangeLayout.sh`。
-- 模块已从 `canvas-workspaces.lua` 改名为 `canvas-layout.lua`，后续引用统一使用新名称。
+- 模块已从 `karta-workspaces.lua` 改名为 `karta-layout.lua`，后续引用统一使用新名称。
 - 本机配置由 `~/.config/hypr/.git` 管理；项目源码、示例、文档与测试由项目自身的 Git 仓库管理，不能把两个仓库混为一谈。
 - 用户要求直接用 Git 管理修改，不额外生成备份文件。
 - 项目提交遵循 `docs/commit-convention.md`；不能混入其他正在进行的改动。
@@ -144,9 +144,9 @@ canvas workspace 包含多个显示器各自的原生 workspace。切换 canvas 
 ## 8. 修改后的最小验证范围
 
 1. Lua 语法检查和现有快捷键测试。
-2. 模拟 canvas → master/dwindle → canvas，检查恢复行为与重复加载。
+2. 模拟 karta → master/dwindle → karta，检查恢复行为与重复加载。
 3. 查询实际会话绑定：目标组合各一份，旧组合已移除，无配置错误。
 4. 若新增插件接口，先确认已加载的二进制支持它，再安装调用该接口的绑定。
 5. 涉及窗口转移或焦点逻辑时，运行基础测试和独立 Hyprland 集成回归；仅文档修改不需要重跑图形测试。
 
-已有验证入口包括 `tests/canvas_keybinds_tests.lua`、`scripts/repro-canvas-window-transfer.py` 和 `docs/hyprland-testing.md`。
+已有验证入口包括 `tests/karta_keybinds_tests.lua`、`scripts/repro-karta-window-transfer.py` 和 `docs/hyprland-testing.md`。

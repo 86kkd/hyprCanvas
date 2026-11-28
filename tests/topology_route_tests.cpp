@@ -1,18 +1,18 @@
 #include <optional>
 
-#include "layout/canvas/topology_route.h"
+#include "layout/karta/topology_route.h"
 
 #include "test_suite.h"
 #include "test_support.h"
 
 namespace {
 
-using CanvasLayoutInternal::LocalMove;
-using CanvasLayoutInternal::Neighbor;
-using CanvasLayoutInternal::NeighborIntent;
-using CanvasLayoutInternal::NeighborKind;
-using CanvasLayoutInternal::NeighborQuery;
-using CanvasLayoutInternal::TopologyIndex;
+using KartaLayoutInternal::LocalMove;
+using KartaLayoutInternal::Neighbor;
+using KartaLayoutInternal::NeighborIntent;
+using KartaLayoutInternal::NeighborKind;
+using KartaLayoutInternal::NeighborQuery;
+using KartaLayoutInternal::TopologyIndex;
 
 // Row mode: stacks run left/right, windows and lanes run up/down.
 TopologyIndex row_index(size_t laneIndex, size_t laneCount, size_t stackIndex, size_t stackCount,
@@ -33,7 +33,7 @@ TopologyIndex empty_lane(size_t laneIndex, size_t laneCount) {
 }
 
 Neighbor focus(const TopologyIndex &index, Direction direction, bool monitor = false, bool wrap = false) {
-    return CanvasLayoutInternal::neighbor(index, {
+    return KartaLayoutInternal::neighbor(index, {
         .intent = NeighborIntent::Focus,
         .direction = direction,
         .monitorInDirection = monitor,
@@ -42,7 +42,7 @@ Neighbor focus(const TopologyIndex &index, Direction direction, bool monitor = f
 }
 
 Neighbor move(const TopologyIndex &index, Direction direction, bool monitor = false) {
-    return CanvasLayoutInternal::neighbor(index, {
+    return KartaLayoutInternal::neighbor(index, {
         .intent = NeighborIntent::MoveWindow,
         .direction = direction,
         .monitorInDirection = monitor,
@@ -184,14 +184,14 @@ void test_move_window_within_stack() {
             index.windowIndex = before ? 0 : 2;
             const auto direction = before ? backward : forward;
             expect_eq(move(index, direction, true).kind, NeighborKind::CrossMonitor,
-                      "moving past both stack and canvas edges prefers a monitor");
-            const auto created = CanvasLayoutInternal::neighbor(index, {
+                      "moving past both stack and karta edges prefers a monitor");
+            const auto created = KartaLayoutInternal::neighbor(index, {
                 .intent = NeighborIntent::MoveWindow,
                 .direction = direction,
                 .focusWrap = true,
             });
             expect_true(created.kind == NeighborKind::CreateEphemeral && created.laneIndex == index.laneIndex,
-                        "moving past the canvas edge creates a lane even when focus wrapping is enabled");
+                        "moving past the karta edge creates a lane even when focus wrapping is enabled");
         }
     }
 }
@@ -216,7 +216,7 @@ void test_invalid_index() {
 }
 
 void test_swap_window_routes() {
-    using CanvasLayoutInternal::swap_window_neighbor;
+    using KartaLayoutInternal::swap_window_neighbor;
     for (const auto mode : {Mode::Row, Mode::Column}) {
         auto index = row_index(1, 3, 1, 3, 1, 3);
         index.mode = mode;

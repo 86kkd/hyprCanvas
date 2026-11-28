@@ -1,6 +1,6 @@
 /**
  * @file model.cpp
- * @brief Overview model construction from read-only canvas snapshots.
+ * @brief Overview model construction from read-only karta snapshots.
  *
  * The model is the central queryable snapshot used by overview session code:
  * it groups targets by monitor/workspace for layout and rendering, and also
@@ -15,7 +15,7 @@
 #include <hyprland/src/workspace/HLWorkspace.hpp>
 
 #include "core/hyprland_runtime.h"
-#include "layout/canvas/internal.h"
+#include "layout/karta/internal.h"
 #include "overview/navigation/logic.h"
 #include "overview/model/layout.h"
 #include "overview/scene/layout.h"
@@ -24,15 +24,15 @@ namespace Overview {
 namespace {
 
 // Overview intentionally ignores floating/unmapped windows so navigation and
-// rendering only deal with tiled content produced by the canvas layout.
+// rendering only deal with tiled content produced by the karta layout.
 bool is_tiled_overview_window(PHLWINDOW window) {
     return window && window->mapped() && !window->isFloating();
 }
 
 MonitorRegion make_monitor_region(PHLMONITOR monitor) {
-    // Overview regions use the same canvas bounds as the layout itself so the
+    // Overview regions use the same karta bounds as the layout itself so the
     // rendered overview tiles line up with normal workspace geometry.
-    const auto bounds = CanvasLayoutInternal::compute_canvas_bounds(monitor);
+    const auto bounds = KartaLayoutInternal::compute_karta_bounds(monitor);
     return {
         .monitorId = static_cast<int>(monitor->m_id),
         .monitor = monitor,
@@ -41,35 +41,35 @@ MonitorRegion make_monitor_region(PHLMONITOR monitor) {
     };
 }
 
-const CanvasLayoutState::CanvasWorkspaceMember* find_member(const CanvasLayoutState::CanvasWorkspaceRecord& canvas, int monitorId) {
-    const auto memberIt = std::find_if(canvas.members.begin(), canvas.members.end(), [&](const auto& member) {
+const KartaLayoutState::KartaWorkspaceMember* find_member(const KartaLayoutState::KartaWorkspaceRecord& karta, int monitorId) {
+    const auto memberIt = std::find_if(karta.members.begin(), karta.members.end(), [&](const auto& member) {
         return member.monitorId == monitorId;
     });
-    return memberIt == canvas.members.end() ? nullptr : &*memberIt;
+    return memberIt == karta.members.end() ? nullptr : &*memberIt;
 }
 
-bool is_synthetic_canvas(const std::vector<CanvasLayoutState::SyntheticCanvasWorkspace>& synthetics, int canvasId) {
+bool is_synthetic_karta(const std::vector<KartaLayoutState::SyntheticKartaWorkspace>& synthetics, int kartaId) {
     return std::any_of(synthetics.begin(), synthetics.end(), [&](const auto& synthetic) {
-        return synthetic.canvas.canvasId == canvasId;
+        return synthetic.karta.kartaId == kartaId;
     });
 }
 
-const CanvasLayoutState::CanvasWorkspaceRecord* find_canvas_record(const std::vector<CanvasLayoutState::CanvasWorkspaceRecord>& canvases, int canvasId) {
-    const auto canvasIt = std::find_if(canvases.begin(), canvases.end(), [&](const auto& canvas) {
-        return canvas.canvasId == canvasId;
+const KartaLayoutState::KartaWorkspaceRecord* find_karta_record(const std::vector<KartaLayoutState::KartaWorkspaceRecord>& kartas, int kartaId) {
+    const auto kartaIt = std::find_if(kartas.begin(), kartas.end(), [&](const auto& karta) {
+        return karta.kartaId == kartaId;
     });
-    return canvasIt == canvases.end() ? nullptr : &*canvasIt;
+    return kartaIt == kartas.end() ? nullptr : &*kartaIt;
 }
 
-WorkspaceNode build_workspace_node(const CanvasLayoutState::CanvasWorkspaceRecord& canvas,
+WorkspaceNode build_workspace_node(const KartaLayoutState::KartaWorkspaceRecord& karta,
                                    int monitorId,
-                                   const CanvasLayoutState::CanvasWorkspaceMember* member,
-                                   const CanvasOverviewSnapshot* snapshot,
+                                   const KartaLayoutState::KartaWorkspaceMember* member,
+                                   const KartaOverviewSnapshot* snapshot,
                                    bool synthetic) {
     WorkspaceNode node;
-    node.canvasId = canvas.canvasId;
-    node.tileX = canvas.tileX;
-    node.tileY = canvas.tileY;
+    node.kartaId = karta.kartaId;
+    node.tileX = karta.tileX;
+    node.tileY = karta.tileY;
     node.workspaceId = member ? member->workspaceId : INVALID_WORKSPACE_ID;
     node.monitorId = monitorId;
     node.specialWorkspace = member ? member->special : false;
@@ -78,7 +78,7 @@ WorkspaceNode build_workspace_node(const CanvasLayoutState::CanvasWorkspaceRecor
     if (!snapshot)
         return node;
 
-    // Snapshot windows are already laid out by the canvas layer. Model building
+    // Snapshot windows are already laid out by the karta layer. Model building
     // only filters and rewraps them into overview targets.
     for (const auto& snapshotWindow : snapshot->windows) {
         if (!is_tiled_overview_window(snapshotWindow.window))
@@ -86,7 +86,7 @@ WorkspaceNode build_workspace_node(const CanvasLayoutState::CanvasWorkspaceRecor
 
         node.targets.push_back({
             .type = TargetType::Window,
-            .canvasId = canvas.canvasId,
+            .kartaId = karta.kartaId,
             .workspaceId = node.workspaceId,
             .monitorId = monitorId,
             .specialWorkspace = node.specialWorkspace,
@@ -107,7 +107,7 @@ void project_workspace_targets(PHLMONITOR monitor, WorkspaceNode& workspace) {
 
     const auto contentBox = workspace.box;
     std::vector<size_t> windowIndexes;
-    std::vector<CanvasCore::Box> sourceBoxes;
+    std::vector<KartaCore::Box> sourceBoxes;
     windowIndexes.reserve(workspace.targets.size());
     sourceBoxes.reserve(workspace.targets.size());
 
@@ -146,7 +146,7 @@ void Model::clear() {
     origin_ = {};
     monitors_.clear();
     targetGraph_.clear();
-    canvasGraph_.clear();
+    kartaGraph_.clear();
     selectionRef_.reset();
     syntheticSelection_.reset();
 }
@@ -171,8 +171,8 @@ const std::vector<TargetGraphNode>& Model::targetGraph() const {
     return targetGraph_;
 }
 
-const std::vector<CanvasGraphNode>& Model::canvasGraph() const {
-    return canvasGraph_;
+const std::vector<KartaGraphNode>& Model::kartaGraph() const {
+    return kartaGraph_;
 }
 
 const std::optional<TargetRef>& Model::selectionRef() const {
@@ -186,12 +186,12 @@ const Target* Model::selection() const {
     return resolve(*selectionRef_);
 }
 
-std::optional<int> Model::selectionCanvasId() const {
+std::optional<int> Model::selectionKartaId() const {
     const auto* selected = selection();
     if (!selected)
         return std::nullopt;
 
-    return selected->canvasId;
+    return selected->kartaId;
 }
 
 void Model::setSelection(const TargetRef& ref) {
@@ -250,7 +250,7 @@ const Target* Model::resolve(const TargetRef& ref) const {
     return &workspace.targets[ref.targetIndex];
 }
 
-std::optional<TargetRef> Model::findByWindow(PHLWINDOW window, int canvasId) const {
+std::optional<TargetRef> Model::findByWindow(PHLWINDOW window, int kartaId) const {
     if (!window)
         return std::nullopt;
 
@@ -258,38 +258,38 @@ std::optional<TargetRef> Model::findByWindow(PHLWINDOW window, int canvasId) con
     // care about "all selectable things", not the nested storage shape.
     for (const auto& node : targetGraph_) {
         const auto* target = resolve(node.ref);
-        if (target && (canvasId == INVALID_CANVAS_ID || target->canvasId == canvasId) && target->type == TargetType::Window && target->window == window)
+        if (target && (kartaId == INVALID_KARTA_ID || target->kartaId == kartaId) && target->type == TargetType::Window && target->window == window)
             return node.ref;
     }
 
     return std::nullopt;
 }
 
-std::optional<TargetRef> Model::findByWorkspace(WORKSPACEID workspaceId, int canvasId) const {
+std::optional<TargetRef> Model::findByWorkspace(WORKSPACEID workspaceId, int kartaId) const {
     // Workspace-level lookup returns the first selectable target belonging to
     // that workspace, which may be a real window or the empty-workspace target.
     for (const auto& node : targetGraph_) {
         const auto* target = resolve(node.ref);
-        if (target && (canvasId == INVALID_CANVAS_ID || target->canvasId == canvasId) && target->workspaceId == workspaceId)
+        if (target && (kartaId == INVALID_KARTA_ID || target->kartaId == kartaId) && target->workspaceId == workspaceId)
             return node.ref;
     }
 
     return std::nullopt;
 }
 
-std::optional<TargetRef> Model::firstTargetInCanvas(int canvasId, std::optional<int> preferredMonitorId) const {
+std::optional<TargetRef> Model::firstTargetInKarta(int kartaId, std::optional<int> preferredMonitorId) const {
     std::optional<TargetRef> preferredWindow;
     std::optional<TargetRef> preferredTarget;
     std::optional<TargetRef> firstWindow;
-    std::optional<TargetRef> firstTargetInCanvasRef;
+    std::optional<TargetRef> firstTargetInKartaRef;
 
     for (const auto& node : targetGraph_) {
         const auto* target = resolve(node.ref);
-        if (!target || target->canvasId != canvasId)
+        if (!target || target->kartaId != kartaId)
             continue;
 
-        if (!firstTargetInCanvasRef)
-            firstTargetInCanvasRef = node.ref;
+        if (!firstTargetInKartaRef)
+            firstTargetInKartaRef = node.ref;
         if (target->type == TargetType::Window && !firstWindow)
             firstWindow = node.ref;
 
@@ -307,23 +307,23 @@ std::optional<TargetRef> Model::firstTargetInCanvas(int canvasId, std::optional<
         return preferredTarget;
     if (firstWindow)
         return firstWindow;
-    return firstTargetInCanvasRef;
+    return firstTargetInKartaRef;
 }
 
-std::optional<int> Model::findAdjacentCanvas(int canvasId, Direction direction) const {
-    if (canvasGraph_.empty())
+std::optional<int> Model::findAdjacentKarta(int kartaId, Direction direction) const {
+    if (kartaGraph_.empty())
         return std::nullopt;
 
     std::vector<OverviewLogic::TargetCandidate> candidates;
-    candidates.reserve(canvasGraph_.size());
+    candidates.reserve(kartaGraph_.size());
     auto currentIndex = std::optional<size_t>{};
-    for (size_t index = 0; index < canvasGraph_.size(); ++index) {
-        const auto& canvas = canvasGraph_[index];
+    for (size_t index = 0; index < kartaGraph_.size(); ++index) {
+        const auto& karta = kartaGraph_[index];
         candidates.push_back({
             .monitorId = 0,
-            .box = canvas.box,
+            .box = karta.box,
         });
-        if (canvas.canvasId == canvasId)
+        if (karta.kartaId == kartaId)
             currentIndex = index;
     }
 
@@ -334,7 +334,7 @@ std::optional<int> Model::findAdjacentCanvas(int canvasId, Direction direction) 
     if (!nextIndex)
         return std::nullopt;
 
-    return canvasGraph_[*nextIndex].canvasId;
+    return kartaGraph_[*nextIndex].kartaId;
 }
 
 std::optional<TargetRef> Model::firstTarget() const {
@@ -344,19 +344,19 @@ std::optional<TargetRef> Model::firstTarget() const {
     return targetGraph_.front().ref;
 }
 
-void Model::rebuildCanvasGraph() {
-    canvasGraph_.clear();
+void Model::rebuildKartaGraph() {
+    kartaGraph_.clear();
 
     for (const auto& region : monitors_) {
         for (const auto& workspace : region.workspaces) {
-            const auto exists = std::any_of(canvasGraph_.begin(), canvasGraph_.end(), [&](const auto& canvas) {
-                return canvas.canvasId == workspace.canvasId;
+            const auto exists = std::any_of(kartaGraph_.begin(), kartaGraph_.end(), [&](const auto& karta) {
+                return karta.kartaId == workspace.kartaId;
             });
             if (exists)
                 continue;
 
-            canvasGraph_.push_back({
-                .canvasId = workspace.canvasId,
+            kartaGraph_.push_back({
+                .kartaId = workspace.kartaId,
                 .tileX = workspace.tileX,
                 .tileY = workspace.tileY,
                 .box = {
@@ -370,12 +370,12 @@ void Model::rebuildCanvasGraph() {
         }
     }
 
-    std::sort(canvasGraph_.begin(), canvasGraph_.end(), [](const auto& lhs, const auto& rhs) {
+    std::sort(kartaGraph_.begin(), kartaGraph_.end(), [](const auto& lhs, const auto& rhs) {
         if (lhs.tileY != rhs.tileY)
             return lhs.tileY < rhs.tileY;
         if (lhs.tileX != rhs.tileX)
             return lhs.tileX < rhs.tileX;
-        return lhs.canvasId < rhs.canvasId;
+        return lhs.kartaId < rhs.kartaId;
     });
 }
 
@@ -397,7 +397,7 @@ void Model::rebuildTargetGraph() {
                         .workspaceIndex = workspaceIndex,
                         .targetIndex = targetIndex,
                     },
-                    .canvasId = target.canvasId,
+                    .kartaId = target.kartaId,
                     .monitorId = target.monitorId,
                     .workspaceId = target.workspaceId,
                     .box = target.box,
@@ -411,7 +411,7 @@ void Model::rebuildTargetGraph() {
     if (syntheticSelection_) {
         targetGraph_.push_back({
             .ref = TargetRef{.synthetic = true},
-            .canvasId = syntheticSelection_->canvasId,
+            .kartaId = syntheticSelection_->kartaId,
             .monitorId = syntheticSelection_->monitorId,
             .workspaceId = syntheticSelection_->workspaceId,
             .box = syntheticSelection_->box,
@@ -419,60 +419,60 @@ void Model::rebuildTargetGraph() {
     }
 }
 
-void Model::rebuild(const std::vector<CanvasLayoutState::SyntheticCanvasWorkspace>& synthetics, int viewportCanvasId) {
+void Model::rebuild(const std::vector<KartaLayoutState::SyntheticKartaWorkspace>& synthetics, int viewportKartaId) {
     // Rebuild is a full snapshot refresh:
     // 1. enumerate current monitors into empty regions
-    // 2. ask the persistent canvas repository for the canvas-workspace graph
-    // 3. attach one monitor-local workspace node per canvas
-    // 4. lay out those nodes by canvas tile coordinates
+    // 2. ask the persistent karta repository for the karta-workspace graph
+    // 3. attach one monitor-local workspace node per karta
+    // 4. lay out those nodes by karta tile coordinates
     // 5. project targets into final preview geometry
-    // 6. flatten the result into both target and canvas navigation graphs
+    // 6. flatten the result into both target and karta navigation graphs
     monitors_.clear();
     selectionRef_.reset();
     syntheticSelection_.reset();
     targetGraph_.clear();
-    canvasGraph_.clear();
+    kartaGraph_.clear();
 
     if (!g_pCompositor)
         return;
 
-    auto& canvasRepo = CanvasLayoutState::canvasRepository();
-    canvasRepo.initialize();
-    const auto activeCanvasId = canvasRepo.ensureCurrentVisibleCanvas();
-    const auto previewCanvases = canvasRepo.previewCanvases(synthetics);
-    const auto* anchorCanvas = find_canvas_record(previewCanvases,
-                                                  viewportCanvasId != INVALID_CANVAS_ID ? viewportCanvasId : activeCanvasId);
-    const auto anchorTileX = anchorCanvas ? anchorCanvas->tileX : 0;
-    const auto anchorTileY = anchorCanvas ? anchorCanvas->tileY : 0;
+    auto& kartaRepo = KartaLayoutState::kartaRepository();
+    kartaRepo.initialize();
+    const auto activeKartaId = kartaRepo.ensureCurrentVisibleKarta();
+    const auto previewKartas = kartaRepo.previewKartas(synthetics);
+    const auto* anchorKarta = find_karta_record(previewKartas,
+                                                  viewportKartaId != INVALID_KARTA_ID ? viewportKartaId : activeKartaId);
+    const auto anchorTileX = anchorKarta ? anchorKarta->tileX : 0;
+    const auto anchorTileY = anchorKarta ? anchorKarta->tileY : 0;
 
-    for (const auto& monitor : CanvasCore::HyprlandRuntime::monitors()) {
+    for (const auto& monitor : KartaCore::HyprlandRuntime::monitors()) {
         if (!monitor)
             continue;
 
         monitors_.push_back(make_monitor_region(monitor));
     }
 
-    std::unordered_map<WORKSPACEID, CanvasOverviewSnapshot> workspaceSnapshots;
-    for (const auto& canvas : previewCanvases) {
-        for (const auto& member : canvas.members) {
+    std::unordered_map<WORKSPACEID, KartaOverviewSnapshot> workspaceSnapshots;
+    for (const auto& karta : previewKartas) {
+        for (const auto& member : karta.members) {
             if (member.workspaceId == INVALID_WORKSPACE_ID || workspaceSnapshots.contains(member.workspaceId))
                 continue;
 
-            if (auto* layout = CanvasLayoutInternal::get_canvas_for_workspace(member.workspaceId))
+            if (auto* layout = KartaLayoutInternal::get_karta_for_workspace(member.workspaceId))
                 workspaceSnapshots.emplace(member.workspaceId, layout->buildOverviewSnapshot());
         }
     }
 
     for (auto& region : monitors_) {
-        region.workspaces.reserve(previewCanvases.size());
-        for (const auto& canvas : previewCanvases) {
-            const auto* member = find_member(canvas, region.monitorId);
+        region.workspaces.reserve(previewKartas.size());
+        for (const auto& karta : previewKartas) {
+            const auto* member = find_member(karta, region.monitorId);
             const auto snapshotIt = member ? workspaceSnapshots.find(member->workspaceId) : workspaceSnapshots.end();
-            region.workspaces.push_back(build_workspace_node(canvas,
+            region.workspaces.push_back(build_workspace_node(karta,
                                                              region.monitorId,
                                                              member,
                                                              snapshotIt == workspaceSnapshots.end() ? nullptr : &snapshotIt->second,
-                                                             is_synthetic_canvas(synthetics, canvas.canvasId)));
+                                                             is_synthetic_karta(synthetics, karta.kartaId)));
         }
 
         layoutWorkspaceGrid(region, anchorTileX, anchorTileY);
@@ -480,7 +480,7 @@ void Model::rebuild(const std::vector<CanvasLayoutState::SyntheticCanvasWorkspac
             project_workspace_targets(region.monitor, workspace);
     }
 
-    rebuildCanvasGraph();
+    rebuildKartaGraph();
     rebuildTargetGraph();
 }
 

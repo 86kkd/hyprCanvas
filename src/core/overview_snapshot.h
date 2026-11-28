@@ -4,14 +4,14 @@
 
 #include "types.h"
 
-struct CanvasOverviewSnapshotWindow {
+struct KartaOverviewSnapshotWindow {
     PHLWINDOW         window = nullptr;
-    CanvasCore::Box box;
+    KartaCore::Box box;
     PHLWINDOW         stackActiveWindow = nullptr;
 };
 
-struct CanvasOverviewSnapshot {
+struct KartaOverviewSnapshot {
     WORKSPACEID                               workspaceId = WORKSPACE_INVALID;
     int                                       monitorId = MONITOR_INVALID;
-    std::vector<CanvasOverviewSnapshotWindow> windows;
+    std::vector<KartaOverviewSnapshotWindow> windows;
 };

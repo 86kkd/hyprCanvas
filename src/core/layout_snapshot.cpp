@@ -8,7 +8,7 @@
 #include <string_view>
 #include <vector>
 
-namespace CanvasLayoutSnapshot {
+namespace KartaLayoutSnapshot {
 namespace {
 
 // LANE/STACK lines keep a column for the removed Auto/Lazy reorder policy so
@@ -104,11 +104,11 @@ std::vector<std::string_view> split_tokens(std::string_view line) {
     return tokens;
 }
 
-void append_box(std::ostringstream &out, const CanvasCore::Box &box) {
+void append_box(std::ostringstream &out, const KartaCore::Box &box) {
     out << box.x << ' ' << box.y << ' ' << box.w << ' ' << box.h;
 }
 
-bool parse_box(const std::vector<std::string_view> &tokens, size_t index, CanvasCore::Box &box) {
+bool parse_box(const std::vector<std::string_view> &tokens, size_t index, KartaCore::Box &box) {
     return index + 3 < tokens.size() &&
            parse_token(tokens[index + 0], box.x) &&
            parse_token(tokens[index + 1], box.y) &&
@@ -133,10 +133,10 @@ std::string serialize_repository(const RepositorySnapshot &snapshots) {
         if (it == snapshots.end())
             continue;
 
-        const auto &canvas = it->second;
-        out << "WORKSPACE " << canvas.workspaceId << ' ' << canvas.activeLaneIndex << ' '
-            << canvas.lanes.size() << ' ' << canvas.version << '\n';
-        for (const auto &lane : canvas.lanes) {
+        const auto &karta = it->second;
+        out << "WORKSPACE " << karta.workspaceId << ' ' << karta.activeLaneIndex << ' '
+            << karta.lanes.size() << ' ' << karta.version << '\n';
+        for (const auto &lane : karta.lanes) {
             out << "LANE " << lane.mode << ' ' << kRetiredReorderToken << ' ' << (lane.ephemeral ? 1 : 0) << ' '
                 << lane.activeStackIndex << ' ' << lane.stacks.size() << '\n';
             for (const auto &stack : lane.stacks) {
@@ -165,7 +165,7 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
 
     bool sawVersion = false;
     int formatVersion = 0;
-    CanvasSnapshot *currentCanvas = nullptr;
+    KartaSnapshot *currentKarta = nullptr;
     LaneSnapshot *currentLane = nullptr;
     StackSnapshot *currentStack = nullptr;
     int retiredReorder = 0;
@@ -195,32 +195,32 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
             return std::nullopt;
 
         if (tokens[0] == "WORKSPACE") {
-            CanvasSnapshot canvas;
+            KartaSnapshot karta;
             size_t laneCount = 0;
             if ((tokens.size() != 4 && tokens.size() != 5) ||
-                !parse_token(tokens[1], canvas.workspaceId) ||
-                !parse_size_token(tokens[2], canvas.activeLaneIndex) ||
+                !parse_token(tokens[1], karta.workspaceId) ||
+                !parse_size_token(tokens[2], karta.activeLaneIndex) ||
                 !parse_size_token(tokens[3], laneCount))
                 return std::nullopt;
             if (tokens.size() == 5) {
                 if (formatVersion < kStableWindowKeyFormatVersion ||
-                    !parse_token(tokens[4], canvas.version) ||
-                    canvas.version < kLegacyFormatVersion ||
-                    canvas.version > kFormatVersion)
+                    !parse_token(tokens[4], karta.version) ||
+                    karta.version < kLegacyFormatVersion ||
+                    karta.version > kFormatVersion)
                     return std::nullopt;
             } else {
-                canvas.version = formatVersion;
+                karta.version = formatVersion;
             }
-            canvas.lanes.reserve(laneCount);
-            currentCanvas = &snapshots[canvas.workspaceId];
-            *currentCanvas = std::move(canvas);
+            karta.lanes.reserve(laneCount);
+            currentKarta = &snapshots[karta.workspaceId];
+            *currentKarta = std::move(karta);
             currentLane = nullptr;
             currentStack = nullptr;
             continue;
         }
 
         if (tokens[0] == "LANE") {
-            if (!currentCanvas)
+            if (!currentKarta)
                 return std::nullopt;
 
             LaneSnapshot lane;
@@ -233,8 +233,8 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
                 !parse_size_token(tokens[5], stackCount))
                 return std::nullopt;
             lane.stacks.reserve(stackCount);
-            currentCanvas->lanes.push_back(std::move(lane));
-            currentLane = &currentCanvas->lanes.back();
+            currentKarta->lanes.push_back(std::move(lane));
+            currentLane = &currentKarta->lanes.back();
             currentStack = nullptr;
             continue;
         }
@@ -280,10 +280,10 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
             continue;
         }
 
-        // Older files may still carry state from the removed canvasgrid
+        // Older files may still carry state from the removed kartagrid
         // layout. Accept those lines so lane state from the same file restores.
         if (tokens[0] == "GRID" || tokens[0] == "GRIDITEM") {
-            if (!currentCanvas || formatVersion < kGridFormatVersion)
+            if (!currentKarta || formatVersion < kGridFormatVersion)
                 return std::nullopt;
             currentLane = nullptr;
             currentStack = nullptr;
@@ -299,4 +299,4 @@ std::optional<RepositorySnapshot> deserialize_repository(std::string_view data) 
     return snapshots;
 }
 
-} // namespace CanvasLayoutSnapshot
+} // namespace KartaLayoutSnapshot

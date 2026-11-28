@@ -6,7 +6,7 @@
 
 #include <algorithm>
 
-namespace CanvasCore {
+namespace KartaCore {
 namespace {
 
 bool transform_swaps_axes(wl_output_transform transform) {
@@ -67,4 +67,4 @@ Box logical_workarea_box(const Hyprutils::Math::Vector2D& position,
     };
 }
 
-} // namespace CanvasCore
+} // namespace KartaCore

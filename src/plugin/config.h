@@ -6,44 +6,30 @@
 #include <hyprland/src/config/values/ConfigValues.hpp>
 #include <hyprland/src/plugins/PluginAPI.hpp>
 
-namespace canvas::plugin_config {
+namespace karta::plugin_config {
 
 inline constexpr const char*     kDefaultColumnWidth = "2";
 inline constexpr Config::INTEGER kDefaultFocusWrap = 0;
-inline constexpr Config::INTEGER kDefaultCanvasMap = 1;
+inline constexpr Config::INTEGER kDefaultKartaMap = 1;
 #ifdef COLORS_IPC
 inline constexpr Config::INTEGER kDefaultFreeColumnBorder = 0xff9e1515;
 #endif
 
-// Primary options live under `plugin:hyprCanvas:*`. Legacy `plugin:canvas:*`
-// options remain registered as backward-compatible fallbacks.
+// Plugin options live under `plugin:karta:*`.
 inline SP<Config::Values::CStringValue> columnDefaultWidthValue;
 inline SP<Config::Values::CIntValue>    focusWrapValue;
-inline SP<Config::Values::CIntValue>    canvasMapValue;
-inline SP<Config::Values::CStringValue> legacyColumnDefaultWidthValue;
-inline SP<Config::Values::CIntValue>    legacyFocusWrapValue;
-inline SP<Config::Values::CIntValue>    legacyCanvasMapValue;
+inline SP<Config::Values::CIntValue>    kartaMapValue;
 #ifdef COLORS_IPC
 inline SP<Config::Values::CColorValue>  freeColumnBorderValue;
-inline SP<Config::Values::CColorValue>  legacyFreeColumnBorderValue;
 #endif
 
 namespace detail {
 
 template <typename ConfigValuePtr, typename ValueType>
-ValueType resolveOption(const ConfigValuePtr& primary,
-                        const ConfigValuePtr& legacy,
+ValueType resolveOption(const ConfigValuePtr& option,
                         const ValueType& defaultValue) {
-    if (primary) {
-        const auto value = primary->value();
-        if (value != defaultValue)
-            return value;
-    }
-    if (legacy) {
-        const auto value = legacy->value();
-        if (value != defaultValue)
-            return value;
-    }
+    if (option)
+        return option->value();
     return defaultValue;
 }
 
@@ -51,88 +37,60 @@ ValueType resolveOption(const ConfigValuePtr& primary,
 
 inline void registerConfigValues(HANDLE handle) {
     const auto widthDescription = "How many stacks a new stack's span should share the workarea with (1-8), or floating.";
-    const auto focusWrapDescription = "Whether canvas focus wraps at lane and stack edges.";
-    const auto canvasMapDescription = "Show the canvas map after switches and during overview.";
+    const auto focusWrapDescription = "Whether karta focus wraps at lane and stack edges.";
+    const auto kartaMapDescription = "Show the karta map after switches and during overview.";
 
     columnDefaultWidthValue = Config::Values::makeConfigValue<Config::Values::CStringValue>(
-        "plugin:hyprCanvas:column_default_width",
+        "plugin:karta:column_default_width",
         widthDescription,
         Config::STRING{kDefaultColumnWidth},
         {});
     focusWrapValue = Config::Values::makeConfigValue<Config::Values::CIntValue>(
-        "plugin:hyprCanvas:focus_wrap",
+        "plugin:karta:focus_wrap",
         focusWrapDescription,
         kDefaultFocusWrap,
         Config::Values::SIntValueOptions{
             .min = Config::INTEGER{0},
             .max = Config::INTEGER{1},
         });
-    canvasMapValue = Config::Values::makeConfigValue<Config::Values::CIntValue>(
-        "plugin:hyprCanvas:canvas_map",
-        canvasMapDescription,
-        kDefaultCanvasMap,
+    kartaMapValue = Config::Values::makeConfigValue<Config::Values::CIntValue>(
+        "plugin:karta:karta_map",
+        kartaMapDescription,
+        kDefaultKartaMap,
         Config::Values::SIntValueOptions{.min = Config::INTEGER{0}, .max = Config::INTEGER{1}});
 
-    legacyColumnDefaultWidthValue = Config::Values::makeConfigValue<Config::Values::CStringValue>(
-        "plugin:canvas:column_default_width",
-        widthDescription,
-        Config::STRING{kDefaultColumnWidth},
-        {});
-    legacyFocusWrapValue = Config::Values::makeConfigValue<Config::Values::CIntValue>(
-        "plugin:canvas:focus_wrap",
-        focusWrapDescription,
-        kDefaultFocusWrap,
-        Config::Values::SIntValueOptions{
-            .min = Config::INTEGER{0},
-            .max = Config::INTEGER{1},
-        });
-    legacyCanvasMapValue = Config::Values::makeConfigValue<Config::Values::CIntValue>(
-        "plugin:canvas:canvas_map",
-        canvasMapDescription,
-        kDefaultCanvasMap,
-        Config::Values::SIntValueOptions{.min = Config::INTEGER{0}, .max = Config::INTEGER{1}});
-
-    HyprlandAPI::addConfigValueV2(handle, canvasMapValue);
+    HyprlandAPI::addConfigValueV2(handle, kartaMapValue);
     HyprlandAPI::addConfigValueV2(handle, columnDefaultWidthValue);
     HyprlandAPI::addConfigValueV2(handle, focusWrapValue);
-    HyprlandAPI::addConfigValueV2(handle, legacyCanvasMapValue);
-    HyprlandAPI::addConfigValueV2(handle, legacyColumnDefaultWidthValue);
-    HyprlandAPI::addConfigValueV2(handle, legacyFocusWrapValue);
 
 #ifdef COLORS_IPC
-    const auto freeBorderDescription = "Border color for free-sized canvas columns.";
+    const auto freeBorderDescription = "Border color for free-sized karta columns.";
     freeColumnBorderValue = Config::Values::makeConfigValue<Config::Values::CColorValue>(
-        "plugin:hyprCanvas:col.freecolumn_border",
-        freeBorderDescription,
-        kDefaultFreeColumnBorder,
-        {});
-    legacyFreeColumnBorderValue = Config::Values::makeConfigValue<Config::Values::CColorValue>(
-        "plugin:canvas:col.freecolumn_border",
+        "plugin:karta:col.freecolumn_border",
         freeBorderDescription,
         kDefaultFreeColumnBorder,
         {});
     HyprlandAPI::addConfigValueV2(handle, freeColumnBorderValue);
-    HyprlandAPI::addConfigValueV2(handle, legacyFreeColumnBorderValue);
 #endif
 }
 
 inline std::string columnDefaultWidth() {
-    return detail::resolveOption(columnDefaultWidthValue, legacyColumnDefaultWidthValue, std::string{kDefaultColumnWidth});
+    return detail::resolveOption(columnDefaultWidthValue, std::string{kDefaultColumnWidth});
 }
 
-inline bool canvasMap() {
-    return detail::resolveOption(canvasMapValue, legacyCanvasMapValue, kDefaultCanvasMap) != 0;
+inline bool kartaMap() {
+    return detail::resolveOption(kartaMapValue, kDefaultKartaMap) != 0;
 }
 
 inline bool focusWrap() {
-    return detail::resolveOption(focusWrapValue, legacyFocusWrapValue, kDefaultFocusWrap) != 0;
+    return detail::resolveOption(focusWrapValue, kDefaultFocusWrap) != 0;
 }
 
 #ifdef COLORS_IPC
 inline Config::CGradientValueData freeColumnBorder() {
     return Config::CGradientValueData(
-        CHyprColor(detail::resolveOption(freeColumnBorderValue, legacyFreeColumnBorderValue, kDefaultFreeColumnBorder)));
+        CHyprColor(detail::resolveOption(freeColumnBorderValue, kDefaultFreeColumnBorder)));
 }
 #endif
 
-} // namespace canvas::plugin_config
+} // namespace karta::plugin_config

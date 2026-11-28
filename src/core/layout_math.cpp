@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-namespace CanvasCore {
+namespace KartaCore {
 
 double choose_anchor_x(bool has_next, bool has_prev, double active_width, double next_width,
                        double prev_width, double fallback_x, const Box &visible_box) {
@@ -82,4 +82,4 @@ OverviewProjection compute_overview_projection(std::span<const OverviewRect> ite
     return OverviewProjection{bmin, bmax, width, height, scale, offset};
 }
 
-} // namespace CanvasCore
+} // namespace KartaCore

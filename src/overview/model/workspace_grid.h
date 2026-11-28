@@ -18,10 +18,10 @@ struct WorkspaceGridShape {
 
 struct WorkspaceGridCell {
     int               workspaceId = -1;
-    CanvasCore::Box box;
+    KartaCore::Box box;
 };
 
-WorkspaceGridShape              chooseWorkspaceGridShape(const CanvasCore::Box& regionBox, std::size_t count);
-std::vector<WorkspaceGridCell>  layoutWorkspaceGridCells(const CanvasCore::Box& regionBox, std::vector<int> workspaceIds);
+WorkspaceGridShape              chooseWorkspaceGridShape(const KartaCore::Box& regionBox, std::size_t count);
+std::vector<WorkspaceGridCell>  layoutWorkspaceGridCells(const KartaCore::Box& regionBox, std::vector<int> workspaceIds);
 
 } // namespace Overview

@@ -4,7 +4,7 @@ This document is the newcomer-oriented map of the codebase. It is meant to
 answer one question first:
 
 How does a Hyprland event or keybinding end up moving windows inside
-hyprcanvas?
+karta?
 
 A Chinese version lives in [`architecture-cn.md`](./architecture-cn.md).
 
@@ -20,16 +20,16 @@ Most of the project can be understood as one pipeline:
 1. Hyprland loads the plugin through `PLUGIN_INIT` in
    [`src/plugin/entry.cpp`](../src/plugin/entry.cpp).
 2. `PLUGIN_INIT` registers:
-   - config values under `plugin:hyprCanvas:*` (with `plugin:canvas:*` aliases)
-   - Lua commands under `hl.plugin.canvas.*` such as `move_focus`
-   - `CanvasLayout` as the tiled algorithm named `canvas`
+   - config values under `plugin:karta:*`
+   - Lua commands under `hl.plugin.karta.*` such as `move_focus`
+   - `KartaLayout` as the tiled algorithm named `karta`
    - overview renderer hooks plus focus/deck pointer helpers
 3. Hyprland later calls either:
    - Lua functions in [`src/plugin/dispatch/`](../src/plugin/dispatch/)
      when the user presses a keybinding
-   - tiled-algorithm callbacks on `CanvasLayout` when windows
+   - tiled-algorithm callbacks on `KartaLayout` when windows
      are created, removed, moved, or relaid out
-4. `CanvasLayout` routes that request to its current `Lane`.
+4. `KartaLayout` routes that request to its current `Lane`.
 5. Each `Lane` routes the operation to one or more `Stack` objects.
 6. `Stack` updates window membership, active selection, and geometry.
 
@@ -39,10 +39,10 @@ this order:
 1. [`src/plugin/entry.cpp`](../src/plugin/entry.cpp)
 2. [`src/plugin/dispatch/registration.cpp`](../src/plugin/dispatch/registration.cpp)
    and [`src/plugin/dispatch/layout_commands.cpp`](../src/plugin/dispatch/layout_commands.cpp)
-3. [`src/layout/canvas/layout.h`](../src/layout/canvas/layout.h)
-4. [`src/layout/canvas/core.cpp`](../src/layout/canvas/core.cpp)
-5. [`src/layout/canvas/focus.cpp`](../src/layout/canvas/focus.cpp)
-6. [`src/layout/canvas/commands.cpp`](../src/layout/canvas/commands.cpp)
+3. [`src/layout/karta/layout.h`](../src/layout/karta/layout.h)
+4. [`src/layout/karta/core.cpp`](../src/layout/karta/core.cpp)
+5. [`src/layout/karta/focus.cpp`](../src/layout/karta/focus.cpp)
+6. [`src/layout/karta/commands.cpp`](../src/layout/karta/commands.cpp)
 7. [`src/layout/lane/core.cpp`](../src/layout/lane/core.cpp),
    [`src/layout/lane/actions.cpp`](../src/layout/lane/actions.cpp), and
    [`src/layout/lane/geometry.cpp`](../src/layout/lane/geometry.cpp)
@@ -53,17 +53,17 @@ this order:
 ## Ownership Hierarchy
 
 ```text
-Canvas Workspace              one whole multi-monitor desktop (plugin-side grouping)
+Karta Workspace              one whole multi-monitor desktop (plugin-side grouping)
   └─ Hyprland workspace × N   one member per monitor, N = monitor count
-        └─ CanvasLayout       the `canvas` instance of that workspace
+        └─ KartaLayout       the `karta` instance of that workspace
               └─ Lane → Stack → window
 ```
 
-- A **Canvas Workspace** (`CanvasWorkspaceRepository`, `CanvasWorkspaceRecord`,
-  the canvas cards in overview) groups one ordinary Hyprland workspace per
+- A **Karta Workspace** (`KartaWorkspaceRepository`, `KartaWorkspaceRecord`,
+  the karta cards in overview) groups one ordinary Hyprland workspace per
   monitor so a whole desktop is switched at once. It is an index and a
   switching policy, never the owner of windows.
-- Members are exclusive: an ordinary workspace belongs to at most one Canvas
+- Members are exclusive: an ordinary workspace belongs to at most one Karta
   Workspace (`make_members_exclusive`). Every connected monitor has exactly one
   member (`fill_monitor_members`); members of a disconnected monitor are kept
   for when it returns.
@@ -71,17 +71,17 @@ Canvas Workspace              one whole multi-monitor desktop (plugin-side group
   (`visible_members`), even while it is open on a monitor.
 - The **Hyprland workspace** stays authoritative for visibility, focus, and
   window ownership.
-- A **`CanvasLayout`** belongs to exactly one Hyprland workspace
-  (`CanvasLayout::getLayoutWorkspace()`) and owns that workspace's lanes.
-  Despite its name it is not a Canvas Workspace, and nothing links a Canvas
+- A **`KartaLayout`** belongs to exactly one Hyprland workspace
+  (`KartaLayout::getLayoutWorkspace()`) and owns that workspace's lanes.
+  Despite its name it is not a Karta Workspace, and nothing links a Karta
   Workspace directly to lanes.
 - Single-monitor commands such as `move_focus` and `move_window` enter through
-  the `CanvasLayout` of the member workspace on the current monitor. Crossing a
-  monitor hands off to the `CanvasLayout` of the member on the other monitor.
+  the `KartaLayout` of the member workspace on the current monitor. Crossing a
+  monitor hands off to the `KartaLayout` of the member on the other monitor.
 
 ## Core Concepts
 
-There are four main runtime objects for the default `canvas` layout.
+There are four main runtime objects for the default `karta` layout.
 
 ### Plugin
 
@@ -90,25 +90,25 @@ The plugin is the Hyprland-facing shell around the project. It lives mostly in
 
 Its job is to:
 
-- initialize logging and layout/canvas repositories
+- initialize logging and layout/karta repositories
 - register config values
 - register Lua commands via `dispatchers::addLuaFunctions()`
-- register `CanvasLayout` as the `canvas` tiled algorithm
+- register `KartaLayout` as the `karta` tiled algorithm
 - initialize overview renderer hooks, focus-pointer sync, and deck-pointer
   hit testing
 
 It does not contain layout policy itself.
 
-### CanvasLayout
+### KartaLayout
 
-`CanvasLayout` is the top-level controller for one Hyprland workspace.
+`KartaLayout` is the top-level controller for one Hyprland workspace.
 Its public definition is in
-[`src/layout/canvas/layout.h`](../src/layout/canvas/layout.h).
+[`src/layout/karta/layout.h`](../src/layout/karta/layout.h).
 
 You can think of it as the bridge between Hyprland and the plugin's own layout
 model.
 
-`CanvasLayout` is responsible for:
+`KartaLayout` is responsible for:
 
 - owning the ordered list of `Lane` objects in one workspace
 - translating Hyprland callbacks into model operations
@@ -119,7 +119,7 @@ model.
 ### Lane
 
 A `Lane` is the next level down. It groups one ordered strip of stacks inside a
-canvas.
+karta.
 
 In row mode, a lane behaves like the horizontal sequence you scroll across.
 In column mode, a lane still owns stacks, but the active stack semantics and
@@ -127,7 +127,7 @@ movement rules change so vertical stacking becomes the dominant local action.
 
 Lanes are the place where the layout starts to feel "PaperWM-like": they decide
 which stack is active, which adjacent stack should receive a moved window, and
-how stack geometry fits inside the visible canvas.
+how stack geometry fits inside the visible karta.
 
 ### Stack
 
@@ -146,12 +146,12 @@ answers "what exactly happens to the windows inside that stack?"
 
 ### Window
 
-The actual Hyprland window object still comes from Hyprland. HyprCanvas keeps
+The actual Hyprland window object still comes from Hyprland. Karta keeps
 lightweight bookkeeping around it, but the compositor remains the source of
 truth for the real client.
 
-`canvas` is the only tiled algorithm this plugin registers. The former
-`canvasgrid` cell layout was removed; directional routing stays on
+`karta` is the only tiled algorithm this plugin registers. The former
+`kartagrid` cell layout was removed; directional routing stays on
 lane/stack (see [`topology-neighbor-index.md`](./topology-neighbor-index.md)).
 
 ## Main Flows
@@ -163,10 +163,10 @@ Startup begins in [`src/plugin/entry.cpp`](../src/plugin/entry.cpp).
 Read `PLUGIN_INIT` first. It does these things in order:
 
 1. sets up logging
-2. initializes layout and canvas repositories
+2. initializes layout and karta repositories
 3. registers config values
-4. registers Lua commands under `hl.plugin.canvas.*`
-5. registers the `canvas` tiled algorithm
+4. registers Lua commands under `hl.plugin.karta.*`
+5. registers the `karta` tiled algorithm
 6. initializes overview renderer hooks plus focus/deck pointer helpers
 
 Config registration happens before tiled-algorithm registration on purpose:
@@ -181,8 +181,8 @@ or tiled-layout callbacks.
 This is the simplest lifecycle to trace:
 
 1. Hyprland creates a tiled target.
-2. `CanvasLayout::newTarget` or `CanvasLayout::movedTarget` is called.
-3. Those functions forward to `CanvasLayout::onWindowCreatedTiling`.
+2. `KartaLayout::newTarget` or `KartaLayout::movedTarget` is called.
+3. Those functions forward to `KartaLayout::onWindowCreatedTiling`.
 4. `onWindowCreatedTiling` finds or creates the active lane.
 5. The lane inserts the new window into its active stack according to the
    current mode.
@@ -190,45 +190,45 @@ This is the simplest lifecycle to trace:
    to lane.
 
 The main implementation lives in
-[`src/layout/canvas/core.cpp`](../src/layout/canvas/core.cpp).
+[`src/layout/karta/core.cpp`](../src/layout/karta/core.cpp).
 
 ### Focus Movement
 
 Directional focus starts in a Lua command:
 
-1. A keybinding calls `hl.plugin.canvas.move_focus("l")` or similar.
+1. A keybinding calls `hl.plugin.karta.move_focus("l")` or similar.
 2. [`src/plugin/dispatch/layout_commands.cpp`](../src/plugin/dispatch/layout_commands.cpp)
-   parses the direction and resolves the active `CanvasLayout`.
-3. `CanvasLayout::moveFocus` builds a `TopologyIndex` (lane, stack, and
+   parses the direction and resolves the active `KartaLayout`.
+3. `KartaLayout::moveFocus` builds a `TopologyIndex` (lane, stack, and
    window coordinates of the focused item) and asks
-   `CanvasLayoutInternal::neighbor` where the direction leads:
+   `KartaLayoutInternal::neighbor` where the direction leads:
    - a local target inside the current lane
    - an adjacent lane
-   - a temporary empty lane at the canvas edge
+   - a temporary empty lane at the karta edge
    - a cross-monitor handoff
    - nothing
 4. The chosen lane or target monitor is activated and the compositor focus is
    updated.
 
 The main implementation lives in
-[`src/layout/canvas/focus.cpp`](../src/layout/canvas/focus.cpp).
+[`src/layout/karta/focus.cpp`](../src/layout/karta/focus.cpp).
 
 ### Window Movement
 
 Directional window movement starts similarly:
 
-1. A keybinding calls `hl.plugin.canvas.move_window(...)`.
-2. The Lua command resolves the active `CanvasLayout`.
-3. `CanvasLayout::moveWindow` asks the same `neighbor` query with the
+1. A keybinding calls `hl.plugin.karta.move_window(...)`.
+2. The Lua command resolves the active `KartaLayout`.
+3. `KartaLayout::moveWindow` asks the same `neighbor` query with the
    move-window intent, which decides whether the window:
    - reorders its stack, joins a neighboring stack, or splits into a new one
-   - moves into an adjacent lane or a new lane at the canvas edge
+   - moves into an adjacent lane or a new lane at the karta edge
    - moves to another monitor
 4. Payload extraction and insertion helpers move the active window while
    preserving the source stack or lane state when possible.
 
 The main implementation lives in
-[`src/layout/canvas/commands.cpp`](../src/layout/canvas/commands.cpp) and
+[`src/layout/karta/commands.cpp`](../src/layout/karta/commands.cpp) and
 [`src/layout/lane/actions.cpp`](../src/layout/lane/actions.cpp).
 
 ### Overview
@@ -239,7 +239,7 @@ Its logic is split into:
 
 - overview session/model/scene/render code under
   [`src/overview`](../src/overview)
-- snapshot building inside `CanvasLayout`
+- snapshot building inside `KartaLayout`
 - overview-specific tests under [`tests/`](../tests/)
 
 The important thing to remember is that overview does not mutate the real lane
@@ -253,7 +253,7 @@ Plugin ABI entrypoints and one-time registration.
 
 ### `src/plugin/dispatch`
 
-String/Lua argument parsing and routing from `hl.plugin.canvas.*` into
+String/Lua argument parsing and routing from `hl.plugin.karta.*` into
 strongly typed layout methods.
 
 - `registration.cpp`: bootstrap that calls the two registration groups
@@ -261,14 +261,14 @@ strongly typed layout methods.
 - `overview_mark_commands.cpp`: overview and marks commands
 - `shared.h`: shared helpers for resolving the active workspace/layout
 
-### `src/layout/canvas`
+### `src/layout/karta`
 
-Workspace-level control plane for `canvas`.
+Workspace-level control plane for `karta`.
 
 - `core.cpp`: target callbacks, workspace ownership, lane cache, lifecycle
 - `snapshot.cpp`: workspace layout snapshot capture, persistence, and restore
 - `workspace_controller.cpp` / `workspace_controller_logic.cpp`: multi-monitor
-  canvas workspace activation, direct desktop switching, and cross-canvas window
+  karta workspace activation, direct desktop switching, and cross-karta window
   transfer (shared with overview acceptance so `Overview::Session` stays read-only)
 - `focus.cpp`: focus routing and cross-monitor focus handoff
 - `commands.cpp`: command-facing mutating operations such as movewindow
@@ -323,7 +323,7 @@ worth keeping stable across refactors.
   [`tests/overview_session_logic_tests.cpp`](../tests/overview_session_logic_tests.cpp),
   and [`tests/overview_session_effects_tests.cpp`](../tests/overview_session_effects_tests.cpp).
 
-When you change real stateful behavior in `CanvasLayout`, `Lane`, or `Stack`,
+When you change real stateful behavior in `KartaLayout`, `Lane`, or `Stack`,
 the automated tests are necessary but not sufficient. Pair them with the manual
 [smoke test checklist](./smoke-test-checklist.md) and, when needed, the
 [Hyprland testing notes](./hyprland-testing.md). For changes that need nested
@@ -338,12 +338,12 @@ If you are new to the project, use this order:
 2. Open [`src/plugin/entry.cpp`](../src/plugin/entry.cpp) and find `PLUGIN_INIT`.
 3. Open [`src/plugin/dispatch/layout_commands.cpp`](../src/plugin/dispatch/layout_commands.cpp)
    and trace one command, such as `dispatch_movefocus` / `lua_move_focus`.
-4. Open [`src/layout/canvas/layout.h`](../src/layout/canvas/layout.h) and read
-   the public methods on `CanvasLayout`.
+4. Open [`src/layout/karta/layout.h`](../src/layout/karta/layout.h) and read
+   the public methods on `KartaLayout`.
 5. Trace one lifecycle end to end:
    - new window: `newTarget -> onWindowCreatedTiling`
-   - focus: `hl.plugin.canvas.move_focus -> dispatch_movefocus -> moveFocus`
-   - move window: `hl.plugin.canvas.move_window -> dispatch_movewindow -> moveWindow`
+   - focus: `hl.plugin.karta.move_focus -> dispatch_movefocus -> moveFocus`
+   - move window: `hl.plugin.karta.move_window -> dispatch_movewindow -> moveWindow`
 6. Only then dive into lane and stack code.
 
 That order keeps the mental model top-down. If you start at `Stack` first, the
@@ -352,6 +352,6 @@ local code will make sense, but the overall runtime picture usually will not.
 ## Hyprland 0.57 Note
 
 Hyprland 0.57 no longer registers plugin dispatchers. Keybindings must call
-Lua functions under `hl.plugin.canvas`, not the older `canvas:movefocus`
-dispatcher style. Plugin config values such as `plugin:hyprCanvas:focus_wrap`
-(and legacy `plugin:canvas:focus_wrap`) are still registered separately through `addConfigValueV2`.
+Lua functions under `hl.plugin.karta`, not the older `karta:movefocus`
+dispatcher style. Plugin config values such as `plugin:karta:focus_wrap`
+are still registered separately through `addConfigValueV2`.

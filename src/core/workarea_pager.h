@@ -2,7 +2,7 @@
 
 #include "types.h"
 
-namespace CanvasCore {
+namespace KartaCore {
 
 struct WorkareaPageBox {
     Box  logical;
@@ -22,4 +22,4 @@ WorkareaPageBox project_box_to_workarea_page(const Box& logicalBox,
                                              const Box& fullBox,
                                              const Box& workareaBox);
 
-} // namespace CanvasCore
+} // namespace KartaCore

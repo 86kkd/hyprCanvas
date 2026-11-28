@@ -19,7 +19,7 @@ void test_localize_global_box_keeps_monitor_local_axes() {
 }
 
 void test_project_boxes_to_content_preserves_order_and_fits_bounds() {
-    const std::vector<CanvasCore::Box> source = {
+    const std::vector<KartaCore::Box> source = {
         {0.0, 0.0, 100.0, 80.0},
         {120.0, 0.0, 90.0, 80.0},
     };
@@ -33,7 +33,7 @@ void test_project_boxes_to_content_preserves_order_and_fits_bounds() {
 }
 
 void test_project_global_boxes_to_content_tracks_workspace_card_position() {
-    const std::vector<CanvasCore::Box> source = {
+    const std::vector<KartaCore::Box> source = {
         {0.0, 0.0, 100.0, 80.0},
         {120.0, 0.0, 90.0, 80.0},
     };
@@ -64,13 +64,13 @@ void test_workspace_content_box_reserves_header_band() {
 } // namespace
 
 void run_overview_scene_tests() {
-    // Legacy native workspace switching can produce canvases (1, 2) and
+    // Legacy native workspace switching can produce kartas (1, 2) and
     // (3, 2). The same secondary window must retain two independent positions.
     std::map<Overview::PreviewKey, double> previews;
     previews[Overview::previewKey(0, 1, 42)] = 100.0;
     previews[Overview::previewKey(1, 1, 42)] = 2100.0;
     previews[Overview::previewKey(0, 2, 42)] = 300.0;
-    expect_eq(previews.size(), size_t{3}, "preview identity includes canvas and monitor");
+    expect_eq(previews.size(), size_t{3}, "preview identity includes karta and monitor");
     expect_near(previews.at(Overview::previewKey(0, 1, 42)), 100.0, 1e-9,
                 "offscreen duplicate must not overwrite visible preview coordinates");
 

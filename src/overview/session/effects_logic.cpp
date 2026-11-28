@@ -46,7 +46,7 @@ bool focus_window_target(const Runtime& runtime, PHLWORKSPACE workspace, PHLWIND
     if (!focus_workspace_target(runtime, workspace, runtime.workspaceId(workspace), monitorId, false, context))
         return false;
 
-    runtime.syncCanvasTargetWindow(workspace, window, monitorId);
+    runtime.syncKartaTargetWindow(workspace, window, monitorId);
     return runtime.switchToWindow(window, warpCursor);
 }
 

@@ -1,14 +1,14 @@
 import {DEFAULT,valid,adjust,currentPlugin,layout,payload,fromPayload} from './model.mjs';
 const $=id=>document.getElementById(id), keys=['main','secondary','others'], names=['主窗口','次窗口','其他窗口'], tones=['var(--main)','var(--secondary)','var(--other)'];
 let state={...DEFAULT}, active=2, previous=1, saved=null, timer;
-const storageKey='hyprcanvas.stack-tuner.v3';
+const storageKey='karta.stack-tuner.v3';
 const letter=i=>String.fromCharCode(65+i), json=s=>JSON.stringify(payload(s));
 function toast(message){$('toast').textContent=message;$('toast').classList.add('visible');clearTimeout(timer);timer=setTimeout(()=>$('toast').classList.remove('visible'),2600);}
 function draft(){try{localStorage.setItem(storageKey,JSON.stringify(state));}catch{} render();}
 function focus(i){if(i<0||i>=state.count||i===active)return;previous=active;active=i;render();}
 function renderPreview(){
  const deck=layout(state,active,previous);active=deck.active;previous=deck.previous;
- $('canvas').className='canvas'+(state.direction==='column'?' column':'')+(!state.ruler?' no-ruler':'');
+ $('karta').className='karta'+(state.direction==='column'?' column':'')+(!state.ruler?' no-ruler':'');
  const horizontal=state.direction==='column', extent=horizontal?$('stage').clientWidth:$('stage').clientHeight;
  for(const c of deck.cards){
   let el=$('window-'+c.index);
@@ -63,12 +63,12 @@ $('extent').onchange=e=>{state.extent=Math.max(400,Math.min(2400,Math.round(Numb
 ['row','column'].forEach(k=>$(k).onclick=()=>{state.direction=k;draft();});
 ['labels','ruler'].forEach(k=>$(k).onchange=e=>{state[k]=e.target.checked;draft();});
 $('previous').onclick=()=>focus(active-1);$('next').onclick=()=>focus(active+1);
-$('canvas').addEventListener('keydown',e=>{const d={ArrowUp:-1,ArrowLeft:-1,ArrowDown:1,ArrowRight:1}[e.key];if(d){e.preventDefault();focus(active+d);}});
+$('karta').addEventListener('keydown',e=>{const d={ArrowUp:-1,ArrowLeft:-1,ArrowDown:1,ArrowRight:1}[e.key];if(d){e.preventDefault();focus(active+d);}});
 $('save').onclick=async()=>{const snapshot={...state};$('save').disabled=true;try{const r=await fetch('/api/final',{method:'POST',headers:{'Content-Type':'application/json'},body:json(snapshot)});if(!r.ok)throw Error('保存失败，请确认本地服务仍在运行');saved=fromPayload(await r.json());render();toast('最终参数已保存到项目');}catch(e){$('status').textContent=e.message;$('status').className='error';}finally{$('save').disabled=false;}};
 $('copy').onclick=async()=>{try{await navigator.clipboard.writeText(JSON.stringify(payload(state),null,2));toast('已复制参数');}catch{toast('浏览器未允许复制，请使用导出 JSON');}};
 $('export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify(payload(state),null,2)+'\n'],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download='stack-ratios.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);};
 try{const r=await fetch('/api/final');if(!r.ok)throw Error();saved=fromPayload(await r.json());if(saved)state={...saved};}catch{toast('无法读取项目参数，请通过本地服务打开此页');}
 try{let d=JSON.parse(localStorage.getItem(storageKey));
- if(!d){const old=JSON.parse(localStorage.getItem('hyprcanvas.stack-tuner.v2')||localStorage.getItem('hyprcanvas.stack-tuner.v1'));if(old)d={...old,crossMain:old.crossMain>=0.1&&old.crossMain<=2?old.crossMain:DEFAULT.crossMain,crossSecondary:DEFAULT.crossSecondary,crossOthers:DEFAULT.crossOthers};}
+ if(!d){const old=JSON.parse(localStorage.getItem('karta.stack-tuner.v2')||localStorage.getItem('karta.stack-tuner.v1'));if(old)d={...old,crossMain:old.crossMain>=0.1&&old.crossMain<=2?old.crossMain:DEFAULT.crossMain,crossSecondary:DEFAULT.crossSecondary,crossOthers:DEFAULT.crossOthers};}
 if(valid({...DEFAULT,...d})){state={...DEFAULT,...d};delete state.crossStep;}}catch{}
-render();new ResizeObserver(renderPreview).observe($('canvas'));
+render();new ResizeObserver(renderPreview).observe($('karta'));

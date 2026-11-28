@@ -21,8 +21,8 @@
 
 #include "core/direction.h"
 #include "core/hyprland_runtime.h"
-#include "layout/canvas/internal.h"
-#include "layout/canvas/layout.h"
+#include "layout/karta/internal.h"
+#include "layout/karta/layout.h"
 #include "overview/session/session.h"
 
 extern HANDLE PHANDLE;
@@ -30,7 +30,7 @@ extern HANDLE PHANDLE;
 namespace dispatchers::detail {
 
 struct WorkspaceActionLayout {
-    CanvasLayout* layout = nullptr;
+    KartaLayout* layout = nullptr;
     int           workspace = -1;
 
     explicit operator bool() const {
@@ -46,8 +46,8 @@ inline bool isOverviewAcceptArg(std::string_view arg) {
     return arg == "accept" || arg == "confirm" || arg == "enter";
 }
 
-inline CanvasLayout* getCanvasForWorkspace(const int workspaceId) {
-    const auto workspace = CanvasCore::HyprlandRuntime::workspaceById(workspaceId);
+inline KartaLayout* getKartaForWorkspace(const int workspaceId) {
+    const auto workspace = KartaCore::HyprlandRuntime::workspaceById(workspaceId);
     if (!workspace || !workspace->space())
         return nullptr;
 
@@ -59,22 +59,22 @@ inline CanvasLayout* getCanvasForWorkspace(const int workspaceId) {
     if (!tiled)
         return nullptr;
 
-    return dynamic_cast<CanvasLayout*>(tiled.get());
+    return dynamic_cast<KartaLayout*>(tiled.get());
 }
 
 inline PHLWORKSPACE getWorkspaceForAction(PHLMONITOR monitor) {
     if (!monitor)
         return nullptr;
 
-    const auto specialWorkspaceId = CanvasCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor);
-    if (const auto specialWorkspace = CanvasCore::HyprlandRuntime::workspaceById(specialWorkspaceId))
+    const auto specialWorkspaceId = KartaCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor);
+    if (const auto specialWorkspace = KartaCore::HyprlandRuntime::workspaceById(specialWorkspaceId))
         return specialWorkspace;
 
-    const auto activeWorkspaceId = CanvasCore::HyprlandRuntime::activeWorkspaceId(monitor);
+    const auto activeWorkspaceId = KartaCore::HyprlandRuntime::activeWorkspaceId(monitor);
     if (activeWorkspaceId == WORKSPACE_INVALID)
         return nullptr;
 
-    return CanvasCore::HyprlandRuntime::workspaceById(activeWorkspaceId);
+    return KartaCore::HyprlandRuntime::workspaceById(activeWorkspaceId);
 }
 
 inline PHLWORKSPACE workspaceForActionContext(int* workspace) {
@@ -85,7 +85,7 @@ inline PHLWORKSPACE workspaceForActionContext(int* workspace) {
         return nullptr;
     }
 
-    PHLMONITOR monitor = CanvasCore::HyprlandRuntime::monitorForKeyboardAction();
+    PHLMONITOR monitor = KartaCore::HyprlandRuntime::monitorForKeyboardAction();
     if (!monitor) {
         spdlog::warn("layout_for_action: no focused monitor or cursor monitor");
         if (workspace)
@@ -93,20 +93,20 @@ inline PHLWORKSPACE workspaceForActionContext(int* workspace) {
         return nullptr;
     }
 
-    const auto specialWorkspaceId = CanvasCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor);
-    const auto activeWorkspaceId = CanvasCore::HyprlandRuntime::activeWorkspaceId(monitor);
-    const auto specialWorkspace = CanvasCore::HyprlandRuntime::workspaceById(specialWorkspaceId);
+    const auto specialWorkspaceId = KartaCore::HyprlandRuntime::activeSpecialWorkspaceId(monitor);
+    const auto activeWorkspaceId = KartaCore::HyprlandRuntime::activeWorkspaceId(monitor);
+    const auto specialWorkspace = KartaCore::HyprlandRuntime::workspaceById(specialWorkspaceId);
     const auto selectedWorkspace = getWorkspaceForAction(monitor);
-    const auto workspaceId = selectedWorkspace ? CanvasCore::HyprlandRuntime::workspaceId(selectedWorkspace) : WORKSPACE_INVALID;
+    const auto workspaceId = selectedWorkspace ? KartaCore::HyprlandRuntime::workspaceId(selectedWorkspace) : WORKSPACE_INVALID;
 
-    if (!selectedWorkspace || CanvasCore::HyprlandRuntime::workspaceHasFullscreen(selectedWorkspace)) {
+    if (!selectedWorkspace || KartaCore::HyprlandRuntime::workspaceHasFullscreen(selectedWorkspace)) {
         spdlog::debug("layout_for_action: rejected chosen_ws={} special_ws={} active_ws={} special_exists={} exists={} fullscreen={}",
                       workspaceId,
                       specialWorkspaceId,
                       activeWorkspaceId,
                       specialWorkspace != nullptr,
                       selectedWorkspace != nullptr,
-                      CanvasCore::HyprlandRuntime::workspaceHasFullscreen(selectedWorkspace));
+                      KartaCore::HyprlandRuntime::workspaceHasFullscreen(selectedWorkspace));
         if (workspace)
             *workspace = -1;
         return nullptr;
@@ -123,12 +123,12 @@ inline PHLWORKSPACE workspaceForActionContext(int* workspace) {
     return selectedWorkspace;
 }
 
-inline CanvasLayout* layoutForAction(int* workspace) {
+inline KartaLayout* layoutForAction(int* workspace) {
     const auto selectedWorkspace = workspaceForActionContext(workspace);
     if (!selectedWorkspace)
         return nullptr;
 
-    auto* layout = getCanvasForWorkspace(CanvasCore::HyprlandRuntime::workspaceId(selectedWorkspace));
+    auto* layout = getKartaForWorkspace(KartaCore::HyprlandRuntime::workspaceId(selectedWorkspace));
     if (layout)
         layout->prepareForActionContext();
     return layout;
@@ -164,11 +164,11 @@ inline std::string firstDispatchArg(const std::string& arg) {
 }
 
 inline std::optional<Direction> parsedDirectionArg(const std::string& arg) {
-    return CanvasCore::parse_direction_arg(firstDispatchArg(arg));
+    return KartaCore::parse_direction_arg(firstDispatchArg(arg));
 }
 
 inline std::optional<Mode> parsedModeArg(const std::string& arg) {
-    return CanvasCore::parse_mode_arg(firstDispatchArg(arg));
+    return KartaCore::parse_mode_arg(firstDispatchArg(arg));
 }
 
 template <typename Fn>
@@ -190,7 +190,7 @@ inline void withParsedModeArgOrWarn(const char* dispatcher, const std::string& a
 
 template <typename Fn>
 inline void withWorkspaceDirectionArg(const std::string& arg, Fn&& fn) {
-    withWorkspaceLayout([&](CanvasLayout& layout, int workspace) {
+    withWorkspaceLayout([&](KartaLayout& layout, int workspace) {
         withParsedDirectionArg(arg, [&](Direction direction) {
             fn(layout, workspace, direction);
         });

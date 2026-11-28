@@ -6,7 +6,7 @@
 #include "logic.h"
 #include "overview/render/animation.h"
 namespace Overview::Minimap {
-void notifySwitch(int fromCanvas, int toCanvas);
+void notifySwitch(int fromKarta, int toKarta);
 void reset();
 bool visible(PHLMONITOR monitor, steady_tp now);
 double alpha(steady_tp now);

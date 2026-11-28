@@ -21,7 +21,7 @@
 namespace Overview {
 
 struct SelectionPulse {
-    CanvasCore::Box box;
+    KartaCore::Box box;
     steady_tp         startedAt;
 };
 
@@ -56,11 +56,11 @@ class RenderState {
 
     void updateSelectionPulse(const SceneMonitor& scene, steady_tp now);
     bool selectionAnimationActive(int monitorId, steady_tp now) const;
-    CanvasCore::Box animatedSelectionBox(const CanvasCore::Box& selectionBox, int monitorId, steady_tp now) const;
+    KartaCore::Box animatedSelectionBox(const KartaCore::Box& selectionBox, int monitorId, steady_tp now) const;
 
     void rebuildPreviewAnimations(const Model& model);
     bool previewAnimationActive(int monitorId) const;
-    CanvasCore::Box animatedPreviewBox(int canvasId, int monitorId, PHLWINDOW window, const CanvasCore::Box& fallbackBox) const;
+    KartaCore::Box animatedPreviewBox(int kartaId, int monitorId, PHLWINDOW window, const KartaCore::Box& fallbackBox) const;
 
     SP<Render::ITexture> findTextTexture(const std::string& key) const;
     void                 storeTextTexture(std::string key, SP<Render::ITexture> texture);
@@ -76,7 +76,7 @@ class RenderState {
     bool                                            lastOverviewActive_ = false;
 };
 
-CanvasCore::ServiceSlot<RenderState>& renderStateSlot();
+KartaCore::ServiceSlot<RenderState>& renderStateSlot();
 RenderState& renderState();
 
 } // namespace Overview

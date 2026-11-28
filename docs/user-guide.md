@@ -1,61 +1,61 @@
-# HyprCanvas user guide
+# Karta user guide
 
 [Back to the project](../README.md) · [Installation](../README.md#get-started)
 
 This guide describes the Hyprland 0.57 Lua API. The plugin is named
-`hyprCanvas`; its layout, options, and Lua namespace use `canvas`.
-Old `canvas:movefocus`-style dispatcher bindings are not supported by this
-version. Use `hl.plugin.canvas.move_focus(...)` and the other functions below.
+`karta`; its layout, options, and Lua namespace use `karta`.
+Old `karta:movefocus`-style dispatcher bindings are not supported by this
+version. Use `hl.plugin.karta.move_focus(...)` and the other functions below.
 
-## Canvas workspaces
+## Karta workspaces
 
-A canvas workspace groups one native Hyprland workspace per connected monitor.
-Switching canvases changes those member workspaces together. Special scratchpads
+A karta workspace groups one native Hyprland workspace per connected monitor.
+Switching kartas changes those member workspaces together. Special scratchpads
 remain separate overlays.
 
 ```lua
 hl.bind("SUPER + TAB", function()
-    hl.plugin.canvas.switch_workspace("r")
+    hl.plugin.karta.switch_workspace("r")
 end)
 hl.bind("SUPER + SHIFT + TAB", function()
-    hl.plugin.canvas.switch_workspace("l")
+    hl.plugin.karta.switch_workspace("l")
 end)
 hl.bind("SUPER + 1", function()
-    hl.plugin.canvas.switch_workspace("1")
+    hl.plugin.karta.switch_workspace("1")
 end)
 ```
 
-Canvas switches slide according to the source and destination positions in the
-canvas grid. A canvas to the right enters from the right while the current one
+Karta switches slide according to the source and destination positions in the
+karta grid. A karta to the right enters from the right while the current one
 exits left; vertical and diagonal jumps follow their corresponding directions.
 All monitors share that direction, with travel scaled to each monitor's logical
 size. Numbered jumps use the same spatial rule rather than creation order.
 Native workspace animation timing and the animations-enabled setting still apply.
-Selecting the current canvas or cancelling an unchanged overview does not start
-a canvas slide.
+Selecting the current karta or cancelling an unchanged overview does not start
+a karta slide.
 
-Numbers `"1"` through `"10"` address canvas creation order, **not native
-Hyprland workspace IDs**. Only the next missing canvas can be created; jumping
-past it does not allocate a chain of empty pages. A new canvas has separate
+Numbers `"1"` through `"10"` address karta creation order, **not native
+Hyprland workspace IDs**. Only the next missing karta can be created; jumping
+past it does not allocate a chain of empty pages. A new karta has separate
 backing workspaces for each monitor and stays temporary until a window is opened
-or moved into any member (including floating windows). An empty temporary canvas
+or moved into any member (including floating windows). An empty temporary karta
 cannot create another page beyond it. Leaving it removes it; once populated, it
-remains a regular canvas even if its last window later closes.
+remains a regular karta even if its last window later closes.
 
 During overview, switching changes the preview;
 accepting the selection switches the actual desktop. Outside overview, it
 switches immediately.
 
 For a fuller set of bindings, copy
-[`examples/canvas-layout.lua`](../examples/canvas-layout.lua) into
-`~/.config/hypr/lua/canvas-layout.lua`, then load it after your normal
+[`examples/karta-layout.lua`](../examples/karta-layout.lua) into
+`~/.config/hypr/lua/karta-layout.lua`, then load it after your normal
 keybinding modules:
 
 ```lua
-dofile(os.getenv("HOME") .. "/.config/hypr/lua/canvas-layout.lua")
+dofile(os.getenv("HOME") .. "/.config/hypr/lua/karta-layout.lua")
 ```
 
-The module installs these bindings in canvas. Both direction groups use
+The module installs these bindings in karta. Both direction groups use
 left / down / up / right order:
 
 | Keys | Action |
@@ -63,59 +63,59 @@ left / down / up / right order:
 | `Super + H / J / K / L` | Focus a window. |
 | `Super + Alt + H / J / K / L` | Move a window. |
 | `Ctrl + Shift + H / J / K / L` | Swap windows. |
-| `Super + Ctrl + N / M / comma / period` | Switch the canvas workspace in four directions. |
-| `Super + Ctrl + Alt + N / M / comma / period` | Move the focused window to the adjacent canvas and follow it. |
+| `Super + Ctrl + N / M / comma / period` | Switch the karta workspace in four directions. |
+| `Super + Ctrl + Alt + N / M / comma / period` | Move the focused window to the adjacent karta and follow it. |
 | `Super + N / M / comma / period` | Focus a physical monitor. |
 | `Super + Alt + N / M / comma / period` | Move a window directly to an adjacent monitor and follow it. |
 | `Super + I` | Open overview or accept its selection and exit. |
 | `Super + F` | Expand or restore the active stack. |
 
 H/J/K/L address individual windows; N/M/comma/period address monitors and
-canvas workspaces. Ctrl selects the workspace layer, and Alt carries the window.
+karta workspaces. Ctrl selects the workspace layer, and Alt carries the window.
 
 Keep the left little finger on Super when navigating; add Alt with the ring
 finger to move the selected window, including across monitors.
 
 Read the module before installing it: its native fallbacks match the local
-user configuration. Outside canvas it restores Super+Alt+H/J/K/L swapping,
+user configuration. Outside karta it restores Super+Alt+H/J/K/L swapping,
 Super+Ctrl+H/J/K/L movement, Ctrl+Shift+H/L workspace transfers, Super+N night
 light, Super+M split ratio, and Super+comma/period workspace navigation.
 Plugin-only shortcuts are removed. The old Super+Shift+N/M monitor movement
 aliases are retired; those keys retain the notification panel and music launcher.
 
 It also replaces Tab, number, and wheel workspace shortcuts, and disables
-numbered window transfers and whole-workspace monitor moves while using canvas.
+numbered window transfers and whole-workspace monitor moves while using karta.
 Other layouts retain native behavior. Number keys select workspaces; configure
 visible-stack counts in Lua rather than binding the README's sizing examples.
 
 Native workspace commands, gestures, and external workspace widgets still use
-Hyprland's per-monitor semantics. Route ordinary canvas switching through
+Hyprland's per-monitor semantics. Route ordinary karta switching through
 `switch_workspace` to keep all monitors together.
 
 [`ChangeLayout.sh`](../examples/ChangeLayout.sh) switches between `master`,
-`dwindle`, and `canvas` and installs the associated bindings. Its Lua path
+`dwindle`, and `karta` and installs the associated bindings. Its Lua path
 also reloads the workspace module above, so install both files when using it.
 
-## Canvas map
+## Karta map
 
 A compact map appears in the top-right workarea of the focused monitor for
-1.5 seconds after directly switching canvases from the desktop, including empty
-temporary canvases. Expiration does not depend on opening a window and leaves
+1.5 seconds after directly switching kartas from the desktop, including empty
+temporary kartas. Expiration does not depend on opening a window and leaves
 no persistent badge or explanatory message. During overview
 it stays on the monitor where overview opened and disappears immediately on
-accept or cancel; exiting overview does not start a desktop HUD. Each cell represents a whole multi-monitor canvas;
-positions preserve the actual canvas grid, including gaps and negative coordinates.
+accept or cancel; exiting overview does not start a desktop HUD. Each cell represents a whole multi-monitor karta;
+positions preserve the actual karta grid, including gaps and negative coordinates.
 
 - A filled cell with a dot marks the current desktop; a gold outline marks the preview.
-- Numbers follow canvas creation order, matching numbered canvas shortcuts.
-- Dashed cells with `*` mark temporary or uncommitted canvases; dashed `+` cells
+- Numbers follow karta creation order, matching numbered karta shortcuts.
+- Dashed cells with `*` mark temporary or uncommitted kartas; dashed `+` cells
   advertise an adjacent creation slot. Empty temporary pages cannot extend further.
-- During overview, click a cell to preview it or `+` to preview a new canvas.
+- During overview, click a cell to preview it or `+` to preview a new karta.
   Accept overview to switch, or cancel to return. Desktop HUD clicks pass through.
 - Large maps show a local region up to five rows/columns around the preview.
-  Footer arrows indicate retained canvases beyond the visible region.
+  Footer arrows indicate retained kartas beyond the visible region.
 
-Set `plugin:canvas:canvas_map` to `0` to disable both map surfaces (default `1`).
+Set `plugin:karta:karta_map` to `0` to disable both map surfaces (default `1`).
 The first version uses fixed placement and duration; the independent, zoomable
 world-map design is tracked in [planned work](planned-work.md).
 
@@ -183,7 +183,7 @@ visible area.
 | Along the lane: left/right in row mode, up/down in column mode | A single-window stack joins its neighbor; a window in a multi-window stack splits into a new stack on that side. |
 
 Moving toward an expanded stack creates a separate stack instead of joining
-it. Directional movement can cross physical monitors within the visible canvas.
+it. Directional movement can cross physical monitors within the visible karta.
 
 `move_window_to_monitor(direction)` moves the active tiled window directly to
 the adjacent physical monitor's visible workspace, even when there are local
@@ -192,20 +192,20 @@ only cardinal directions and does nothing if there is no adjacent monitor or
 overview is open.
 
 ```lua
-hl.bind("SUPER + SHIFT + N", function() hl.plugin.canvas.move_window_to_monitor("l") end)
-hl.bind("SUPER + SHIFT + period", function() hl.plugin.canvas.move_window_to_monitor("r") end)
+hl.bind("SUPER + SHIFT + N", function() hl.plugin.karta.move_window_to_monitor("l") end)
+hl.bind("SUPER + SHIFT + period", function() hl.plugin.karta.move_window_to_monitor("r") end)
 ```
 
 `move_window_to_workspace(direction)` transfers the focused tiled window to an
-adjacent canvas, keeping its physical monitor. All monitors switch to the target
-canvas and focus follows the transferred window. A missing neighbor is created
+adjacent karta, keeping its physical monitor. All monitors switch to the target
+karta and focus follows the transferred window. A missing neighbor is created
 using the same spatial routing as `switch_workspace`. Returning to the source
 restores its remaining selected window; background monitors retain their focus
 history. Floating/special-workspace windows, invalid directions and calls during
 overview are ignored. Native numbered transfers remain disabled in the example.
 
 ```lua
-hl.bind("SUPER + CTRL + ALT + N", function() hl.plugin.canvas.move_window_to_workspace("l") end)
+hl.bind("SUPER + CTRL + ALT + N", function() hl.plugin.karta.move_window_to_workspace("l") end)
 ```
 
 `swap_window(direction)` exchanges the active windows of adjacent stacks in
@@ -215,8 +215,8 @@ counts, and expansion states are preserved. It does not wrap, accept
 when either selected window is in native fullscreen.
 
 ```lua
-hl.bind("SUPER + ALT + LEFT", function() hl.plugin.canvas.swap_window("l") end)
-hl.bind("SUPER + ALT + RIGHT", function() hl.plugin.canvas.swap_window("r") end)
+hl.bind("SUPER + ALT + LEFT", function() hl.plugin.karta.swap_window("l") end)
+hl.bind("SUPER + ALT + RIGHT", function() hl.plugin.karta.swap_window("r") end)
 ```
 
 ## Overview and marks
@@ -233,7 +233,7 @@ remain selectable.
 While overview is open:
 
 - `move_focus(direction)` changes the logical selection.
-- `focus_monitor(direction)` changes the canvas preview selection.
+- `focus_monitor(direction)` changes the karta preview selection.
 - `toggle_overview("accept")` accepts the target.
 - `cancel_overview()` restores the original workspace/window.
 
@@ -247,18 +247,18 @@ clear all marks. Visiting a mark may switch workspaces.
 
 ## Lua API
 
-All functions live under `hl.plugin.canvas`. Call them from keybinding
+All functions live under `hl.plugin.karta`. Call them from keybinding
 callbacks after the plugin has loaded.
 
 | Function | Purpose |
 | --- | --- |
 | `move_focus(direction)` | Move layout focus or overview selection. |
 | `move_window(direction)` | Reorder, join, split, or move a window. |
-| `move_window_to_workspace(direction)` | Move a tiled window to the adjacent canvas on the same physical monitor and follow it. |
+| `move_window_to_workspace(direction)` | Move a tiled window to the adjacent karta on the same physical monitor and follow it. |
 | `move_window_to_monitor(direction)` | Move a tiled window directly to an adjacent monitor and follow focus. |
 | `swap_window(direction)` | Exchange active windows in adjacent stacks. |
-| `focus_monitor(direction)` | Focus another monitor or change the overview canvas selection. |
-| `switch_workspace(target)` | Switch the whole canvas by direction or `"1"`–`"10"`. |
+| `focus_monitor(direction)` | Focus another monitor or change the overview karta selection. |
+| `switch_workspace(target)` | Switch the whole karta by direction or `"1"`–`"10"`. |
 | `set_mode("row" / "col")` | Change layout orientation. |
 | `set_window_size(n)` | Set the session-wide visible-stack count, 1–8. |
 | `toggle_fullscreen()` | Expand or restore the active stack. |
@@ -275,23 +275,23 @@ may restrict supported directions as described above.
 
 ## Options
 
-Options are registered under `plugin:hyprCanvas:*` (legacy `plugin:canvas:*` names remain accepted as compatibility aliases). The normal build exposes:
+Options are registered under `plugin:karta:*`. The normal build exposes:
 
 | Option | Default | Values |
 | --- | --- | --- |
 | `column_default_width` | `"2"` | A string count `"1"`–`"8"`, or `"floating"` to use the last floating size. |
 | `focus_wrap` | `0` | `0` disables wrapping at lane/stack edges; `1` enables it. |
-| `canvas_map` | `1` | `1` shows the canvas map HUD/overview panel; `0` disables it. |
+| `karta_map` | `1` | `1` shows the karta map HUD/overview panel; `0` disables it. |
 
 After the plugin has loaded, these can be set through Lua configuration:
 
 ```lua
 hl.config({
     plugin = {
-        hyprCanvas = {
+        karta = {
             column_default_width = "3",
             focus_wrap = 0,
-            canvas_map = 1,
+            karta_map = 1,
         },
     },
 })
@@ -309,7 +309,7 @@ layout, and replacing it may rearrange windows.
 ### From manual loading
 
 Remove `hl.plugin.load(...)` and any startup `hyprctl plugin load` command
-for either `hyprscroller.so` or `hyprCanvas.so`. Use the
+for either `hyprscroller.so` or `karta.so`. Use the
 [hyprpm startup configuration](../README.md#2-configure-startup-and-layout)
 instead. Automatic config reload may unload the manual plugin immediately.
 Enable the managed plugin only once the old copy is unloaded, or complete the
@@ -317,23 +317,23 @@ switch in a fresh session. Keep the old file as a rollback copy until verified.
 
 ### From an older hyprpm installation
 
-The rename changes the plugin identifier to `hyprCanvas`. If an update has
-already built it, `hyprpm list` may show `hyprCanvas` disabled under a repository
+The rename changes the plugin identifier to `karta`. If an update has
+already built it, `hyprpm list` may show `karta` disabled under a repository
 still named `hyprscroller`. Once the old plugin is unloaded, enable the new one:
 
 ```sh
-hyprpm enable hyprCanvas
+hyprpm enable karta
 ```
 
 To replace the old repository record as well, remove and add it again:
 
 ```sh
-hyprpm remove https://github.com/86kkd/hyprCanvas.git
-hyprpm add https://github.com/86kkd/hyprCanvas.git
-hyprpm enable hyprCanvas
+hyprpm remove https://github.com/86kkd/karta.git
+hyprpm add https://github.com/86kkd/karta.git
+hyprpm enable karta
 ```
 
 If the old installation used a different repository URL, use the URL shown by
 that installation when removing it. Verify with `hyprpm list` and
-`hyprctl plugin list`. Unload hyprscroller before enabling hyprCanvas, and
-update any remaining `scroller` layout/Lua config entries to `canvas`.
+`hyprctl plugin list`. Unload hyprscroller before enabling karta, and
+update any remaining `scroller` layout/Lua config entries to `karta`.

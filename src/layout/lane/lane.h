@@ -1,6 +1,6 @@
 /**
  * @file lane.h
- * @brief Lane-level workspace controller for canvas layout.
+ * @brief Lane-level workspace controller for karta layout.
  *
  * `Lane` owns ordered stacks for a single workspace and handles lane-level
  * focus movement, command dispatch behavior, fullscreen/maximize transitions,
@@ -26,11 +26,11 @@
  * destination stack without losing sizing intent.
  */
 struct ActiveWindowPayload {
-    std::unique_ptr<CanvasModel::Window> window;
-    CanvasModel::StackWidth              width = CanvasModel::StackWidth::visible(CanvasModel::StackWidth::kDefaultVisibleStacks);
+    std::unique_ptr<KartaModel::Window> window;
+    KartaModel::StackWidth              width = KartaModel::StackWidth::visible(KartaModel::StackWidth::kDefaultVisibleStacks);
     // When width is Free, carry the stack's primary-axis span into the next lane.
     double                  primarySpan = 0.0;
-    // Canvas-fullsize state the window owned on its own before any join.
+    // Karta-fullsize state the window owned on its own before any join.
     bool                    fullsize = false;
 
     ActiveWindowPayload() = default;
@@ -40,7 +40,7 @@ struct ActiveWindowPayload {
     ActiveWindowPayload &operator=(ActiveWindowPayload &&other) noexcept = default;
 
     // Release ownership of the moved model window to the destination consumer.
-    std::unique_ptr<CanvasModel::Window> release_window() {
+    std::unique_ptr<KartaModel::Window> release_window() {
         return std::move(window);
     }
 
@@ -60,7 +60,7 @@ struct ActiveWindowRestorePlan {
 };
 
 class Lane {
-    // A lane owns the ordered stacks visible on one canvas strip.
+    // A lane owns the ordered stacks visible on one karta strip.
     //
     // Companion reading note:
     // - `lane.h` describes the public responsibilities of a lane
@@ -89,7 +89,7 @@ public:
             std::forward<Fn>(fn)(col->data().get());
     }
     // Export every window's full logical box before compositor safety clipping.
-    std::vector<CanvasModel::WindowGeometryEntry> capture_window_boxes() const;
+    std::vector<KartaModel::WindowGeometryEntry> capture_window_boxes() const;
     PHLWINDOW get_active_window() const;
     bool is_active(PHLWINDOW window) const;
     size_t stack_count() const;
@@ -107,11 +107,11 @@ public:
     void insert_window_payload(ActiveWindowPayload payload, Direction direction);
     // Restore a previously extracted payload back into this lane after a failed handoff.
     void restore_active_window_payload(ActiveWindowPayload payload, const ActiveWindowRestorePlan &plan);
-    void set_canvas_geometry(const CanvasCore::Box &full_box,
-                             const CanvasCore::Box &max_box,
+    void set_karta_geometry(const KartaCore::Box &full_box,
+                             const KartaCore::Box &max_box,
                              int gap_size);
-    void set_restored_canvas_geometry(const CanvasCore::Box &full_box,
-                                      const CanvasCore::Box &max_box,
+    void set_restored_karta_geometry(const KartaCore::Box &full_box,
+                                      const KartaCore::Box &max_box,
                                       int gap_size);
 
     // Remove a window and re-adapt lanes and stacks, returning true on success.
@@ -125,7 +125,7 @@ public:
     void focus_position(size_t stackIndex, std::optional<size_t> windowIndex);
 
     // Command-facing stack and window operations.
-    void apply_stack_width(CanvasModel::StackWidth width);
+    void apply_stack_width(KartaModel::StackWidth width);
     void resize_active_window(const Vector2D &delta);
     void set_mode(Mode m);
     void move_active_stack(Direction dir);
@@ -139,19 +139,19 @@ public:
     void toggle_maximize_active_stack();
     void recalculate_lane_geometry();
     void commit_restored_geometry();
-    void append_restored_stack(std::unique_ptr<CanvasModel::Stack> stack);
+    void append_restored_stack(std::unique_ptr<KartaModel::Stack> stack);
     void set_active_stack_by_index(size_t index);
-    CanvasLayoutSnapshot::LaneSnapshot capture_snapshot() const;
+    KartaLayoutSnapshot::LaneSnapshot capture_snapshot() const;
 
 private:
-    using StackNode = ListNode<std::unique_ptr<CanvasModel::Stack>>;
+    using StackNode = ListNode<std::unique_ptr<KartaModel::Stack>>;
 
-    CanvasModel::Stack *getStackForWindow(PHLWINDOW window) const;
-    StackNode *getStackNode(CanvasModel::Stack *stack) const;
-    void rememberWindowStack(PHLWINDOW window, CanvasModel::Stack *stack);
+    KartaModel::Stack *getStackForWindow(PHLWINDOW window) const;
+    StackNode *getStackNode(KartaModel::Stack *stack) const;
+    void rememberWindowStack(PHLWINDOW window, KartaModel::Stack *stack);
     void forgetWindowStack(PHLWINDOW window);
-    void rememberStackWindows(CanvasModel::Stack *stack);
-    void forgetStackWindows(CanvasModel::Stack *stack);
+    void rememberStackWindows(KartaModel::Stack *stack);
+    void forgetStackWindows(KartaModel::Stack *stack);
     void debugVerifyStackCache() const;
 
     // Calculate lateral gaps for a stack based on neighbor presence.
@@ -159,18 +159,18 @@ private:
 
     void adjust_stacks(StackNode *stack);
     // Return the stack span that should be preserved when moving a free-sized stack.
-    double stack_primary_span_for_transfer(const CanvasModel::Stack *stack) const;
+    double stack_primary_span_for_transfer(const KartaModel::Stack *stack) const;
     // Rebuild a single-window stack from a transferred payload using this lane's mode/bounds.
-    std::unique_ptr<CanvasModel::Stack> create_stack_from_payload(ActiveWindowPayload payload);
+    std::unique_ptr<KartaModel::Stack> create_stack_from_payload(ActiveWindowPayload payload);
     // Position a freshly inserted stack immediately before/after a reference stack on the lane axis.
-    void position_stack_relative_to_reference(CanvasModel::Stack *stack,
-                                             const CanvasModel::Stack *reference,
+    void position_stack_relative_to_reference(KartaModel::Stack *stack,
+                                             const KartaModel::Stack *reference,
                                              Direction direction);
 
-    // Raw monitor bounds for this lane's current canvas placement.
-    CanvasCore::Box full;
+    // Raw monitor bounds for this lane's current karta placement.
+    KartaCore::Box full;
     // Workarea bounds after reserved areas and gaps are applied.
-    CanvasCore::Box max;
+    KartaCore::Box max;
     // Whether this lane is a temporary navigation-only lane.
     bool ephemeral = false;
     // Inner gap used between stacked windows.
@@ -180,7 +180,7 @@ private:
     // Active stack node inside this lane.
     StackNode *active = nullptr;
     // Ordered stacks owned by this lane.
-    List<std::unique_ptr<CanvasModel::Stack>> stacks;
+    List<std::unique_ptr<KartaModel::Stack>> stacks;
     // Cached window -> stack index used to avoid repeated whole-lane scans.
-    mutable CanvasCore::OwnerIndex<uintptr_t, CanvasModel::Stack> stackByWindow;
+    mutable KartaCore::OwnerIndex<uintptr_t, KartaModel::Stack> stackByWindow;
 };

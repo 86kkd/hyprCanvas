@@ -1,10 +1,10 @@
 /** @file runtime.cpp
- * @brief Adapt the canvas repository and overview preview to one shared map.
+ * @brief Adapt the karta repository and overview preview to one shared map.
  */
 #include "runtime.h"
 #include "core/core.h"
 #include "core/monitor_geometry_runtime.h"
-#include "layout/canvas/canvas_workspace_repository.h"
+#include "layout/karta/karta_workspace_repository.h"
 #include "overview/session/session.h"
 #include "plugin/config.h"
 #include <hyprland/src/render/Renderer.hpp>
@@ -25,13 +25,13 @@ int displayMonitor() {
     return hudMonitor;
 }
 }
-void notifySwitch(int fromCanvas, int toCanvas) {
-    if (fromCanvas == toCanvas || fromCanvas < 0 || toCanvas < 0)
+void notifySwitch(int fromKarta, int toKarta) {
+    if (fromKarta == toKarta || fromKarta < 0 || toKarta < 0)
         return;
-    const auto monitor = CanvasCore::monitorForKeyboardAction();
+    const auto monitor = KartaCore::monitorForKeyboardAction();
     if (!monitor)
         return;
-    if (const auto old = CanvasCore::HyprlandRuntime::monitorById(hudMonitor))
+    if (const auto old = KartaCore::HyprlandRuntime::monitorById(hudMonitor))
         g_pHyprRenderer->damageMonitor(old);
     hudMonitor = monitor->m_id;
     switchedAt = std::chrono::steady_clock::now();
@@ -49,11 +49,11 @@ void notifySwitch(int fromCanvas, int toCanvas) {
             if (expired) {
                 switchedAt.reset();
                 timer->updateTimeout(std::nullopt);
-                spdlog::debug("canvas_minimap: expired monitor={}", hudMonitor);
+                spdlog::debug("karta_minimap: expired monitor={}", hudMonitor);
             } else {
                 timer->updateTimeout(std::chrono::milliseconds(16));
             }
-            if (const auto output = CanvasCore::HyprlandRuntime::monitorById(hudMonitor)) {
+            if (const auto output = KartaCore::HyprlandRuntime::monitorById(hudMonitor)) {
                 g_pHyprRenderer->damageMonitor(output);
                 output->scheduleFrame();
             }
@@ -63,10 +63,10 @@ void notifySwitch(int fromCanvas, int toCanvas) {
     hudTimer->updateTimeout(std::chrono::milliseconds(1300));
     g_pHyprRenderer->damageMonitor(monitor);
     monitor->scheduleFrame();
-    spdlog::debug("canvas_minimap: switch from={} to={} monitor={}", fromCanvas, toCanvas, hudMonitor);
+    spdlog::debug("karta_minimap: switch from={} to={} monitor={}", fromKarta, toKarta, hudMonitor);
 }
 void reset() {
-    if (const auto monitor = CanvasCore::HyprlandRuntime::monitorById(hudMonitor))
+    if (const auto monitor = KartaCore::HyprlandRuntime::monitorById(hudMonitor))
         g_pHyprRenderer->damageMonitor(monitor);
     switchedAt.reset();
     hudMonitor = -1;
@@ -80,52 +80,52 @@ double alpha(steady_tp now) {
 }
 bool visible(PHLMONITOR monitor, steady_tp now) {
     static auto layoutName = CConfigValue<std::string>("general:layout");
-    return *layoutName == "canvas"
+    return *layoutName == "karta"
         && (!g_pSessionLockManager || !g_pSessionLockManager->isSessionLocked())
-        && canvas::plugin_config::canvasMap()
+        && karta::plugin_config::kartaMap()
         && monitor && monitor->m_id == displayMonitor() && alpha(now) > 0;
 }
 Map mapForMonitor(PHLMONITOR monitor) {
-    std::vector<Canvas> canvases;
-    auto& repository = CanvasLayoutState::canvasRepository();
-    for (const auto& canvas : repository.canvases())
-        canvases.push_back({canvas.canvasId, canvas.tileX, canvas.tileY, canvas.ephemeral, false});
-    int selected = repository.activeCanvasId();
+    std::vector<Karta> kartas;
+    auto& repository = KartaLayoutState::kartaRepository();
+    for (const auto& karta : repository.kartas())
+        kartas.push_back({karta.kartaId, karta.tileX, karta.tileY, karta.ephemeral, false});
+    int selected = repository.activeKartaId();
     if (session().active()) {
-        selected = session().model().selectionCanvasId().value_or(selected);
-        for (const auto& node : session().model().canvasGraph()) {
-            const auto existing = std::find_if(canvases.begin(), canvases.end(), [&](const auto& c) { return c.id == node.canvasId; });
-            if (existing == canvases.end())
-                canvases.push_back({node.canvasId, node.tileX, node.tileY, false, node.synthetic});
+        selected = session().model().selectionKartaId().value_or(selected);
+        for (const auto& node : session().model().kartaGraph()) {
+            const auto existing = std::find_if(kartas.begin(), kartas.end(), [&](const auto& c) { return c.id == node.kartaId; });
+            if (existing == kartas.end())
+                kartas.push_back({node.kartaId, node.tileX, node.tileY, false, node.synthetic});
             else {
                 existing->x = node.tileX;
                 existing->y = node.tileY;
             }
         }
     }
-    auto area = CanvasCore::logical_workarea_box(monitor, 0);
+    auto area = KartaCore::logical_workarea_box(monitor, 0);
     area.x -= monitor->m_position.x;
     area.y -= monitor->m_position.y;
-    return layout(std::move(canvases), repository.activeCanvasId(), selected, area);
+    return layout(std::move(kartas), repository.activeKartaId(), selected, area);
 }
 void click(double globalX, double globalY) {
-    const auto monitor = CanvasCore::HyprlandRuntime::monitorById(displayMonitor());
+    const auto monitor = KartaCore::HyprlandRuntime::monitorById(displayMonitor());
     if (!session().active() || !visible(monitor, std::chrono::steady_clock::now()))
         return;
     const auto cell = hit(mapForMonitor(monitor), globalX - monitor->m_position.x, globalY - monitor->m_position.y);
     if (!cell)
         return;
     if (!cell->create) {
-        session().previewCanvas(cell->canvas.id);
+        session().previewKarta(cell->karta.id);
         return;
     }
     const auto map = mapForMonitor(monitor);
     const auto anchor = std::find_if(map.cells.begin(), map.cells.end(), [](const auto& c) { return c.selected; });
     if (anchor == map.cells.end())
         return;
-    const auto direction = cell->canvas.x < anchor->canvas.x ? Direction::Left :
-                           cell->canvas.x > anchor->canvas.x ? Direction::Right :
-                           cell->canvas.y < anchor->canvas.y ? Direction::Up : Direction::Down;
-    session().moveCanvasSelection(direction);
+    const auto direction = cell->karta.x < anchor->karta.x ? Direction::Left :
+                           cell->karta.x > anchor->karta.x ? Direction::Right :
+                           cell->karta.y < anchor->karta.y ? Direction::Up : Direction::Down;
+    session().moveKartaSelection(direction);
 }
 } // namespace Overview::Minimap

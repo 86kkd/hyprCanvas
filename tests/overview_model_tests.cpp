@@ -20,7 +20,7 @@ void test_layout_workspace_grid_cells_sorts_and_assigns_boxes() {
 }
 
 void test_layout_workspace_grid_cells_stay_inside_small_regions() {
-    const CanvasCore::Box region{0.0, 0.0, 320.0, 180.0};
+    const KartaCore::Box region{0.0, 0.0, 320.0, 180.0};
     const auto cells = Overview::layoutWorkspaceGridCells(region, {8, 6, 4, 2, 7, 5, 3, 1});
     expect_eq(cells.size(), static_cast<size_t>(8), "small-region grid keeps every workspace");
     for (const auto& cell : cells) {

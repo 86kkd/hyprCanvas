@@ -14,19 +14,19 @@
 #include "core/interval.h"
 #include "core/layout_profile.h"
 
-using CanvasModel::Stack;
-using CanvasModel::StackWidth;
+using KartaModel::Stack;
+using KartaModel::StackWidth;
 
 // Insert a new window into the active lane as a peer stack.
 void Lane::add_active_window(PHLWINDOW window) {
     const bool singleWindowWorkspace = stacks.size() == 1 && stacks.first()->data()->size() == 1;
     if (singleWindowWorkspace)
-        stacks.first()->data()->update_width(CanvasModel::global_stack_width(), max.w, max.h);
+        stacks.first()->data()->update_width(KartaModel::global_stack_width(), max.w, max.h);
 
     active = stacks.emplace_after(active, std::make_unique<Stack>(window, max.w, max.h, mode));
     rememberWindowStack(window, active->data().get());
     if (singleWindowWorkspace)
-        active->data()->update_width(CanvasModel::global_stack_width(), max.w, max.h);
+        active->data()->update_width(KartaModel::global_stack_width(), max.w, max.h);
     recalculate_lane_geometry();
     debugVerifyStackCache();
 }
@@ -89,12 +89,12 @@ bool Lane::active_item_at_edge(Direction direction) const {
     if (!active)
         return false;
 
-    if (direction == CanvasCore::local_item_backward_direction(mode))
+    if (direction == KartaCore::local_item_backward_direction(mode))
         return active == stacks.first();
-    if (direction == CanvasCore::local_item_forward_direction(mode))
+    if (direction == KartaCore::local_item_forward_direction(mode))
         return active == stacks.last();
-    if (direction == CanvasCore::stack_item_backward_direction(mode) ||
-        direction == CanvasCore::stack_item_forward_direction(mode))
+    if (direction == KartaCore::stack_item_backward_direction(mode) ||
+        direction == KartaCore::stack_item_forward_direction(mode))
         return active->data()->active_at_edge(direction);
 
     return false;
@@ -149,18 +149,18 @@ void Lane::move_active_stack(Direction dir) {
     if (!active)
         return;
 
-    if (dir == CanvasCore::local_item_forward_direction(mode)) {
+    if (dir == KartaCore::local_item_forward_direction(mode)) {
         if (active != stacks.last()) {
             auto next = active->next();
             stacks.swap(active, next);
         }
-    } else if (dir == CanvasCore::local_item_backward_direction(mode)) {
+    } else if (dir == KartaCore::local_item_backward_direction(mode)) {
         if (active != stacks.first()) {
             auto prev = active->prev();
             stacks.swap(active, prev);
         }
-    } else if (dir == CanvasCore::stack_item_backward_direction(mode) ||
-               dir == CanvasCore::stack_item_forward_direction(mode)) {
+    } else if (dir == KartaCore::stack_item_backward_direction(mode) ||
+               dir == KartaCore::stack_item_forward_direction(mode)) {
         active->data()->move_active(dir);
     } else {
         switch (dir) {
@@ -209,8 +209,8 @@ void Lane::move_active_window_to_adjacent_stack(Direction dir) {
     if (!active)
         return;
 
-    const auto backward = CanvasCore::local_item_backward_direction(mode);
-    const auto forward = CanvasCore::local_item_forward_direction(mode);
+    const auto backward = KartaCore::local_item_backward_direction(mode);
+    const auto forward = KartaCore::local_item_forward_direction(mode);
     if (dir != backward && dir != forward)
         return;
 
@@ -230,7 +230,7 @@ void Lane::move_active_window_to_adjacent_stack(Direction dir) {
     const auto targetWindowCountBefore = target->data()->size();
     const auto targetExpanded = target->data()->expanded();
 
-    // Join the destination stack even when it is canvas-fullsize. Expanded
+    // Join the destination stack even when it is karta-fullsize. Expanded
     // stacks already know how to present multiple windows as a fullsize deck,
     // so admitting must not clear that flag or fall back to a sibling stack.
     active = target;
@@ -248,8 +248,8 @@ void Lane::move_active_window_to_new_stack(Direction dir) {
     if (!active)
         return;
 
-    const auto backward = CanvasCore::local_item_backward_direction(mode);
-    const auto forward = CanvasCore::local_item_forward_direction(mode);
+    const auto backward = KartaCore::local_item_backward_direction(mode);
+    const auto forward = KartaCore::local_item_forward_direction(mode);
     if (dir != backward && dir != forward)
         return;
 

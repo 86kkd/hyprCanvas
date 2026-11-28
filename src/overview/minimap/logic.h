@@ -1,5 +1,5 @@
 /** @file logic.h
- * @brief Read-only canvas map geometry; independent of compositor state.
+ * @brief Read-only karta map geometry; independent of compositor state.
  */
 #pragma once
 
@@ -8,7 +8,7 @@
 #include "core/types.h"
 
 namespace Overview::Minimap {
-struct Canvas {
+struct Karta {
     int id = -1;
     int x = 0;
     int y = 0;
@@ -16,19 +16,19 @@ struct Canvas {
     bool synthetic = false;
 };
 struct Cell {
-    Canvas canvas;
-    int number = 0; // Creation order, matching numbered canvas navigation.
-    CanvasCore::Box box;
+    Karta karta;
+    int number = 0; // Creation order, matching numbered karta navigation.
+    KartaCore::Box box;
     bool current = false;
     bool selected = false;
     bool create = false;
 };
 struct Map {
-    CanvasCore::Box panel;
+    KartaCore::Box panel;
     std::vector<Cell> cells;
     bool left = false, right = false, up = false, down = false;
 };
-Map layout(std::vector<Canvas> canvases, int current, int selected, const CanvasCore::Box& workarea);
+Map layout(std::vector<Karta> kartas, int current, int selected, const KartaCore::Box& workarea);
 std::optional<Cell> hit(const Map& map, double x, double y);
 // Overview is persistent; the desktop HUD holds for 1.3s then fades for 0.2s.
 double opacity(bool overview, double elapsedMs);

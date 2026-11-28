@@ -96,7 +96,7 @@ void handle_session_transition(steady_tp now) {
         spdlog::info("overview_renderer: enabled monitors={}", overview.model().monitors().size());
     } else {
         for (const auto& [monitorId, _scene] : state.scenes()) {
-            if (const auto monitor = CanvasCore::HyprlandRuntime::monitorById(monitorId))
+            if (const auto monitor = KartaCore::HyprlandRuntime::monitorById(monitorId))
                 g_pHyprRenderer->damageMonitor(monitor);
         }
         state.clearSessionState();
@@ -147,7 +147,7 @@ bool initializeRendererHooksImpl(HANDLE handle) {
                 return;
             if (event.stage == RENDER_LAST_MOMENT) {
                 if (Minimap::visible(event.monitor, std::chrono::steady_clock::now()))
-                    g_pHyprRenderer->addPassElement(event.context->get(), makeUnique<CanvasMapPassElement>(event.monitor));
+                    g_pHyprRenderer->addPassElement(event.context->get(), makeUnique<KartaMapPassElement>(event.monitor));
                 return;
             }
             if (event.stage != RENDER_POST_WINDOWS)
@@ -174,7 +174,7 @@ bool initializeRendererHooksImpl(HANDLE handle) {
             }
             if (!session().active() || event.state != WL_POINTER_BUTTON_STATE_PRESSED)
                 return;
-            const auto monitor = CanvasCore::HyprlandRuntime::monitorById(session().model().origin().monitorId);
+            const auto monitor = KartaCore::HyprlandRuntime::monitorById(session().model().origin().monitorId);
             if (!Minimap::visible(monitor, std::chrono::steady_clock::now()))
                 return;
             const auto pointer = Pointer::mgr()->position();
@@ -228,7 +228,7 @@ void shutdownRendererHooksImpl(HANDLE handle) {
     auto& ctx = g_pHyprRenderer->context();
     if (ctx.active()) {
         ctx.m_pass.removeAllOfType("OverviewPassElement");
-        ctx.m_pass.removeAllOfType("CanvasMapPassElement");
+        ctx.m_pass.removeAllOfType("KartaMapPassElement");
     }
     spdlog::info("overview_renderer_shutdown");
 }

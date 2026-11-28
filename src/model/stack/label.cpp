@@ -14,7 +14,7 @@
 #include "overview/render/style.h"
 #include "overview/session/session.h"
 
-namespace CanvasModel {
+namespace KartaModel {
 
 StackLabelDecoration::StackLabelDecoration(PHLWINDOW window) : IHyprWindowDecoration(window) {
     titleListener = Event::bus()->m_events.window.title.listen([this](PHLWINDOW changed) {
@@ -120,4 +120,4 @@ void StackLabelDecoration::draw(Render::CRenderContext& ctx, PHLMONITOR monitor,
     g_pHyprRenderer->addPassElement(ctx, makeUnique<CTexPassElement>(std::move(text)));
 }
 
-} // namespace CanvasModel
+} // namespace KartaModel

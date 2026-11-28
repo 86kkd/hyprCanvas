@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "core/direction.h"
-#include "core/canvas_transition.h"
+#include "core/karta_transition.h"
 #include "core/span_scale.h"
 #include "core/interval.h"
 #include "core/layout_math.h"
@@ -43,30 +43,30 @@ void expect_reserved_workarea(std::string_view label,
                               const Hyprutils::Math::Vector2D &rawSize,
                               const Hyprutils::Math::Vector2D &transformedSize,
                               wl_output_transform transform,
-                              const CanvasCore::ReservedEdges &rawReserved,
-                              const CanvasCore::ReservedEdges &expectedReserved,
-                              const CanvasCore::Box &expectedWorkarea) {
-    const auto logicalReserved = CanvasCore::logical_reserved_edges(rawSize, transformedSize, transform, rawReserved);
+                              const KartaCore::ReservedEdges &rawReserved,
+                              const KartaCore::ReservedEdges &expectedReserved,
+                              const KartaCore::Box &expectedWorkarea) {
+    const auto logicalReserved = KartaCore::logical_reserved_edges(rawSize, transformedSize, transform, rawReserved);
     expect_near(logicalReserved.top, expectedReserved.top, 1e-9, std::string(label) + " reserved top");
     expect_near(logicalReserved.right, expectedReserved.right, 1e-9, std::string(label) + " reserved right");
     expect_near(logicalReserved.bottom, expectedReserved.bottom, 1e-9, std::string(label) + " reserved bottom");
     expect_near(logicalReserved.left, expectedReserved.left, 1e-9, std::string(label) + " reserved left");
 
-    const auto workarea = CanvasCore::logical_workarea_box(position, rawSize, transformedSize, transform, rawReserved, 0.0);
+    const auto workarea = KartaCore::logical_workarea_box(position, rawSize, transformedSize, transform, rawReserved, 0.0);
     expect_near(workarea.x, expectedWorkarea.x, 1e-9, std::string(label) + " workarea x");
     expect_near(workarea.y, expectedWorkarea.y, 1e-9, std::string(label) + " workarea y");
     expect_near(workarea.w, expectedWorkarea.w, 1e-9, std::string(label) + " workarea width");
     expect_near(workarea.h, expectedWorkarea.h, 1e-9, std::string(label) + " workarea height");
 }
 
-void test_canvas_transition() {
-    using CanvasCore::canvas_transition_offset;
+void test_karta_transition() {
+    using KartaCore::karta_transition_offset;
     const Hyprutils::Math::Vector2D size{1200, 800};
     const auto check = [&](int x, int y, double expectedX, double expectedY) {
-        const auto offset = canvas_transition_offset(4, -2, x, y, size);
-        expect_near(offset.x, expectedX, 1e-9, "canvas transition x follows tile coordinates");
-        expect_near(offset.y, expectedY, 1e-9, "canvas transition y follows tile coordinates");
-        const auto reverse = canvas_transition_offset(x, y, 4, -2, size);
+        const auto offset = karta_transition_offset(4, -2, x, y, size);
+        expect_near(offset.x, expectedX, 1e-9, "karta transition x follows tile coordinates");
+        expect_near(offset.y, expectedY, 1e-9, "karta transition y follows tile coordinates");
+        const auto reverse = karta_transition_offset(x, y, 4, -2, size);
         expect_near(reverse.x, -expectedX, 1e-9, "return transition reverses x");
         expect_near(reverse.y, -expectedY, 1e-9, "return transition reverses y");
     };
@@ -78,133 +78,133 @@ void test_canvas_transition() {
     check(104, -2, 1200, 0);
     check(6, -1, 1200, 400);
     check(3, -4, -600, -800);
-    const auto portrait = canvas_transition_offset(0, 0, 0, 1, {600, 1000});
+    const auto portrait = karta_transition_offset(0, 0, 0, 1, {600, 1000});
     expect_near(portrait.y, 1000, 1e-9, "each monitor uses its own logical extent");
 }
 
 void test_interval() {
-    expect_true(CanvasCore::Interval::intersects(0.0, 10.0, 5.0, 15.0), "interval partial overlap intersects");
-    expect_true(CanvasCore::Interval::intersects(0.0, 20.0, 5.0, 15.0), "interval containing viewport intersects");
-    expect_true(!CanvasCore::Interval::intersects(0.0, 5.0, 5.0, 15.0), "touching edge does not intersect");
-    expect_true(CanvasCore::Interval::fully_visible(6.0, 9.0, 5.0, 15.0), "fully visible interval reports true");
-    expect_true(!CanvasCore::Interval::fully_visible(4.0, 9.0, 5.0, 15.0), "partially clipped interval reports false");
+    expect_true(KartaCore::Interval::intersects(0.0, 10.0, 5.0, 15.0), "interval partial overlap intersects");
+    expect_true(KartaCore::Interval::intersects(0.0, 20.0, 5.0, 15.0), "interval containing viewport intersects");
+    expect_true(!KartaCore::Interval::intersects(0.0, 5.0, 5.0, 15.0), "touching edge does not intersect");
+    expect_true(KartaCore::Interval::fully_visible(6.0, 9.0, 5.0, 15.0), "fully visible interval reports true");
+    expect_true(!KartaCore::Interval::fully_visible(4.0, 9.0, 5.0, 15.0), "partially clipped interval reports false");
 }
 
 void test_direction_helpers() {
-    expect_eq(std::string_view(CanvasCore::direction_name(Direction::Begin)), std::string_view("begin"),
+    expect_eq(std::string_view(KartaCore::direction_name(Direction::Begin)), std::string_view("begin"),
               "direction_name returns begin");
-    expect_eq(std::string_view(CanvasCore::direction_dispatch_arg(Direction::Right)), std::string_view("r"),
+    expect_eq(std::string_view(KartaCore::direction_dispatch_arg(Direction::Right)), std::string_view("r"),
               "direction_dispatch_arg returns short right");
-    expect_true(CanvasCore::direction_dispatch_arg(Direction::Center) == nullptr,
+    expect_true(KartaCore::direction_dispatch_arg(Direction::Center) == nullptr,
                 "direction_dispatch_arg rejects center");
-    expect_eq(CanvasCore::opposite_direction(Direction::Up), Direction::Down,
+    expect_eq(KartaCore::opposite_direction(Direction::Up), Direction::Down,
               "opposite_direction flips up to down");
 }
 
 void test_parse_helpers() {
-    const auto down = CanvasCore::parse_direction_arg("dn");
+    const auto down = KartaCore::parse_direction_arg("dn");
     expect_true(down.has_value() && *down == Direction::Down, "parse_direction_arg handles dn alias");
 
-    const auto center = CanvasCore::parse_direction_arg("centre");
+    const auto center = KartaCore::parse_direction_arg("centre");
     expect_true(center.has_value() && *center == Direction::Center, "parse_direction_arg handles centre alias");
 
-    expect_true(!CanvasCore::parse_direction_arg("sideways").has_value(),
+    expect_true(!KartaCore::parse_direction_arg("sideways").has_value(),
                 "parse_direction_arg rejects invalid input");
 
-    const auto rowMode = CanvasCore::parse_mode_arg("row");
+    const auto rowMode = KartaCore::parse_mode_arg("row");
     expect_true(rowMode.has_value() && *rowMode == Mode::Row,
                 "parse_mode_arg handles row");
 
-    const auto columnMode = CanvasCore::parse_mode_arg("col");
+    const auto columnMode = KartaCore::parse_mode_arg("col");
     expect_true(columnMode.has_value() && *columnMode == Mode::Column,
                 "parse_mode_arg handles col alias");
 
-    expect_true(!CanvasCore::parse_mode_arg("grid").has_value(),
+    expect_true(!KartaCore::parse_mode_arg("grid").has_value(),
                 "parse_mode_arg rejects invalid input");
 }
 
 void test_anchor_selection() {
-    const CanvasCore::Box visible(100.0, 50.0, 400.0, 300.0);
+    const KartaCore::Box visible(100.0, 50.0, 400.0, 300.0);
 
-    expect_near(CanvasCore::choose_anchor_x(true, false, 150.0, 120.0, 0.0, 260.0, visible),
+    expect_near(KartaCore::choose_anchor_x(true, false, 150.0, 120.0, 0.0, 260.0, visible),
                 230.0, 1e-9, "choose_anchor_x keeps active and next visible");
-    expect_near(CanvasCore::choose_anchor_x(true, true, 200.0, 250.0, 150.0, 275.0, visible),
+    expect_near(KartaCore::choose_anchor_x(true, true, 200.0, 250.0, 150.0, 275.0, visible),
                 250.0, 1e-9, "choose_anchor_x falls back to prev width when next does not fit");
-    expect_near(CanvasCore::choose_anchor_x(false, true, 350.0, 0.0, 100.0, 275.0, visible),
+    expect_near(KartaCore::choose_anchor_x(false, true, 350.0, 0.0, 100.0, 275.0, visible),
                 150.0, 1e-9, "choose_anchor_x aligns active to right edge when only prev exists");
 
-    expect_near(CanvasCore::choose_anchor_y(true, false, 120.0, 100.0, 0.0, visible),
+    expect_near(KartaCore::choose_anchor_y(true, false, 120.0, 100.0, 0.0, visible),
                 130.0, 1e-9, "choose_anchor_y keeps next visible when possible");
-    expect_near(CanvasCore::choose_anchor_y(false, true, 180.0, 0.0, 100.0, visible),
+    expect_near(KartaCore::choose_anchor_y(false, true, 180.0, 0.0, 100.0, visible),
                 150.0, 1e-9, "choose_anchor_y positions after prev when it fits");
-    expect_near(CanvasCore::choose_anchor_y(false, true, 250.0, 0.0, 100.0, visible),
+    expect_near(KartaCore::choose_anchor_y(false, true, 250.0, 0.0, 100.0, visible),
                 100.0, 1e-9, "choose_anchor_y aligns to bottom when only prev exists but cannot fit");
 
-    expect_near(CanvasCore::center_span(100.0, 400.0, 150.0),
+    expect_near(KartaCore::center_span(100.0, 400.0, 150.0),
                 225.0, 1e-9, "center_span preserves the outer origin when centering");
-    expect_near(CanvasCore::center_span(-320.0, 640.0, 320.0),
+    expect_near(KartaCore::center_span(-320.0, 640.0, 320.0),
                 -160.0, 1e-9, "center_span handles non-zero negative origins");
 
-    const auto rendered = CanvasCore::rendered_local_interval(-1855.0, 1908.0, 4.0, 0.0, 16.0);
+    const auto rendered = KartaCore::rendered_local_interval(-1855.0, 1908.0, 4.0, 0.0, 16.0);
     expect_near(rendered.start, -1851.0, 1e-9, "rendered_local_interval applies border and leading gap to start");
     expect_near(rendered.end, 33.0, 1e-9, "rendered_local_interval matches final client bottom after border and trailing gap");
 }
 
 void test_layout_profile() {
-    expect_eq(CanvasCore::layout_orientation_for_extent(1920.0, 1080.0),
-              CanvasCore::LayoutOrientation::Landscape,
+    expect_eq(KartaCore::layout_orientation_for_extent(1920.0, 1080.0),
+              KartaCore::LayoutOrientation::Landscape,
               "wide extents map to landscape");
-    expect_eq(CanvasCore::layout_orientation_for_extent(1080.0, 1920.0),
-              CanvasCore::LayoutOrientation::Portrait,
+    expect_eq(KartaCore::layout_orientation_for_extent(1080.0, 1920.0),
+              KartaCore::LayoutOrientation::Portrait,
               "tall extents map to portrait");
-    expect_eq(CanvasCore::default_mode_for_extent(1920.0, 1080.0),
+    expect_eq(KartaCore::default_mode_for_extent(1920.0, 1080.0),
               Mode::Row,
               "landscape extents default to row mode");
-    expect_eq(CanvasCore::default_mode_for_extent(1080.0, 1920.0),
+    expect_eq(KartaCore::default_mode_for_extent(1080.0, 1920.0),
               Mode::Column,
               "portrait extents default to column mode");
 
-    expect_true(CanvasCore::mode_pages_lanes_vertically(Mode::Row),
+    expect_true(KartaCore::mode_pages_lanes_vertically(Mode::Row),
                 "row mode pages lanes vertically");
 
-    expect_eq(CanvasCore::local_item_backward_direction(Mode::Row),
+    expect_eq(KartaCore::local_item_backward_direction(Mode::Row),
               Direction::Left,
               "row mode local backward direction is left");
-    expect_eq(CanvasCore::local_item_forward_direction(Mode::Column),
+    expect_eq(KartaCore::local_item_forward_direction(Mode::Column),
               Direction::Down,
               "column mode local forward direction is down");
-    expect_eq(CanvasCore::stack_item_backward_direction(Mode::Row),
+    expect_eq(KartaCore::stack_item_backward_direction(Mode::Row),
               Direction::Up,
               "row mode stack backward direction is up");
-    expect_eq(CanvasCore::stack_item_forward_direction(Mode::Column),
+    expect_eq(KartaCore::stack_item_forward_direction(Mode::Column),
               Direction::Right,
               "column mode stack forward direction is right");
-    expect_eq(CanvasCore::lane_backward_direction(Mode::Row),
+    expect_eq(KartaCore::lane_backward_direction(Mode::Row),
               Direction::Up,
               "row mode lane backward direction is up");
-    expect_eq(CanvasCore::lane_forward_direction(Mode::Column),
+    expect_eq(KartaCore::lane_forward_direction(Mode::Column),
               Direction::Right,
               "column mode lane forward direction is right");
 
-    expect_near(CanvasCore::stack_local_origin_for_window(Mode::Row, {10.0, 20.0}),
+    expect_near(KartaCore::stack_local_origin_for_window(Mode::Row, {10.0, 20.0}),
                 20.0, 1e-9, "row mode stack-local window origin uses y");
-    expect_near(CanvasCore::stack_local_origin_for_window(Mode::Column, {10.0, 20.0}),
+    expect_near(KartaCore::stack_local_origin_for_window(Mode::Column, {10.0, 20.0}),
                 10.0, 1e-9, "column mode stack-local window origin uses x");
-    expect_near(CanvasCore::stack_primary_span_limit(Mode::Row, {100.0, 50.0, 640.0, 360.0}),
+    expect_near(KartaCore::stack_primary_span_limit(Mode::Row, {100.0, 50.0, 640.0, 360.0}),
                 640.0, 1e-9, "row mode stack primary span limit uses workarea width");
-    expect_near(CanvasCore::stack_primary_span_limit(Mode::Column, {100.0, 50.0, 640.0, 360.0}),
+    expect_near(KartaCore::stack_primary_span_limit(Mode::Column, {100.0, 50.0, 640.0, 360.0}),
                 360.0, 1e-9, "column mode stack primary span limit uses workarea height");
 
-    expect_true(CanvasCore::direction_targets_local_item(Mode::Row, Direction::Left),
+    expect_true(KartaCore::direction_targets_local_item(Mode::Row, Direction::Left),
                 "row mode treats left as local item movement");
-    expect_true(CanvasCore::direction_moves_between_lanes(Mode::Row, Direction::Down),
+    expect_true(KartaCore::direction_moves_between_lanes(Mode::Row, Direction::Down),
                 "row mode treats down as cross-lane movement");
-    expect_true(CanvasCore::direction_moves_between_lanes(Mode::Column, Direction::Left),
+    expect_true(KartaCore::direction_moves_between_lanes(Mode::Column, Direction::Left),
                 "column mode treats left as cross-lane movement");
-    expect_true(CanvasCore::direction_inserts_before_current(Mode::Column, Direction::Left),
+    expect_true(KartaCore::direction_inserts_before_current(Mode::Column, Direction::Left),
                 "column mode inserts before current on left");
 
-    const auto portraitPrediction = CanvasCore::predict_window_size(Mode::Column, {0.0, 0.0, 800.0, 600.0});
+    const auto portraitPrediction = KartaCore::predict_window_size(Mode::Column, {0.0, 0.0, 800.0, 600.0});
     expect_near(portraitPrediction.x, 800.0, 1e-9, "column mode prediction keeps full width");
     expect_near(portraitPrediction.y, 300.0, 1e-9, "column mode prediction halves height");
 }
@@ -250,7 +250,7 @@ void test_monitor_geometry() {
                              {.top = 0.0, .right = 0.0, .bottom = 0.0, .left = 37.0},
                              {3877.0, 0.0, 3803.0, 2160.0});
 
-    const auto portraitSize = CanvasCore::logical_monitor_size({3840.0, 2160.0},
+    const auto portraitSize = KartaCore::logical_monitor_size({3840.0, 2160.0},
                                                                  {2160.0, 3840.0},
                                                                  WL_OUTPUT_TRANSFORM_270);
     expect_near(portraitSize.x, 2160.0, 1e-9, "portrait logical width uses transformed width");
@@ -289,7 +289,7 @@ void test_monitor_geometry() {
                              {.top = 0.0, .right = 0.0, .bottom = 0.0, .left = 37.0},
                              {1717.0, 0.0, 2123.0, 3840.0});
 
-    const auto fallbackSize = CanvasCore::logical_monitor_size({3840.0, 2160.0},
+    const auto fallbackSize = KartaCore::logical_monitor_size({3840.0, 2160.0},
                                                                  {0.0, 0.0},
                                                                  WL_OUTPUT_TRANSFORM_270);
     expect_near(fallbackSize.x, 2160.0, 1e-9, "missing transformed size still swaps portrait axes");
@@ -297,21 +297,21 @@ void test_monitor_geometry() {
 }
 
 void test_workarea_pager() {
-    const CanvasCore::Box full{0.0, 0.0, 1080.0, 1920.0};
-    const CanvasCore::Box workarea{0.0, 40.0, 1080.0, 1880.0};
-    const auto above = CanvasCore::project_box_to_workarea_page({0.0, -900.0, 1080.0, 940.0}, full, workarea);
+    const KartaCore::Box full{0.0, 0.0, 1080.0, 1920.0};
+    const KartaCore::Box workarea{0.0, 40.0, 1080.0, 1880.0};
+    const auto above = KartaCore::project_box_to_workarea_page({0.0, -900.0, 1080.0, 940.0}, full, workarea);
     expect_near(above.committed.y, -940.0, 1e-9, "workarea pager keeps top reserved edge clear");
     expect_true(!above.visible, "workarea pager marks fully hidden top box invisible");
 
-    const CanvasCore::Box fullWithLeftBar{0.0, 0.0, 1920.0, 1080.0};
-    const CanvasCore::Box workareaWithLeftBar{48.0, 0.0, 1872.0, 1080.0};
-    const auto left = CanvasCore::project_box_to_workarea_page({-888.0, 0.0, 936.0, 1080.0}, fullWithLeftBar, workareaWithLeftBar);
+    const KartaCore::Box fullWithLeftBar{0.0, 0.0, 1920.0, 1080.0};
+    const KartaCore::Box workareaWithLeftBar{48.0, 0.0, 1872.0, 1080.0};
+    const auto left = KartaCore::project_box_to_workarea_page({-888.0, 0.0, 936.0, 1080.0}, fullWithLeftBar, workareaWithLeftBar);
     expect_near(left.committed.x, -936.0, 1e-9, "workarea pager keeps left reserved edge clear");
     expect_true(!left.visible, "workarea pager marks fully hidden left box invisible");
 }
 
 void test_owner_index() {
-    CanvasCore::OwnerIndex<int, FakeOwner> index;
+    KartaCore::OwnerIndex<int, FakeOwner> index;
     FakeOwner stackA{.id = 1, .keys = {1, 2}};
     FakeOwner stackB{.id = 2, .keys = {3}};
 
@@ -361,7 +361,7 @@ void test_span_scale_helper() {
     items.push_back(&itemC);
     items.push_back(&itemD);
 
-    const auto normalized = CanvasCore::scale_range_to_span(
+    const auto normalized = KartaCore::scale_range_to_span(
         items.first()->next(),
         items.last()->prev(),
         100.0,
@@ -382,7 +382,7 @@ void test_span_scale_helper() {
     List<FakeSpanItem *> zeros;
     zeros.push_back(&zeroA);
     zeros.push_back(&zeroB);
-    expect_true(!CanvasCore::scale_range_to_span(
+    expect_true(!KartaCore::scale_range_to_span(
                     zeros.first(),
                     zeros.last(),
                     80.0,
@@ -396,7 +396,7 @@ void test_span_scale_helper() {
 }
 
 void test_stack_width_visible_count() {
-    using CanvasModel::StackWidth;
+    using KartaModel::StackWidth;
     expect_near(StackWidth::visible(3).extent(1800.0), 600.0, 1e-9,
                 "visible stack width divides the workarea by its count");
     expect_near(StackWidth::free().extent(1800.0), 1800.0, 1e-9,
@@ -412,15 +412,15 @@ void test_stack_width_visible_count() {
               "invalid snapshot width falls back to the default count");
     expect_eq(StackWidth::visible(3).to_snapshot(), 3, "visible stack width serializes its count");
 
-    const auto three = CanvasModel::parse_visible_stack_count("3");
+    const auto three = KartaModel::parse_visible_stack_count("3");
     expect_true(three.has_value() && *three == 3, "visible stack count parses integers");
-    expect_true(!CanvasModel::parse_visible_stack_count("0").has_value(),
+    expect_true(!KartaModel::parse_visible_stack_count("0").has_value(),
                 "visible stack count rejects zero");
-    expect_true(!CanvasModel::parse_visible_stack_count("9").has_value(),
+    expect_true(!KartaModel::parse_visible_stack_count("9").has_value(),
                 "visible stack count rejects counts above the maximum");
-    expect_true(!CanvasModel::parse_visible_stack_count("next").has_value(),
+    expect_true(!KartaModel::parse_visible_stack_count("next").has_value(),
                 "visible stack count rejects the removed cycle arguments");
-    expect_true(!CanvasModel::parse_visible_stack_count("2.5").has_value(),
+    expect_true(!KartaModel::parse_visible_stack_count("2.5").has_value(),
                 "visible stack count rejects fractional input");
 }
 
@@ -485,19 +485,19 @@ void test_stack_logic() {
     auto *first = values.first();
     auto *second = first->next();
     auto *last = values.last();
-    expect_true(CanvasModel::StackLogic::next_active_after_removal(first, last) == second,
+    expect_true(KartaModel::StackLogic::next_active_after_removal(first, last) == second,
                 "stack logic prefers the next node when removing a non-tail active item");
-    expect_true(CanvasModel::StackLogic::next_active_after_removal(last, last) == second,
+    expect_true(KartaModel::StackLogic::next_active_after_removal(last, last) == second,
                 "stack logic falls back to the previous node when removing the tail active item");
 
     List<int> single;
     single.push_back(42);
-    expect_true(CanvasModel::StackLogic::next_active_after_removal(single.first(), single.last()) == nullptr,
+    expect_true(KartaModel::StackLogic::next_active_after_removal(single.first(), single.last()) == nullptr,
                 "stack logic clears active selection when removing the only node");
 }
 
 void test_stack_deck() {
-    using CanvasModel::StackLogic::deck_cards;
+    using KartaModel::StackLogic::deck_cards;
     expect_true(deck_cards(2, 0, 900.0, 800.0).empty(), "two windows keep ordinary layout");
     expect_true(deck_cards(3, 3, 900.0, 800.0).empty(), "invalid active index produces no cards");
     expect_true(deck_cards(3, 0, 0.0, 800.0).empty(), "empty viewport produces no cards");
@@ -589,8 +589,8 @@ void test_stack_deck() {
 }
 
 void test_fullsize_deck() {
-    using namespace CanvasModel::StackLogic;
-    using CanvasCore::Box;
+    using namespace KartaModel::StackLogic;
+    using KartaCore::Box;
     expect_true(deck_cards(1, 0, 1000, 800, std::nullopt, true).empty(),
                 "single fullsize window keeps ordinary fullscreen geometry");
     for (size_t count : {2u, 3u, 5u, 20u}) {
@@ -632,10 +632,10 @@ void test_fullsize_deck() {
 }
 
 void test_stack_visible_hit_boxes() {
-    using CanvasCore::Box;
-    using CanvasModel::StackLogic::deck_hit_box;
-    using CanvasModel::StackLogic::deck_cards;
-    using CanvasModel::StackLogic::deck_peek;
+    using KartaCore::Box;
+    using KartaModel::StackLogic::deck_hit_box;
+    using KartaModel::StackLogic::deck_cards;
+    using KartaModel::StackLogic::deck_peek;
     expect_near(deck_peek(4, 900), 85.95, 1e-9, "two narrow strips share 19.1 percent");
     expect_near(deck_peek(100, 900) * 98, 171.9, 1e-9, "large decks preserve total strip share");
     for (const auto mode : {Mode::Row, Mode::Column}) {
@@ -679,7 +679,7 @@ void test_service_slot() {
         int value = 7;
     };
 
-    CanvasCore::ServiceSlot<CounterService> slot;
+    KartaCore::ServiceSlot<CounterService> slot;
     expect_true(!slot.hasOwnedInstance(), "service slot starts lazily uninitialized");
     slot.get().value = 42;
     expect_true(slot.hasOwnedInstance(), "service slot constructs owned instance on first access");
@@ -709,7 +709,7 @@ void test_service_slot() {
 } // namespace
 
 void run_core_logic_tests() {
-    test_canvas_transition();
+    test_karta_transition();
     test_interval();
     test_direction_helpers();
     test_parse_helpers();

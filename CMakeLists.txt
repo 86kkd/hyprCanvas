@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.12)
-project("hyprCanvas"
+project("karta"
     LANGUAGES CXX
     DESCRIPTION "Hyprland layout similar to PaperWM and niri")
 
@@ -10,7 +10,7 @@ if(NOT CMAKE_BUILD_TYPE)
     set(CMAKE_BUILD_TYPE Release)
 endif()
 
-option(HYPRCANVAS_ENABLE_SANITIZERS "Enable ASan/UBSan in debug builds" OFF)
+option(KARTA_ENABLE_SANITIZERS "Enable ASan/UBSan in debug builds" OFF)
 
 find_package(PkgConfig REQUIRED)
 pkg_check_modules(DEPS REQUIRED hyprland pixman-1 libdrm)
@@ -24,7 +24,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED true)
 if(CMAKE_CXX_COMPILER_ID STREQUAL "GNU")
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-gnu-unique")
 endif()
-add_library(hyprCanvas SHARED
+add_library(karta SHARED
             src/plugin/entry.cpp
             src/plugin/config.h
             src/plugin/dispatch/registration.h
@@ -35,7 +35,7 @@ add_library(hyprCanvas SHARED
             src/core/core.cpp
             src/core/focus_pointer_sync.cpp
             src/core/direction.cpp
-            src/core/canvas_workspace_snapshot.cpp
+            src/core/karta_workspace_snapshot.cpp
             src/core/layout_snapshot.cpp
             src/core/layout_math.cpp
             src/core/workarea_pager.cpp
@@ -87,33 +87,33 @@ add_library(hyprCanvas SHARED
             src/model/stack/core.cpp
             src/model/stack/membership.cpp
             src/model/stack/geometry.cpp
-            src/layout/canvas/core.cpp
-            src/layout/canvas/snapshot.cpp
-            src/layout/canvas/overview.cpp
-            src/layout/canvas/dispatch.cpp
-            src/layout/canvas/dispatch_runtime_logic.cpp
-            src/layout/canvas/dispatch_logic.cpp
-            src/layout/canvas/route.cpp
-            src/layout/canvas/route_logic.cpp
-            src/layout/canvas/topology_route.cpp
-            src/layout/canvas/layout_repository.cpp
-            src/layout/canvas/canvas_workspace_repository.cpp
-            src/layout/canvas/workspace_controller_logic.cpp
-            src/layout/canvas/workspace_controller.cpp
-            src/layout/canvas/workspace.cpp
-            src/layout/canvas/focus.cpp
-            src/layout/canvas/commands.cpp
-            src/layout/canvas/internal.h
+            src/layout/karta/core.cpp
+            src/layout/karta/snapshot.cpp
+            src/layout/karta/overview.cpp
+            src/layout/karta/dispatch.cpp
+            src/layout/karta/dispatch_runtime_logic.cpp
+            src/layout/karta/dispatch_logic.cpp
+            src/layout/karta/route.cpp
+            src/layout/karta/route_logic.cpp
+            src/layout/karta/topology_route.cpp
+            src/layout/karta/layout_repository.cpp
+            src/layout/karta/karta_workspace_repository.cpp
+            src/layout/karta/workspace_controller_logic.cpp
+            src/layout/karta/workspace_controller.cpp
+            src/layout/karta/workspace.cpp
+            src/layout/karta/focus.cpp
+            src/layout/karta/commands.cpp
+            src/layout/karta/internal.h
             src/layout/lane/core.cpp
             src/layout/lane/actions.cpp
             src/layout/lane/geometry.cpp)
 
 if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-    target_compile_options(hyprCanvas PRIVATE
+    target_compile_options(karta PRIVATE
         $<$<CONFIG:Debug>:-Wall;-Wextra;-Wpedantic>)
 
-    if(HYPRCANVAS_ENABLE_SANITIZERS)
-        target_compile_options(hyprCanvas PRIVATE
+    if(KARTA_ENABLE_SANITIZERS)
+        target_compile_options(karta PRIVATE
             $<$<CONFIG:Debug>:-fsanitize=address,undefined;-fno-omit-frame-pointer>)
         set(CMAKE_SHARED_LINKER_FLAGS_DEBUG
             "${CMAKE_SHARED_LINKER_FLAGS_DEBUG} -fsanitize=address,undefined")
@@ -122,17 +122,17 @@ endif()
 
 add_compile_definitions(WLR_USE_UNSTABLE)
 
-target_include_directories(hyprCanvas PRIVATE
+target_include_directories(karta PRIVATE
             ${CMAKE_CURRENT_SOURCE_DIR}/src
             ${DEPS_INCLUDE_DIRS}
             /usr/include/hyprland/wlroots-hyprland/hyprland 
             /usr/include/hyprland/src
 )
-target_link_libraries(hyprCanvas PRIVATE spdlog::spdlog_header_only PkgConfig::LUA)
-set_target_properties(hyprCanvas PROPERTIES PREFIX "")
+target_link_libraries(karta PRIVATE spdlog::spdlog_header_only PkgConfig::LUA)
+set_target_properties(karta PROPERTIES PREFIX "")
 
 if(BUILD_TESTING)
-    add_executable(hyprCanvas_logic_tests
+    add_executable(karta_logic_tests
                    tests/test_main.cpp
                    tests/minimap_tests.cpp
                    src/overview/minimap/logic.cpp
@@ -146,7 +146,7 @@ if(BUILD_TESTING)
                    tests/overview_session_logic_tests.cpp
                    tests/overview_session_effects_tests.cpp
                    src/core/direction.cpp
-                   src/core/canvas_workspace_snapshot.cpp
+                   src/core/karta_workspace_snapshot.cpp
                    src/core/layout_snapshot.cpp
                    src/core/layout_math.cpp
                    src/core/workarea_pager.cpp
@@ -158,27 +158,27 @@ if(BUILD_TESTING)
                    src/overview/scene/layout.cpp
                    src/overview/session/effects_logic.cpp
                    src/overview/navigation/selection.cpp
-                   src/layout/canvas/dispatch_logic.cpp
-                   src/layout/canvas/dispatch_runtime_logic.cpp
-                   src/layout/canvas/route_logic.cpp
-                   src/layout/canvas/topology_route.cpp
-                   src/layout/canvas/workspace_controller_logic.cpp)
-    target_include_directories(hyprCanvas_logic_tests PRIVATE
+                   src/layout/karta/dispatch_logic.cpp
+                   src/layout/karta/dispatch_runtime_logic.cpp
+                   src/layout/karta/route_logic.cpp
+                   src/layout/karta/topology_route.cpp
+                   src/layout/karta/workspace_controller_logic.cpp)
+    target_include_directories(karta_logic_tests PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/src
         ${DEPS_INCLUDE_DIRS}
         /usr/include/hyprland/wlroots-hyprland/hyprland
         /usr/include/hyprland/src)
     if(CMAKE_CXX_COMPILER_ID MATCHES "GNU|Clang")
-        target_compile_options(hyprCanvas_logic_tests PRIVATE
+        target_compile_options(karta_logic_tests PRIVATE
             $<$<CONFIG:Debug>:-Wall;-Wextra;-Wpedantic>)
-        if(HYPRCANVAS_ENABLE_SANITIZERS)
-            target_compile_options(hyprCanvas_logic_tests PRIVATE
+        if(KARTA_ENABLE_SANITIZERS)
+            target_compile_options(karta_logic_tests PRIVATE
                 $<$<CONFIG:Debug>:-fsanitize=address,undefined;-fno-omit-frame-pointer>)
-            target_link_options(hyprCanvas_logic_tests PRIVATE
+            target_link_options(karta_logic_tests PRIVATE
                 $<$<CONFIG:Debug>:-fsanitize=address,undefined>)
         endif()
     endif()
-    target_link_libraries(hyprCanvas_logic_tests PRIVATE PkgConfig::HYPRLAND ${DEPS_LIBRARIES} spdlog::spdlog_header_only stdc++ m)
-    set_target_properties(hyprCanvas_logic_tests PROPERTIES LINKER_LANGUAGE CXX)
-    add_test(NAME hyprCanvas.logic COMMAND hyprCanvas_logic_tests)
+    target_link_libraries(karta_logic_tests PRIVATE PkgConfig::HYPRLAND ${DEPS_LIBRARIES} spdlog::spdlog_header_only stdc++ m)
+    set_target_properties(karta_logic_tests PROPERTIES LINKER_LANGUAGE CXX)
+    add_test(NAME karta.logic COMMAND karta_logic_tests)
 endif()

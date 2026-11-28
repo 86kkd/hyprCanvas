@@ -1,8 +1,8 @@
 <!doctype html>
 <html lang="zh-CN">
-<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark"><title>HyprCanvas · 堆叠调节台</title><link rel="stylesheet" href="/style.css"></head>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="color-scheme" content="dark"><title>Karta · 堆叠调节台</title><link rel="stylesheet" href="/style.css"></head>
 <body>
-<header class="topbar"><div class="brand"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span><strong>HyprCanvas</strong><span class="divider"></span><h1>堆叠调节台</h1></div><div class="header-actions"><button id="reset">重置</button><button id="save" class="primary">保存最终参数</button></div></header>
+<header class="topbar"><div class="brand"><span class="logo" aria-hidden="true"><i></i><i></i><i></i></span><strong>Karta</strong><span class="divider"></span><h1>堆叠调节台</h1></div><div class="header-actions"><button id="reset">重置</button><button id="save" class="primary">保存最终参数</button></div></header>
 <main>
 <aside class="panel inspector" aria-label="堆叠参数">
 <section><h2>卡片宽高缩放倍率</h2>
@@ -32,7 +32,7 @@
 </aside>
 <div class="workspace">
 <section class="panel preview-panel" aria-labelledby="preview-title"><div class="preview-toolbar"><h2 id="preview-title">实时预览</h2><div class="navigation"><button id="previous">上一个 <kbd>↑</kbd></button><button id="next">下一个 <kbd>↓</kbd></button></div></div>
-<div id="canvas" class="canvas" tabindex="0" aria-label="堆叠预览，点击窗口或使用方向键切换"><div id="stage"></div><div id="measure" aria-hidden="true"></div></div>
+<div id="karta" class="karta" tabindex="0" aria-label="堆叠预览，点击窗口或使用方向键切换"><div id="stage"></div><div id="measure" aria-hidden="true"></div></div>
 <div class="preview-footer"><span id="focus-caption"></span><span class="muted">点击露出的窗口，或用 <kbd>↑ ↓</kbd> 切换</span></div>
 </section>
 <section class="panel output-panel"><div class="output-line"><h2>最终参数</h2><div id="summary" class="summary"></div><div class="output-actions"><button id="copy">复制参数</button><button id="export">导出 JSON</button></div></div><div class="save-line"><span id="status" role="status" aria-live="polite">尚未保存最终参数</span><span class="muted">预览不会改动桌面插件</span></div></section>

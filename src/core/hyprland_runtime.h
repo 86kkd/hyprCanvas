@@ -11,7 +11,7 @@
 
 #include "types.h"
 
-namespace CanvasCore::HyprlandRuntime {
+namespace KartaCore::HyprlandRuntime {
 
 inline WORKSPACEID workspaceId(PHLWORKSPACE workspace) {
     if (!workspace)
@@ -133,4 +133,4 @@ inline Fullscreen::eFullscreenMode workspaceFullscreenMode(PHLWORKSPACE workspac
     return Fullscreen::controller()->getFullscreenModes(workspace).internal;
 }
 
-} // namespace CanvasCore::HyprlandRuntime
+} // namespace KartaCore::HyprlandRuntime

@@ -7,12 +7,12 @@
 #include <hyprland/src/layout/target/Target.hpp>
 #include <hyprland/src/render/WindowRenderPresentation.hpp>
 
-namespace CanvasModel::DeckPointer {
+namespace KartaModel::DeckPointer {
 namespace {
 struct Deck {
     std::vector<Card> cards;
     Mode mode;
-    CanvasCore::Box viewport;
+    KartaCore::Box viewport;
 };
 std::unordered_map<const void*, Deck> decks;
 CHyprSignalListener mouseMove;
@@ -20,7 +20,7 @@ CHyprSignalListener renderPre;
 bool updating = false;
 
 void refresh(Deck& deck) {
-    std::vector<CanvasCore::Box> boxes;
+    std::vector<KartaCore::Box> boxes;
     boxes.reserve(deck.cards.size());
     for (const auto& card : deck.cards) {
         const auto window = card.window.lock();
@@ -81,7 +81,7 @@ void shutdown() {
     decks.clear();
 }
 
-void update(const void* owner, std::vector<Card> cards, Mode mode, const CanvasCore::Box& viewport) {
+void update(const void* owner, std::vector<Card> cards, Mode mode, const KartaCore::Box& viewport) {
     auto& deck = decks.insert_or_assign(owner, Deck{std::move(cards), mode, viewport}).first->second;
     if (!updating) {
         updating = true;
@@ -93,4 +93,4 @@ void update(const void* owner, std::vector<Card> cards, Mode mode, const CanvasC
 void forget(const void* owner) {
     decks.erase(owner);
 }
-} // namespace CanvasModel::DeckPointer
+} // namespace KartaModel::DeckPointer

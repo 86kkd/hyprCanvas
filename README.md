@@ -1,8 +1,8 @@
 <div align="center">
 
-# HyprCanvas
+# Karta
 
-**A scrolling canvas for your Hyprland desktop.**
+**A scrolling karta for your Hyprland desktop.**
 
 Keep windows in stacks. Navigate with the keyboard. Switch your whole desktop across monitors.
 
@@ -10,17 +10,17 @@ Keep windows in stacks. Navigate with the keyboard. Switch your whole desktop ac
 
 <br>
 
-<img src="videos/hyprcanvas-showcase.gif" alt="HyprCanvas dual-monitor showcase" width="100%">
+<img src="videos/karta-showcase.gif" alt="Karta dual-monitor showcase" width="100%">
 
-<sub>Landscape (<code>auto row</code>) + Portrait (<code>auto col</code>) dual-monitor demo: scrolling lanes, overlapping card stacks, in-place swap &amp; expand, cross-monitor transfer, synchronized 2D canvas workspaces with Canvas Map, and interactive Overview. Full 1080p60 recording: <a href="videos/hyprcanvas-showcase.mp4"><code>videos/hyprcanvas-showcase.mp4</code></a>.</sub>
+<sub>Landscape (<code>auto row</code>) + Portrait (<code>auto col</code>) dual-monitor demo: scrolling lanes, overlapping card stacks, in-place swap &amp; expand, cross-monitor transfer, synchronized 2D karta workspaces with Karta Map, and interactive Overview. Full 1080p60 recording: <a href="videos/karta-showcase.mp4"><code>videos/karta-showcase.mp4</code></a>.</sub>
 
 </div>
 
 ---
 
-HyprCanvas is a Hyprland layout plugin built around scrolling lanes, window
-stacks, and canvas workspaces. A canvas groups one workspace per monitor, so
-switching canvases changes the whole desktop together.
+Karta is a Hyprland layout plugin built around scrolling lanes, window
+stacks, and karta workspaces. A karta groups one workspace per monitor, so
+switching kartas changes the whole desktop together.
 
 It grows out of [hyprscroller](https://github.com/dawsers/hyprscroller), with a
 focus on multi-monitor navigation, overlapping window cards, and a workspace
@@ -32,8 +32,8 @@ overview.
 | --- | --- |
 | **Scrolling lanes** | Arrange stacks horizontally or vertically and navigate beyond the visible monitor area. |
 | **Window stacks** | Group related windows; stacks with three or more windows become overlapping cards with the focused window in front. |
-| **Canvas workspaces** | Switch a group of workspaces across all connected monitors in one action. |
-| **Overview** | Preview canvases and select a window or workspace without rearranging the real windows. Accept to switch, or cancel to return. |
+| **Karta workspaces** | Switch a group of workspaces across all connected monitors in one action. |
+| **Overview** | Preview kartas and select a window or workspace without rearranging the real windows. Accept to switch, or cancel to return. |
 | **Keyboard movement** | Reorder windows, join or split stacks, exchange windows between stacks, and move between monitors. |
 | **Focus and sizing** | Choose how many stacks fit on screen, expand a stack, or jump to a named window mark. |
 
@@ -48,11 +48,11 @@ The project name and configuration names serve different purposes:
 
 | Where | Name |
 | --- | --- |
-| `hyprpm` plugin | `hyprCanvas` |
-| Shared library | `hyprCanvas.so` |
-| Hyprland layout | `canvas` |
-| Lua functions | `hl.plugin.canvas.*` |
-| Plugin options | `plugin:hyprCanvas:*` (with `plugin:canvas:*` compatibility alias) |
+| `hyprpm` plugin | `karta` |
+| Shared library | `karta.so` |
+| Hyprland layout | `karta` |
+| Lua functions | `hl.plugin.karta.*` |
+| Plugin options | `plugin:karta:*` |
 
 ## Get started
 
@@ -61,15 +61,15 @@ The project name and configuration names serve different purposes:
 > **Migrating from hyprscroller or a manual `.so`?** Follow the
 > [migration notes](docs/user-guide.md#migrating-an-existing-installation)
 > before enabling the new plugin, and update existing `scroller` layout/Lua
-> references to `canvas`.
+> references to `karta`.
 
 Run these as your normal user in a Hyprland session. Enter your sudo password
 when the manager requests it.
 
 ```sh
 hyprpm update
-hyprpm add https://github.com/86kkd/hyprCanvas.git
-hyprpm enable hyprCanvas
+hyprpm add https://github.com/86kkd/karta.git
+hyprpm enable karta
 ```
 
 `hyprpm update` prepares the manager's Hyprland headers and updates registered
@@ -89,7 +89,7 @@ hl.on("hyprland.start", function()
     hl.exec_cmd("hyprpm reload -n")
 end)
 
-hl.config({ general = { layout = "canvas" } })
+hl.config({ general = { layout = "karta" } })
 ```
 
 The startup hook loads enabled plugins when a new session starts. It does not
@@ -109,23 +109,23 @@ for _, spec in ipairs({
 }) do
     local key, direction = spec[1], spec[2]
     hl.bind("SUPER + " .. key, function()
-        hl.plugin.canvas.move_focus(direction)
+        hl.plugin.karta.move_focus(direction)
     end)
     hl.bind("SUPER + CTRL + " .. key, function()
-        hl.plugin.canvas.move_window(direction)
+        hl.plugin.karta.move_window(direction)
     end)
 end
 
 -- Overview, stack expansion, and the number of visible stacks.
-hl.bind("SUPER + O", function() hl.plugin.canvas.toggle_overview() end)
-hl.bind("SUPER + F", function() hl.plugin.canvas.toggle_fullscreen() end)
-hl.bind("SUPER + 2", function() hl.plugin.canvas.set_window_size(2) end)
-hl.bind("SUPER + 3", function() hl.plugin.canvas.set_window_size(3) end)
+hl.bind("SUPER + O", function() hl.plugin.karta.toggle_overview() end)
+hl.bind("SUPER + F", function() hl.plugin.karta.toggle_fullscreen() end)
+hl.bind("SUPER + 2", function() hl.plugin.karta.set_window_size(2) end)
+hl.bind("SUPER + 3", function() hl.plugin.karta.set_window_size(3) end)
 ```
 
 For whole-desktop workspace switching, see
-[canvas workspace bindings](docs/user-guide.md#canvas-workspaces).
-The supplied workspace helper uses `SUPER + number` for canvases; if you use
+[karta workspace bindings](docs/user-guide.md#karta-workspaces).
+The supplied workspace helper uses `SUPER + number` for kartas; if you use
 it, move the two sizing shortcuts above to different keys.
 
 ### 4. Verify
@@ -136,8 +136,8 @@ hyprctl plugin list
 hyprctl getoption general:layout
 ```
 
-Look for `hyprCanvas` enabled in the manager, `Plugin hyprCanvas` in the loaded
-plugin list, and `canvas` as the active layout. The startup hook takes effect
+Look for `karta` enabled in the manager, `Plugin karta` in the loaded
+plugin list, and `karta` as the active layout. The startup hook takes effect
 on your next login; `hyprpm enable` also attempts to load the plugin now.
 
 ## Update and manage
@@ -148,9 +148,9 @@ change window placement.
 | Task | Command |
 | --- | --- |
 | Update registered plugins | `hyprpm update` |
-| Enable HyprCanvas | `hyprpm enable hyprCanvas` |
+| Enable Karta | `hyprpm enable karta` |
 | Load enabled plugins | `hyprpm reload -n` |
-| Disable HyprCanvas | `hyprpm disable hyprCanvas` |
+| Disable Karta | `hyprpm disable karta` |
 | Inspect installed plugins | `hyprpm list` |
 | Inspect plugins loaded in this session | `hyprctl plugin list` |
 
@@ -171,7 +171,7 @@ For local development, push the commits you want to distribute first:
 - **`Failed to write plugin state`** — inspect the preceding permission or sudo
   error. Retry the command in a terminal where you can authenticate.
 - **Installed, but not loaded** — check `hyprpm list`, then run
-  `hyprpm enable hyprCanvas`. Use `hyprctl plugin list` to verify the result.
+  `hyprpm enable karta`. Use `hyprctl plugin list` to verify the result.
 - **Still named `hyprscroller`** — an older build or repository record is in use.
   Follow the [migration notes](docs/user-guide.md#migrating-an-existing-installation).
 - **Version or ABI mismatch** — make sure the running Hyprland session matches
@@ -183,7 +183,7 @@ For local development, push the commits you want to distribute first:
 
 The [user guide](docs/user-guide.md) covers:
 
-- [Canvas workspaces and multi-monitor navigation](docs/user-guide.md#canvas-workspaces)
+- [Karta workspaces and multi-monitor navigation](docs/user-guide.md#karta-workspaces)
 - [Row and column modes, sizing, and card stacks](docs/user-guide.md#lanes-and-stacks)
 - [Moving, splitting, and swapping windows](docs/user-guide.md#moving-windows)
 - [Overview and marks](docs/user-guide.md#overview-and-marks)
@@ -195,7 +195,7 @@ Build against the installed Hyprland development files:
 
 ```sh
 make release
-# Output: Release/hyprCanvas.so
+# Output: Release/karta.so
 ```
 
 Build a debug configuration and run the logic tests:
@@ -220,11 +220,11 @@ active desktop: its current install target copies directly over the file.
 
 Start reading at [`src/plugin/entry.cpp`](src/plugin/entry.cpp), then follow
 [`src/plugin/dispatch/`](src/plugin/dispatch/) into
-[`src/layout/canvas/`](src/layout/canvas/).
+[`src/layout/karta/`](src/layout/karta/).
 
 ## Credits and license
 
-HyprCanvas is a fork of [dawsers/hyprscroller](https://github.com/dawsers/hyprscroller),
+Karta is a fork of [dawsers/hyprscroller](https://github.com/dawsers/hyprscroller),
 inspired by [PaperWM](https://github.com/paperwm/PaperWM).
 [hyprslidr](https://gitlab.com/magus/hyprslidr) helped inform the original plugin.
 

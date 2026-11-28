@@ -9,7 +9,7 @@
 
 #include "types.h"
 
-namespace CanvasLayoutSnapshot {
+namespace KartaLayoutSnapshot {
 
 constexpr int kLegacyFormatVersion = 1;
 constexpr int kGridFormatVersion = 2;
@@ -33,8 +33,8 @@ struct StackSnapshot {
     int                          width = 0;
     bool                         fullscreened = false;
     bool                         maximized = false;
-    CanvasCore::Box            geom;
-    CanvasCore::Box            memGeom;
+    KartaCore::Box            geom;
+    KartaCore::Box            memGeom;
     uintptr_t                    activeWindowKey = 0;
     std::vector<WindowSnapshot>  windows;
 };
@@ -46,16 +46,16 @@ struct LaneSnapshot {
     std::vector<StackSnapshot>  stacks;
 };
 
-struct CanvasSnapshot {
+struct KartaSnapshot {
     int                        version = kFormatVersion;
     int                        workspaceId = -1;
     size_t                     activeLaneIndex = 0;
     std::vector<LaneSnapshot>  lanes;
 };
 
-using RepositorySnapshot = std::unordered_map<int, CanvasSnapshot>;
+using RepositorySnapshot = std::unordered_map<int, KartaSnapshot>;
 
 std::string serialize_repository(const RepositorySnapshot &snapshots);
 std::optional<RepositorySnapshot> deserialize_repository(std::string_view data);
 
-} // namespace CanvasLayoutSnapshot
+} // namespace KartaLayoutSnapshot

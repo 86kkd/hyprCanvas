@@ -23,11 +23,11 @@
 #include "core/layout_profile.h"
 #include "core/workarea_pager.h"
 #include "plugin/config.h"
-#include "layout/canvas/internal.h"
+#include "layout/karta/internal.h"
 
-using CanvasCore::Box;
-using CanvasModel::Stack;
-using CanvasModel::StackWidth;
+using KartaCore::Box;
+using KartaModel::Stack;
+using KartaModel::StackWidth;
 
 namespace {
 // Read/write helpers in this anonymous namespace keep the later relayout code
@@ -41,19 +41,19 @@ double stack_primary_span(const Stack *stack, Mode mode) {
     return mode == Mode::Column ? stack->get_geom_h() : stack->get_geom_w();
 }
 
-double visible_primary_origin(const CanvasCore::Box &visible_box, Mode mode) {
+double visible_primary_origin(const KartaCore::Box &visible_box, Mode mode) {
     return mode == Mode::Column ? visible_box.y : visible_box.x;
 }
 
-double visible_primary_span(const CanvasCore::Box &visible_box, Mode mode) {
+double visible_primary_span(const KartaCore::Box &visible_box, Mode mode) {
     return mode == Mode::Column ? visible_box.h : visible_box.w;
 }
 
-double visible_primary_end(const CanvasCore::Box &visible_box, Mode mode) {
+double visible_primary_end(const KartaCore::Box &visible_box, Mode mode) {
     return visible_primary_origin(visible_box, mode) + visible_primary_span(visible_box, mode);
 }
 
-CanvasCore::Box primary_interval_box(const CanvasCore::Box &base_box, Mode mode, double start, double end) {
+KartaCore::Box primary_interval_box(const KartaCore::Box &base_box, Mode mode, double start, double end) {
     auto box = base_box;
     if (mode == Mode::Column) {
         box.y = start;
@@ -65,20 +65,20 @@ CanvasCore::Box primary_interval_box(const CanvasCore::Box &base_box, Mode mode,
     return box;
 }
 
-double hidden_reserved_primary_delta(const CanvasCore::Box &full_box,
-                                     const CanvasCore::Box &workarea_box,
+double hidden_reserved_primary_delta(const KartaCore::Box &full_box,
+                                     const KartaCore::Box &workarea_box,
                                      Mode mode,
                                      double rendered_start,
                                      double rendered_end) {
     const auto renderedBox = primary_interval_box(workarea_box, mode, rendered_start, rendered_end);
-    const auto projected = CanvasCore::project_box_to_workarea_page(renderedBox, full_box, workarea_box);
+    const auto projected = KartaCore::project_box_to_workarea_page(renderedBox, full_box, workarea_box);
     if (projected.visible)
         return 0.0;
 
     return visible_primary_origin(projected.committed, mode) - visible_primary_origin(renderedBox, mode);
 }
 
-void set_stack_primary_position(Stack *stack, Mode mode, const CanvasCore::Box &visible_box, double primary_pos) {
+void set_stack_primary_position(Stack *stack, Mode mode, const KartaCore::Box &visible_box, double primary_pos) {
     if (!stack)
         return;
 
@@ -88,14 +88,14 @@ void set_stack_primary_position(Stack *stack, Mode mode, const CanvasCore::Box &
         stack->set_geom_pos(primary_pos, visible_box.y);
 }
 
-CanvasCore::LocalRenderInterval stack_rendered_primary_interval(Stack *stack, Mode mode,
+KartaCore::LocalRenderInterval stack_rendered_primary_interval(Stack *stack, Mode mode,
                                                                   double gap_before, double gap_after) {
     if (!stack)
         return {};
 
     const auto activeWindow = stack->get_active_window();
-    const auto border = activeWindow ? CanvasCore::HyprlandRuntime::windowBorderSize(activeWindow) : 0.0;
-    return CanvasCore::rendered_local_interval(stack_primary_origin(stack, mode),
+    const auto border = activeWindow ? KartaCore::HyprlandRuntime::windowBorderSize(activeWindow) : 0.0;
+    return KartaCore::rendered_local_interval(stack_primary_origin(stack, mode),
                                                  stack_primary_span(stack, mode),
                                                  border,
                                                  gap_before,
@@ -105,12 +105,12 @@ CanvasCore::LocalRenderInterval stack_rendered_primary_interval(Stack *stack, Mo
 namespace viewport {
 // Return true when a stack would intersect the visible viewport at a projected position.
 bool projected_stack_intersects_visible_box(const Stack *stack, const double projected_pos,
-                                            const CanvasCore::Box &visible_box, Mode mode) {
+                                            const KartaCore::Box &visible_box, Mode mode) {
     if (!stack)
         return false;
 
     const auto projected_end = projected_pos + stack_primary_span(stack, mode);
-    return CanvasCore::Interval::intersects(projected_pos, projected_end,
+    return KartaCore::Interval::intersects(projected_pos, projected_end,
                                               visible_primary_origin(visible_box, mode),
                                               visible_primary_end(visible_box, mode));
 }
@@ -147,7 +147,7 @@ std::string summarize_stacks(const List<std::unique_ptr<Stack>>& stacks, Mode mo
 
 namespace recalc {
 // Initialize active-stack geometry when a stack is placed for the first time.
-double initialize_active_stack_geometry(ListNode<std::unique_ptr<Stack>> *active, const CanvasCore::Box &visible_box,
+double initialize_active_stack_geometry(ListNode<std::unique_ptr<Stack>> *active, const KartaCore::Box &visible_box,
                                         double active_span, Mode mode) {
     if (active->data()->get_init())
         return stack_primary_origin(active->data().get(), mode);
@@ -179,7 +179,7 @@ Vector2D Lane::calculate_gap_x(const StackNode *stack) const {
 
 // Predict the initial size for a new window inserted into this lane.
 Vector2D Lane::predict_window_size() const {
-    return CanvasCore::predict_window_size(mode, max);
+    return KartaCore::predict_window_size(mode, max);
 }
 
 // Refresh lane bounds from the monitor workarea and gap configuration.
@@ -187,11 +187,11 @@ void Lane::update_sizes(PHLMONITOR monitor) {
     if (!monitor)
         return;
 
-    const auto bounds = CanvasLayoutInternal::compute_canvas_bounds(monitor);
-    // Returning from a paged canvas also changes the stack-local origin.
+    const auto bounds = KartaLayoutInternal::compute_karta_bounds(monitor);
+    // Returning from a paged karta also changes the stack-local origin.
     // Use the same translation as multi-lane layout before replacing `max`,
     // otherwise unfocused stacks retain the old page's window coordinates.
-    set_canvas_geometry(bounds.full, bounds.max, bounds.gap);
+    set_karta_geometry(bounds.full, bounds.max, bounds.gap);
 }
 
 // Force the active stack into fullscreen geometry used for special fullscreen paths.
@@ -203,7 +203,7 @@ void Lane::set_fullscreen_active_window() {
     active->data()->recalculate_stack_geometry(calculate_gap_x(active), gap, max);
 }
 
-// Toggle canvas-managed fullscreen on the active stack and relayout.
+// Toggle karta-managed fullscreen on the active stack and relayout.
 void Lane::toggle_fullscreen_active_window() {
     if (!active)
         return;
@@ -229,9 +229,9 @@ void Lane::recalculate_lane_geometry() {
     if (active == nullptr)
         return;
 
-    // Hyprland-native fullscreen bypasses the normal overview/canvas viewport
+    // Hyprland-native fullscreen bypasses the normal overview/karta viewport
     // rules. In that mode we only refresh the active stack's child-window layout.
-    if (const auto activeWindow = active->data()->get_active_window(); CanvasCore::HyprlandRuntime::windowIsFullscreen(activeWindow)) {
+    if (const auto activeWindow = active->data()->get_active_window(); KartaCore::HyprlandRuntime::windowIsFullscreen(activeWindow)) {
         active->data()->recalculate_stack_geometry(calculate_gap_x(active), gap, max);
         return;
     }
@@ -239,12 +239,12 @@ void Lane::recalculate_lane_geometry() {
     static auto activeBorderData = CConfigValue<Config::IComplexConfigValue>("general:col.active_border");
     if (const auto activeWindow = active->data()->get_active_window()) {
         if (active->data()->get_width().is_free()) {
-            activeWindow->m_realBorderColor = canvas::plugin_config::freeColumnBorder();
+            activeWindow->m_realBorderColor = karta::plugin_config::freeColumnBorder();
         } else if (auto* activeColor = dynamic_cast<Config::CGradientValueData*>(activeBorderData.ptr())) {
             activeWindow->m_realBorderColor = *activeColor;
         }
     }
-    g_pEventManager->postEvent(SHyprIPCEvent{"canvas", active->data()->get_width_name() + "," + active->data()->get_height_name()});
+    g_pEventManager->postEvent(SHyprIPCEvent{"karta", active->data()->get_width_name() + "," + active->data()->get_height_name()});
 #endif
     // Degenerate case: one stack with one window should just occupy the entire
     // lane instead of running the more general anchor-selection logic below.
@@ -313,8 +313,8 @@ void Lane::recalculate_lane_geometry() {
     const double newPos = keep_current
         ? activePos
         : (mode == Mode::Column
-               ? CanvasCore::choose_anchor_y(next != nullptr, prev != nullptr, activeSpan, nextSpan, prevSpan, max)
-               : CanvasCore::choose_anchor_x(next != nullptr, prev != nullptr, activeSpan, nextSpan, prevSpan, activePos, max));
+               ? KartaCore::choose_anchor_y(next != nullptr, prev != nullptr, activeSpan, nextSpan, prevSpan, max)
+               : KartaCore::choose_anchor_x(next != nullptr, prev != nullptr, activeSpan, nextSpan, prevSpan, activePos, max));
     set_stack_primary_position(activeStack, mode, max, newPos);
     adjust_stacks(active);
     spdlog::debug("lane_recalc_auto: active_window={} keep_current={} prev_inside={} next_inside={} new_pos={} stacks_after={}",

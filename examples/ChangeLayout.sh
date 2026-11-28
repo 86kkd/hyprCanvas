@@ -2,8 +2,8 @@
 # Local Hyprland layout-switch helper tracked in this repository for reference.
 # Supports both legacy and Lua config providers.
 # Lua keybinds are installed by the Lua config and refreshed after layout changes.
-# Load examples/canvas-layout.lua after user_keybinds.lua to replace native
-# per-monitor workspace shortcuts with global canvas switching.
+# Load examples/karta-layout.lua after user_keybinds.lua to replace native
+# per-monitor workspace shortcuts with global karta switching.
 # Source path on the maintainer machine:
 #   ~/.config/hypr/scripts/ChangeLayout.sh
 
@@ -24,11 +24,11 @@ config_provider() {
 CONFIG_PROVIDER="$(config_provider)"
 
 # Validate the binding module before changing the live layout. Lua is the
-# supported provider for the current canvas plugin; the legacy branch below
+# supported provider for the current karta plugin; the legacy branch below
 # remains available for older Hyprland installations.
-bindings_path="$HOME/.config/hypr/lua/canvas-layout.lua"
+bindings_path="$HOME/.config/hypr/lua/karta-layout.lua"
 if [ "$CONFIG_PROVIDER" = "lua" ] && [ ! -f "$bindings_path" ]; then
-  printf 'Missing canvas layout bindings: %s\n' "$bindings_path" >&2
+  printf 'Missing karta layout bindings: %s\n' "$bindings_path" >&2
   exit 1
 fi
 
@@ -115,18 +115,18 @@ bindd_compat() {
       dispatch_expr="hl.dsp.exec_cmd($(lua_quote "$arg"))"
     elif [ "$dispatcher" = "movefocus" ]; then
       dispatch_expr="hl.dsp.focus({ direction = $(lua_quote "$arg") })"
-    elif [ "$dispatcher" = "canvas:movefocus" ]; then
-      dispatch_expr="function() hl.plugin.canvas.move_focus($(lua_quote "$arg")) end"
+    elif [ "$dispatcher" = "karta:movefocus" ]; then
+      dispatch_expr="function() hl.plugin.karta.move_focus($(lua_quote "$arg")) end"
     elif [ "$dispatcher" = "movewindow" ]; then
       dispatch_expr="hl.dsp.window.move({ direction = $(lua_quote "$arg") })"
-    elif [ "$dispatcher" = "canvas:movewindow" ]; then
-      dispatch_expr="function() hl.plugin.canvas.move_window($(lua_quote "$arg")) end"
-    elif [ "$dispatcher" = "canvas:focusmonitor" ]; then
-      dispatch_expr="function() hl.plugin.canvas.focus_monitor($(lua_quote "$arg")) end"
-    elif [ "$dispatcher" = "canvas:togglefullscreen" ]; then
-      dispatch_expr='function() hl.plugin.canvas.toggle_fullscreen() end'
-    elif [ "$dispatcher" = "canvas:toggleoverview" ]; then
-      dispatch_expr='function() hl.plugin.canvas.toggle_overview() end'
+    elif [ "$dispatcher" = "karta:movewindow" ]; then
+      dispatch_expr="function() hl.plugin.karta.move_window($(lua_quote "$arg")) end"
+    elif [ "$dispatcher" = "karta:focusmonitor" ]; then
+      dispatch_expr="function() hl.plugin.karta.focus_monitor($(lua_quote "$arg")) end"
+    elif [ "$dispatcher" = "karta:togglefullscreen" ]; then
+      dispatch_expr='function() hl.plugin.karta.toggle_fullscreen() end'
+    elif [ "$dispatcher" = "karta:toggleoverview" ]; then
+      dispatch_expr='function() hl.plugin.karta.toggle_overview() end'
     elif [ "$dispatcher" = "fullscreenstate" ]; then
       dispatch_expr='hl.dsp.window.fullscreen_state({ internal = 2, client = 0, action = "toggle" })'
     elif [ "$dispatcher" = "layoutmsg" ]; then
@@ -167,17 +167,17 @@ set_focus_binds() {
   unbind_compat SUPER,I
 
   case "$layout" in
-    canvas)
-      bindd_compat "SUPER,h,focus left (canvas),canvas:movefocus,l"
-      bindd_compat "SUPER,j,focus down (canvas),canvas:movefocus,d"
-      bindd_compat "SUPER,k,focus up (canvas),canvas:movefocus,u"
-      bindd_compat "SUPER,l,focus right (canvas),canvas:movefocus,r"
-      bindd_compat "SUPER,n,monitor left (canvas),canvas:focusmonitor,l"
-      bindd_compat "SUPER,m,monitor down (canvas),canvas:focusmonitor,d"
-      bindd_compat "SUPER,comma,monitor up (canvas),canvas:focusmonitor,u"
-      bindd_compat "SUPER,period,monitor right (canvas),canvas:focusmonitor,r"
-      bindd_compat "SUPER,F,fullscreen (canvas),canvas:togglefullscreen"
-      bindd_compat "SUPER,I,overview (canvas),canvas:toggleoverview"
+    karta)
+      bindd_compat "SUPER,h,focus left (karta),karta:movefocus,l"
+      bindd_compat "SUPER,j,focus down (karta),karta:movefocus,d"
+      bindd_compat "SUPER,k,focus up (karta),karta:movefocus,u"
+      bindd_compat "SUPER,l,focus right (karta),karta:movefocus,r"
+      bindd_compat "SUPER,n,monitor left (karta),karta:focusmonitor,l"
+      bindd_compat "SUPER,m,monitor down (karta),karta:focusmonitor,d"
+      bindd_compat "SUPER,comma,monitor up (karta),karta:focusmonitor,u"
+      bindd_compat "SUPER,period,monitor right (karta),karta:focusmonitor,r"
+      bindd_compat "SUPER,F,fullscreen (karta),karta:togglefullscreen"
+      bindd_compat "SUPER,I,overview (karta),karta:toggleoverview"
       ;;
     *)
       bindd_compat "SUPER,h,focus left,movefocus,l"
@@ -199,11 +199,11 @@ set_move_binds() {
   unbind_compat "SUPER CTRL,l"
 
   case "$layout" in
-    canvas)
-      bindd_compat "SUPER CTRL,h,move window left (canvas),canvas:movewindow,l"
-      bindd_compat "SUPER CTRL,j,move window down (canvas),canvas:movewindow,d"
-      bindd_compat "SUPER CTRL,k,move window up (canvas),canvas:movewindow,u"
-      bindd_compat "SUPER CTRL,l,move window right (canvas),canvas:movewindow,r"
+    karta)
+      bindd_compat "SUPER CTRL,h,move window left (karta),karta:movewindow,l"
+      bindd_compat "SUPER CTRL,j,move window down (karta),karta:movewindow,d"
+      bindd_compat "SUPER CTRL,k,move window up (karta),karta:movewindow,u"
+      bindd_compat "SUPER CTRL,l,move window right (karta),karta:movewindow,r"
       ;;
     *)
       bindd_compat "SUPER CTRL,h,move window left,movewindow,l"
@@ -219,8 +219,8 @@ if [ "${1:-}" = "init" ]; then
 else
   case "$current_layout" in
     master) target_layout="dwindle" ;;
-    dwindle) target_layout="canvas" ;;
-    canvas) target_layout="master" ;;
+    dwindle) target_layout="karta" ;;
+    karta) target_layout="master" ;;
     *) target_layout="master" ;;
   esac
 fi
@@ -246,14 +246,14 @@ case "$target_layout" in
       notify-send -e -u low -i "$notif" " Dwindle Layout"
     fi
     ;;
-  canvas)
-    set_layout_compat canvas
+  karta)
+    set_layout_compat karta
     if ! is_lua_provider; then
-      set_focus_binds canvas
-      set_move_binds canvas
+      set_focus_binds karta
+      set_move_binds karta
     fi
     if [ "$show_notification" = true ]; then
-      notify-send -e -u low -i "$notif" " Canvas Layout"
+      notify-send -e -u low -i "$notif" " Karta Layout"
     fi
     ;;
   *)
@@ -265,11 +265,11 @@ case "$target_layout" in
 esac
 
 # Reinstall after every layout change, including init. The module removes
-# conflicting defaults in canvas and restores native actions in other layouts.
+# conflicting defaults in karta and restores native actions in other layouts.
 if is_lua_provider; then
-  bindings_path="$HOME/.config/hypr/lua/canvas-layout.lua"
+  bindings_path="$HOME/.config/hypr/lua/karta-layout.lua"
   if [ ! -f "$bindings_path" ]; then
-    printf 'Missing canvas layout bindings: %s\n' "$bindings_path" >&2
+    printf 'Missing karta layout bindings: %s\n' "$bindings_path" >&2
     exit 1
   fi
   bindings_result=$(hyprctl eval "dofile($(lua_quote "$bindings_path"))")

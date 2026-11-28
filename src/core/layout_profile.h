@@ -1,9 +1,9 @@
 /**
  * @file layout_profile.h
- * @brief Orientation policy helpers shared by lane, stack, and canvas code.
+ * @brief Orientation policy helpers shared by lane, stack, and karta code.
  *
  * This module is the single place that explains what "landscape" and
- * "portrait" mean inside hyprcanvas. The rest of the layout code should ask
+ * "portrait" mean inside karta. The rest of the layout code should ask
  * these helpers questions such as:
  *
  * - Should this monitor default to row mode or column mode?
@@ -21,7 +21,7 @@
 
 #include "types.h"
 
-namespace CanvasCore {
+namespace KartaCore {
 
 /**
  * Semantic orientation profile used by the helpers below.
@@ -106,4 +106,4 @@ double                    stack_primary_span_limit(Mode mode, const Box& bounds)
 // Predict the starting logical size for a new tiled window under this mode.
 Hyprutils::Math::Vector2D predict_window_size(Mode mode, const Box& bounds);
 
-} // namespace CanvasCore
+} // namespace KartaCore

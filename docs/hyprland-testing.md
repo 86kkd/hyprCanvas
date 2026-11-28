@@ -1,11 +1,11 @@
 # Hyprland 测试说明
 
-这份文档说明如何用 `Hyprland` 本身来做 `hyprcanvas` 的集成测试，
+这份文档说明如何用 `Hyprland` 本身来做 `karta` 的集成测试，
 重点覆盖以下场景：
 
 - 在不污染当前桌面会话的前提下复现插件问题
 - 用 debug 构建的插件做手工回归
-- 采集 `Hyprland` 和 `hyprcanvas` 的日志
+- 采集 `Hyprland` 和 `karta` 的日志
 - 对 `layout` 切换、`overview`、跨 workspace/monitor 行为做定点回归
 
 ## 目标
@@ -41,10 +41,10 @@ make debug
 构建完成后，测试用插件路径是：
 
 ```bash
-./Debug/hyprCanvas.so
+./Debug/karta.so
 ```
 
-插件初始化成功后，`~/.hyprland/plugins/hyprCanvas/hyprCanvas.log` 中的
+插件初始化成功后，`~/.hyprland/plugins/karta/karta.log` 中的
 `hyprland_abi` 字段会记录该二进制的编译目标 commit 和依赖 ABI，可用于排查加载了
 旧构建的问题。
 
@@ -53,11 +53,11 @@ make debug
 构建 Debug 插件后，在仓库根目录运行（需安装 `kitty`）：
 
 ```bash
-env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c tests/hyprcanvas-test.lua
+env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c tests/karta-test.lua
 ```
 
-[`tests/hyprcanvas-test.lua`](../tests/hyprcanvas-test.lua) 加载本仓库的
-`Debug/hyprCanvas.so`，启动时不创建窗口，输出尺寸采用 `preferred`。
+[`tests/karta-test.lua`](../tests/karta-test.lua) 加载本仓库的
+`Debug/karta.so`，启动时不创建窗口，输出尺寸采用 `preferred`。
 需要终端时按 `Ctrl + Alt + Enter` 打开 kitty。快捷键使用
 `Ctrl + Alt`，方便在嵌套会话中与外层桌面的 `Super` 绑定区分：
 
@@ -71,8 +71,8 @@ env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c tests/hyprcanvas-test.lu
 | Ctrl + Alt + R / C | 切换 row / col 模式 |
 | Ctrl + Alt + F | 展开 / 恢复 stack |
 | Ctrl + Alt + 1…8 | 设置可见 stack 数量 |
-| Ctrl + Alt + Tab / Shift + Tab | 下一个 / 上一个 canvas |
-| Ctrl + Alt + Super + 方向键 | 切换显示器；overview 中切换 canvas 预览 |
+| Ctrl + Alt + Tab / Shift + Tab | 下一个 / 上一个 karta |
+| Ctrl + Alt + Super + 方向键 | 切换显示器；overview 中切换 karta 预览 |
 | Ctrl + Alt + Shift + Q | 退出测试会话 |
 
 验证 stack 导航：在 row 模式下新建第二个终端，按
@@ -94,7 +94,7 @@ python3 scripts/repro-stack-removal.py
 防止从多 lane 回到单 lane 时残留一屏偏移。
 
 版本说明：本节及其子节中的旧版 shell repro 脚本保留了 Hyprlang 配置和旧
-`canvas:*` dispatcher 调用，尚未迁移，不适用于当前 0.57 基线。当前版本
+`karta:*` dispatcher 调用，尚未迁移，不适用于当前 0.57 基线。当前版本
 请使用本文末尾的 `scripts/repro-overview-shared-workspace.py`，或第 3 节起的
 Lua 手工测试流程。不要直接运行旧脚本来验证当前版本。
 
@@ -107,10 +107,10 @@ overview”这条固定链路，优先直接用仓库里的脚本：
 
 脚本会完成这些事情：
 
-- 生成一份最小 nested `Hyprland` 配置并加载 `./Debug/hyprCanvas.so`
+- 生成一份最小 nested `Hyprland` 配置并加载 `./Debug/karta.so`
 - 把嵌套 Hyprland 作为一个浮动窗口放到指定 outer monitor
 - 在 nested 实例里创建一个图片预览窗口和四个终端窗口
-- 在 nested 实例内部自动执行 `canvas:toggleoverview`
+- 在 nested 实例内部自动执行 `karta:toggleoverview`
 - 默认等待短暂可见期后自动退出 nested 实例
 - 输出 nested 实例 id、日志路径和测试结果
 
@@ -144,30 +144,30 @@ overview”这条固定链路，优先直接用仓库里的脚本：
 将逻辑选中项移动到第二块 monitor 的目标窗口，再执行 accept，并验证
 最终 focus 是否真的落到那个目标窗口上。
 
-如果你要验证“overview 里的 `focusmonitor` 会创建 / 选择新的 canvas workspace，
+如果你要验证“overview 里的 `focusmonitor` 会创建 / 选择新的 karta workspace，
 并且关闭 overview 后所有可见 monitor 一起切过去”，优先用这条脚本：
 
 ```bash
-./scripts/repro-overview-canvas-workspaces.sh --outer-monitor HDMI-A-1
+./scripts/repro-overview-karta-workspaces.sh --outer-monitor HDMI-A-1
 ```
 
-它会先验证 normal-mode `canvas:focusmonitor` 只切 monitor focus，
+它会先验证 normal-mode `karta:focusmonitor` 只切 monitor focus，
 再在 overview 里执行 `focusmonitor r -> toggleoverview(close-accept)`，并检查
-5 块 nested monitor 是否一起切到新的空白 canvas workspace，再验证可以切回原
-来的 canvas，且未创建窗口的临时 canvas 被回收。脚本会把 nested 输出摆成“上中下三个横屏，左右各一个竖屏”的十字
+5 块 nested monitor 是否一起切到新的空白 karta workspace，再验证可以切回原
+来的 karta，且未创建窗口的临时 karta 被回收。脚本会把 nested 输出摆成“上中下三个横屏，左右各一个竖屏”的十字
 形拓扑，并同时断言 outer `aquamarine - WAYLAND-1..5` 预览窗口的几何都符合预期。
 虚拟屏幕使用实际预览窗口的像素尺寸（竖屏直接使用竖向尺寸，不额外旋转），避免
 Wayland configure 更新后屏幕缩小而终端仍停留在旧坐标。默认不创建终端窗口；传入 `--with-test-windows` 时，两个测试终端按各屏尺寸
-留出边距并居中，回归也会检查切换 canvas 返回后终端仍完整可见且居中。
+留出边距并居中，回归也会检查切换 karta 返回后终端仍完整可见且居中。
 
 脚本使用 Lua 配置和 dispatcher，并在启动时输出目标 monitor、运行目录和日志路径。
 不带 `--keep-open` 时自动验证后关闭嵌套会话；手动测试并持续输出日志时运行：
 
 ```bash
-./scripts/repro-overview-canvas-workspaces.sh --keep-open
+./scripts/repro-overview-karta-workspaces.sh --keep-open
 ```
 
-`--keep-open` 默认只搭建五屏，不自动切换 canvas 或运行回归检查，可以直接开始
+`--keep-open` 默认只搭建五屏，不自动切换 karta 或运行回归检查，可以直接开始
 手动操作。需要先自动验证再手动测试时加 `--check`；检查失败也会保留会话并输出
 结果文件路径，便于排查。自动检查期间请等待结果后再操作，以免改变验证条件。
 
@@ -178,7 +178,7 @@ Wayland configure 更新后屏幕缩小而终端仍停留在旧坐标。默认�
 
 保留会话的快捷键以 `Ctrl+Alt` 为前缀：`Enter` 新建终端，`O` 打开 / 确认
 退出 overview，`Escape` 取消 overview，`Super+方向键` 在普通模式切 monitor、
-在 overview 切 canvas 预览，`Tab` / `Shift+Tab` 切换 canvas，`Shift+Q` 退出
+在 overview 切 karta 预览，`Tab` / `Shift+Tab` 切换 karta，`Shift+Q` 退出
 嵌套会话。普通方向键移动焦点，`Shift+方向键` 移动窗口。
 
 ### 2.1 复用 5 屏布局 Helper
@@ -192,18 +192,18 @@ source "$REPO_ROOT/scripts/lib/nested-monitor-layouts.sh"
 
 这份 helper 提供的入口：
 
-- `hyprcanvas_five_monitor_names`
-- `hyprcanvas_five_outer_titles`
-- `hyprcanvas_monitor_logical_geometry`
-- `hyprcanvas_compute_five_monitor_outer_layout`
-- `hyprcanvas_install_outer_output_map_time_float_rules`
-- `hyprcanvas_outer_event_socket_path`
-- `hyprcanvas_start_outer_output_event_watcher`
-- `hyprcanvas_wait_for_outer_output_event_watcher_ready`
-- `hyprcanvas_wait_for_outer_output_position_events`
-- `hyprcanvas_create_positioned_wayland_outputs`
-- `hyprcanvas_position_outer_windows`
-- `hyprcanvas_apply_five_monitor_cross_layout`
+- `karta_five_monitor_names`
+- `karta_five_outer_titles`
+- `karta_monitor_logical_geometry`
+- `karta_compute_five_monitor_outer_layout`
+- `karta_install_outer_output_map_time_float_rules`
+- `karta_outer_event_socket_path`
+- `karta_start_outer_output_event_watcher`
+- `karta_wait_for_outer_output_event_watcher_ready`
+- `karta_wait_for_outer_output_position_events`
+- `karta_create_positioned_wayland_outputs`
+- `karta_position_outer_windows`
+- `karta_apply_five_monitor_cross_layout`
 
 推荐时序是先根据 outer monitor 计算出 5 个 preview window 的几何，然后在启动
 nested Hyprland 之前安装最小 map-time `float` 规则，让后续
@@ -230,10 +230,10 @@ OUTER_OUTPUT_HEIGHTS=()
 OUTER_OUTPUT_EVENT_STATE="$RUN_DIR/outer-output-events.tsv"
 OUTER_OUTPUT_EVENT_READY="$RUN_DIR/outer-output-events.ready"
 
-hyprcanvas_five_monitor_names NESTED_MONITOR_NAMES
-hyprcanvas_five_outer_titles OUTER_OUTPUT_TITLES
+karta_five_monitor_names NESTED_MONITOR_NAMES
+karta_five_outer_titles OUTER_OUTPUT_TITLES
 
-hyprcanvas_compute_five_monitor_outer_layout \
+karta_compute_five_monitor_outer_layout \
   "$outer_monitor_json" \
   "$WINDOW_WIDTH" \
   "$WINDOW_HEIGHT" \
@@ -245,10 +245,10 @@ hyprcanvas_compute_five_monitor_outer_layout \
   OUTER_OUTPUT_WIDTHS \
   OUTER_OUTPUT_HEIGHTS
 
-hyprcanvas_install_outer_output_map_time_float_rules OUTER_OUTPUT_TITLES
+karta_install_outer_output_map_time_float_rules OUTER_OUTPUT_TITLES
 
-OUTER_OUTPUT_EVENT_SOCKET="$(hyprcanvas_outer_event_socket_path)"
-hyprcanvas_start_outer_output_event_watcher \
+OUTER_OUTPUT_EVENT_SOCKET="$(karta_outer_event_socket_path)"
+karta_start_outer_output_event_watcher \
   OUTER_OUTPUT_EVENT_WATCHER_PID \
   "$OUTER_OUTPUT_EVENT_SOCKET" \
   "$OUTER_OUTPUT_EVENT_STATE" \
@@ -260,9 +260,9 @@ hyprcanvas_start_outer_output_event_watcher \
   OUTER_OUTPUT_YS \
   OUTER_OUTPUT_WIDTHS \
   OUTER_OUTPUT_HEIGHTS
-hyprcanvas_wait_for_outer_output_event_watcher_ready "$OUTER_OUTPUT_EVENT_READY"
+karta_wait_for_outer_output_event_watcher_ready "$OUTER_OUTPUT_EVENT_READY"
 
-hyprcanvas_create_positioned_wayland_outputs \
+karta_create_positioned_wayland_outputs \
   "$NESTED_INSTANCE" \
   1 \
   5 \
@@ -276,9 +276,9 @@ hyprcanvas_create_positioned_wayland_outputs \
   OUTER_OUTPUT_WIDTHS \
   OUTER_OUTPUT_HEIGHTS
 
-hyprcanvas_wait_for_outer_output_position_events "$OUTER_OUTPUT_EVENT_STATE" 5
+karta_wait_for_outer_output_position_events "$OUTER_OUTPUT_EVENT_STATE" 5
 
-hyprcanvas_position_outer_windows \
+karta_position_outer_windows \
   "$OUTER_MONITOR_X" \
   "$OUTER_MONITOR_Y" \
   OUTER_OUTPUT_TITLES \
@@ -287,7 +287,7 @@ hyprcanvas_position_outer_windows \
   OUTER_OUTPUT_WIDTHS \
   OUTER_OUTPUT_HEIGHTS
 
-hyprcanvas_apply_five_monitor_cross_layout \
+karta_apply_five_monitor_cross_layout \
   "$NESTED_INSTANCE" \
   "$WINDOW_WIDTH" \
   "$WINDOW_HEIGHT"
@@ -301,30 +301,30 @@ hyprcanvas_apply_five_monitor_cross_layout \
 - `WAYLAND-1` 左竖屏
 - `WAYLAND-4` 右竖屏
 
-如果你要验证“layout 切换 / plugin reload 之后 canvas 是否恢复原布局”，
+如果你要验证“layout 切换 / plugin reload 之后 karta 是否恢复原布局”，
 优先用这条脚本：
 
 ```bash
 ./scripts/repro-layout-persistence.sh
 ```
 
-它会在 nested 会话里构造一个多 lane、多窗口的 canvas 布局，然后依次验证：
+它会在 nested 会话里构造一个多 lane、多窗口的 karta 布局，然后依次验证：
 
-- `master -> canvas`
-- `dwindle -> canvas`
-- `plugin unload/load -> canvas`
+- `master -> karta`
+- `dwindle -> karta`
+- `plugin unload/load -> karta`
 
 脚本会输出 nested instance、log 路径、run dir，以及每一步的几何对比结论。
 
 ## 3. 手工启动嵌套 Hyprland 测试实例
 
-先写一份最小测试配置，例如 `/tmp/hyprcanvas-test.lua`：
+先写一份最小测试配置，例如 `/tmp/karta-test.lua`：
 
 ```lua
-hl.plugin.load("/home/linda/Documents/hyprcanvas/Debug/hyprCanvas.so")
+hl.plugin.load("/home/linda/Documents/karta/Debug/karta.so")
 hl.monitor({ output = "", mode = "preferred", position = "auto", scale = 1 })
 hl.config({
-    general = { layout = "canvas", gaps_in = 4, gaps_out = 8, border_size = 2 },
+    general = { layout = "karta", gaps_in = 4, gaps_out = 8, border_size = 2 },
     decoration = { rounding = 6 },
     misc = { disable_hyprland_logo = true, disable_splash_rendering = true },
     input = { kb_layout = "us" },
@@ -333,13 +333,13 @@ hl.config({
 ```
 
 当前基线使用 Lua 配置，不支持旧的 `plugin = ...`。运行时手动加载可用
-`hyprctl -i <instance-signature> plugin load /path/to/hyprCanvas.so`；
+`hyprctl -i <instance-signature> plugin load /path/to/karta.so`；
 这是插件管理命令，不是 dispatcher。不要对已经加载的插件重复加载。
 
 然后直接启动一个嵌套测试实例：
 
 ```bash
-env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprcanvas-test.lua
+env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/karta-test.lua
 ```
 
 说明：
@@ -404,14 +404,14 @@ hyprctl -i <instance-signature> activeworkspace -j
 ```bash
 hyprctl -i <instance-signature> eval 'hl.config({general={layout="master"}})'
 hyprctl -i <instance-signature> eval 'hl.config({general={layout="dwindle"}})'
-hyprctl -i <instance-signature> eval 'hl.config({general={layout="canvas"}})'
+hyprctl -i <instance-signature> eval 'hl.config({general={layout="karta"}})'
 ```
 
 常见回归点：
 
-- `master -> canvas`
-- `dwindle -> canvas`
-- `canvas -> master -> canvas`
+- `master -> karta`
+- `dwindle -> karta`
+- `karta -> master -> karta`
 - 多 workspace 下切换后再回到隐藏 workspace
 - 有 `fullscreen` / `overview` 状态时再切 layout
 
@@ -420,32 +420,32 @@ hyprctl -i <instance-signature> eval 'hl.config({general={layout="canvas"}})'
 打开 overview：
 
 ```bash
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.toggle_overview()'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.toggle_overview()'
 ```
 
 移动 overview 里的逻辑选中项：
 
 ```bash
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.move_focus("r")'
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.move_focus("l")'
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.move_focus("u")'
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.move_focus("d")'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.move_focus("r")'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.move_focus("l")'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.move_focus("u")'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.move_focus("d")'
 ```
 
-移动 overview 里的 canvas workspace focus：
+移动 overview 里的 karta workspace focus：
 
 ```bash
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.focus_monitor("r")'
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.focus_monitor("l")'
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.focus_monitor("u")'
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.focus_monitor("d")'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.focus_monitor("r")'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.focus_monitor("l")'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.focus_monitor("u")'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.focus_monitor("d")'
 ```
 
 接受或取消：
 
 ```bash
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.toggle_overview()'
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.cancel_overview()'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.toggle_overview()'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.cancel_overview()'
 ```
 
 推荐重点回归：
@@ -455,7 +455,7 @@ hyprctl -i <instance-signature> eval 'hl.plugin.canvas.cancel_overview()'
 - 打开/关闭 overview 时是否有卡片残留
 - overview 期间真实 focus 是否被错误改变
 
-## 8. 手工测试 canvas Lua 命令
+## 8. 手工测试 karta Lua 命令
 
 日常手工回归优先用仓库里的短命令包装，它会自动选中「非当前会话」的嵌套实例：
 
@@ -466,9 +466,9 @@ hyprctl -i <instance-signature> eval 'hl.plugin.canvas.cancel_overview()'
 ./scripts/hsctl focus r
 ./scripts/hsctl move d
 ./scripts/hsctl swap r
-./scripts/hsctl monitor r     # 普通模式切 monitor，overview 中切 canvas 预览
-./scripts/hsctl workspace r   # 直接切下一个 canvas（也可用 canvas r）
-./scripts/hsctl workspace 2   # 切到第 2 个 canvas
+./scripts/hsctl monitor r     # 普通模式切 monitor，overview 中切 karta 预览
+./scripts/hsctl workspace r   # 直接切下一个 karta（也可用 karta r）
+./scripts/hsctl workspace 2   # 切到第 2 个 karta
 ./scripts/hsctl marks add editor
 ./scripts/hsctl marks visit editor
 ./scripts/hsctl marks delete editor
@@ -489,7 +489,7 @@ hyprctl -i <instance-signature> eval 'hl.plugin.canvas.cancel_overview()'
 也可以在仅有目标测试实例时先固定它，后面就不用每次带 `-i`：
 
 ```bash
-export HYPRCANVAS_INSTANCE="$(./scripts/hsctl which)"
+export KARTA_INSTANCE="$(./scripts/hsctl which)"
 ./scripts/hsctl focus r
 ```
 
@@ -497,17 +497,17 @@ export HYPRCANVAS_INSTANCE="$(./scripts/hsctl which)"
 
 ```bash
 ./scripts/hsctl raw monitors -j
-./scripts/hsctl eval 'hl.plugin.canvas.move_focus("r")'
+./scripts/hsctl eval 'hl.plugin.karta.move_focus("r")'
 ```
 
 等价的长命令（一般不必再手写）：
 
 ```bash
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.move_focus("r")'
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.move_window("r")'
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.set_mode("row")'
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.set_mode("col")'
-hyprctl -i <instance-signature> eval 'hl.plugin.canvas.toggle_fullscreen()'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.move_focus("r")'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.move_window("r")'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.set_mode("row")'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.set_mode("col")'
+hyprctl -i <instance-signature> eval 'hl.plugin.karta.toggle_fullscreen()'
 ```
 
 推荐测试组合：
@@ -524,7 +524,7 @@ hyprctl -i <instance-signature> eval 'hl.plugin.canvas.toggle_fullscreen()'
 如果你是直接在终端里运行：
 
 ```bash
-env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprcanvas-test.lua
+env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/karta-test.lua
 ```
 
 那么这个终端里的 stdout/stderr 就是测试实例的 `Hyprland` 日志。
@@ -532,7 +532,7 @@ env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprcanvas-test.lua
 如果要落盘：
 
 ```bash
-env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprcanvas-test.lua > /tmp/hyprland-test.log 2>&1
+env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/karta-test.lua > /tmp/hyprland-test.log 2>&1
 ```
 
 重点关注：
@@ -546,13 +546,13 @@ env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprcanvas-test.lua
 插件日志默认写到：
 
 ```bash
-~/.hyprland/plugins/hyprCanvas/hyprCanvas.log
+~/.hyprland/plugins/karta/karta.log
 ```
 
 查看末尾日志：
 
 ```bash
-tail -n 200 ~/.hyprland/plugins/hyprCanvas/hyprCanvas.log
+tail -n 200 ~/.hyprland/plugins/karta/karta.log
 ```
 
 如果要只看本次测试新增的内容，推荐先记住文件大小，再在测试后截取新增部分。
@@ -564,7 +564,7 @@ tail -n 200 ~/.hyprland/plugins/hyprCanvas/hyprCanvas.log
 例如测试实例的 socket 是 `wayland-2`：
 
 ```bash
-WAYLAND_DISPLAY=wayland-2 grim /tmp/hyprcanvas-test.png
+WAYLAND_DISPLAY=wayland-2 grim /tmp/karta-test.png
 ```
 
 这样可以在不影响主会话的情况下抓到测试实例的画面。
@@ -585,13 +585,13 @@ hyprctl -i <instance-signature> eval 'hl.dispatch(hl.dsp.exit())'
 
 1. `make debug`
 2. 优先运行 `./scripts/repro-overview.sh --outer-monitor <monitor>`
-3. 如果脚本不适用，再手工启动嵌套 `env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/hyprcanvas-test.lua`
+3. 如果脚本不适用，再手工启动嵌套 `env -u HYPRLAND_INSTANCE_SIGNATURE start-hyprland -- -c /tmp/karta-test.lua`
 4. 用 `hyprctl instances -j` 找到测试实例
 5. 在测试实例里创建目标窗口
 6. 跑目标场景
 7. 失败时同时保存：
    - `Hyprland` 终端日志
-   - `~/.hyprland/plugins/hyprCanvas/hyprCanvas.log`
+   - `~/.hyprland/plugins/karta/karta.log`
    - 必要时的截图
 8. 用 `hyprctl -i <instance-signature> eval 'hl.dispatch(hl.dsp.exit())'` 退出测试实例
 
@@ -671,28 +671,28 @@ python3 scripts/repro-overview-shared-workspace.py
 compositor，按 PID 找到自己的 instance，创建两块 headless 输出后移除其
 Wayland 预览输出。启动时会短暂出现 nested 窗口；测试期间不切换主会话
 workspace、不热加载主会话插件，结束时只关闭自己的实例。
-输出 `/tmp/hyprcanvas-shared-workspace.*/` 下的截图、日志和 result.json。
+输出 `/tmp/karta-shared-workspace.*/` 下的截图、日志和 result.json。
 这是 Lua 配置/API 路径，不依赖旧脚本中的 legacy dispatcher。
 
-复现顺序：记录 `(101,102)` canvas，原生切换主屏到 103 并记录
+复现顺序：记录 `(101,102)` karta，原生切换主屏到 103 并记录
 `(103,102)`，再回到 `(101,102)` 打开 overview。旧动画缓存只用 window
 指针作 key，第二份副屏窗口预览把第一份坐标覆盖到屏幕外，副屏变成纯背景。
-修复后缓存身份包含 canvas、monitor 和 window。另一个回归从共享的 102
-窗口打开 overview，确保初始选择限定在当前 canvas，不接受历史 canvas。
+修复后缓存身份包含 karta、monitor 和 window。另一个回归从共享的 102
+窗口打开 overview，确保初始选择限定在当前 karta，不接受历史 karta。
 
 脚本先验证正常双屏截图，再检查三 workspace 的红/绿窗口像素和共享 origin
-的蓝/绿窗口像素；还检查方向/编号 canvas 切换的所有 monitor 成员、窗口
-方向移动不产生新 workspace、最终窗口仍在当前可见 canvas。
+的蓝/绿窗口像素；还检查方向/编号 karta 切换的所有 monitor 成员、窗口
+方向移动不产生新 workspace、最终窗口仍在当前可见 karta。
 历史原生 workspace 组合仍可被读取，不迁移或删除用户窗口。
 
-配套快捷键见 `examples/canvas-layout.lua`，需要在用户绑定之后加载。
+配套快捷键见 `examples/karta-layout.lua`，需要在用户绑定之后加载。
 主会话配置和运行中的插件不会由回归脚本自动更新。
 
 ### no_warps 下的跨屏焦点与鼠标同步
 
 `python3 scripts/repro-overview-shared-workspace.py --no-warps` 会在独立实例中
 启用 `cursor.no_warps=true` 和 `input.follow_mouse=0`，同时重跑 overview /
-canvas 测试，验证跨屏移动保持目标窗口焦点、鼠标同步到目标窗口内，以及下一次
+karta 测试，验证跨屏移动保持目标窗口焦点、鼠标同步到目标窗口内，以及下一次
 `move_focus` 在目标显示器执行。插件主动请求的导航和新窗口同步会明确绕过
 `cursor.no_warps`；新窗口只有实际获得焦点后才同步鼠标。连续导航只执行最新的
 同步请求，鼠标移动或点击会取消尚未执行的请求。
@@ -707,15 +707,15 @@ canvas 测试，验证跨屏移动保持目标窗口焦点、鼠标同步到目�
 ### 安装前的热重载验证
 
 添加 `--reload-plugin` 会在独立实例中切到 dwindle，卸载/加载待安装插件，
-再切回 canvas，断言所有窗口的 workspace/monitor 归属和可见 workspace
+再切回 karta，断言所有窗口的 workspace/monitor 归属和可见 workspace
 不变。切换布局可能改变焦点，因此安装流程应另外记录并恢复活动窗口。
 脚本同时覆盖 Lua 配置中的 `hl.plugin.load(...)` 自动加载入口。
 
-### 旧 canvas 共享成员迁移
+### 旧 karta 共享成员迁移
 
-除了预览可见性，回归必须断言不同普通 canvas 不能引用同一个原生 workspace。
+除了预览可见性，回归必须断言不同普通 karta 不能引用同一个原生 workspace。
 典型旧状态是 `(1,2)`、`(1,4)`、`(1,3)`，切换时左屏仍显示 workspace 1。
-迁移以实际可见 canvas 为优先（不能信任可能滞后的 ACTIVE 字段），保留当前
+迁移以实际可见 karta 为优先（不能信任可能滞后的 ACTIVE 字段），保留当前
 窗口；其他组的重复引用分配新的空 workspace ID，已有唯一隐藏成员保持不变。
 脚本现在还实际在旧第 1/2 组间切换，断言每块 monitor 的 workspace ID 都变化，
 再返回原组。纯测试覆盖主会话这组三组旧映射和重复迁移的幂等性。
@@ -735,35 +735,35 @@ mkdir -p ~/.config/fish/completions
 cp scripts/completions/hsctl.fish ~/.config/fish/completions/hsctl.fish
 ```
 
-输入 `./scripts/hsctl ` 后按 Tab 可补全命令；`monitor`、`canvas`、`size`、
+输入 `./scripts/hsctl ` 后按 Tab 可补全命令；`monitor`、`karta`、`size`、
 `mode`、`overview`、`marks` 会提供对应参数。`-i` / `--instance` 后按 Tab
 会通过 `hyprctl instances -j` 列出当前实例（需要 jq）。标记名称由用户输入。
 
-### 临时 canvas 生命周期回归
+### 临时 karta 生命周期回归
 
 ```bash
-python3 scripts/repro-canvas-ephemeral.py
+python3 scripts/repro-karta-ephemeral.py
 ```
 
-在独立双屏实例检查：空临时 canvas 不连续扩展、编号不能跳过空页、离开与取消
-overview 回收临时页面、任意成员屏幕的新窗口或移入窗口让 canvas 转正。测试也
-覆盖浮动窗口及最后一个窗口关闭后正式 canvas 的保留；结束时关闭测试实例。
+在独立双屏实例检查：空临时 karta 不连续扩展、编号不能跳过空页、离开与取消
+overview 回收临时页面、任意成员屏幕的新窗口或移入窗口让 karta 转正。测试也
+覆盖浮动窗口及最后一个窗口关闭后正式 karta 的保留；结束时关闭测试实例。
 
-## Canvas 小地图（A + C）
+## Karta 小地图（A + C）
 
-开发约定：地图格子代表整套多屏 canvas，坐标只消费 repository / overview
+开发约定：地图格子代表整套多屏 karta，坐标只消费 repository / overview
 preview 的 `tileX / tileY`；不另存一套地图布局。HUD 的显示时间和显示器属于
-插件运行态，桌面直接切换 canvas 后显示约 1.5 秒；overview 中始终显示在打开 overview 的屏幕，
+插件运行态，桌面直接切换 karta 后显示约 1.5 秒；overview 中始终显示在打开 overview 的屏幕，
 接受或取消时随 overview 一起消失，并清除此前的 HUD 计时，不再触发切换提示。
 点击仅改变 session preview，接受和取消仍由现有 overview 事务处理。
-地图默认开启，可通过 `plugin:canvas:canvas_map = 0` 关闭。
+地图默认开启，可通过 `plugin:karta:karta_map = 0` 关闭。
 
 自动回归：
 
 ```sh
 cmake --build Debug -j 2
 ctest --test-dir Debug --output-on-failure
-python3 scripts/repro-canvas-map.py
+python3 scripts/repro-karta-map.py
 ```
 
 脚本需要 `Hyprland`、`hyprctl`、`grim`、Python Pillow、C 编译器及
@@ -779,25 +779,25 @@ python3 scripts/repro-canvas-map.py
 时 HUD 的阅读体验。独立可缩放的世界地图 B 仍在 `planned-work.md` 中规划。
 
 
-### 空临时 canvas 启动终端与 HUD 空闲超时
+### 空临时 karta 启动终端与 HUD 空闲超时
 
 ```sh
-python3 scripts/repro-empty-canvas-focus.py
+python3 scripts/repro-empty-karta-focus.py
 ```
 
 保留真实 Wayland 输出和动画，先打开 tiled kitty，再通过显式指定实例的
-`hsctl workspace d` 切到临时 canvas。等待期间不截图、不注入输入，检查
+`hsctl workspace d` 切到临时 karta。等待期间不截图、不注入输入，检查
 事件循环的 HUD 到期记录；然后通过 `hsctl kitty` 确认新窗口归属目标 workspace，
-并使临时 canvas 转为正式页面。HUD 定时器在 1.3 秒时启动淡出帧，到期主动重绘，
+并使临时 karta 转为正式页面。HUD 定时器在 1.3 秒时启动淡出帧，到期主动重绘，
 不依赖空桌面持续产生渲染帧。此脚本读取共享插件日志，请串行运行回归。
 
-## 跨 canvas 搬窗口与焦点回归
+## 跨 karta 搬窗口与焦点回归
 
 ```bash
 cmake --build Debug -j 2
 ctest --test-dir Debug --output-on-failure
-lua tests/canvas_keybinds_tests.lua
-python3 scripts/repro-canvas-window-transfer.py
+lua tests/karta_keybinds_tests.lua
+python3 scripts/repro-karta-window-transfer.py
 ```
 
 专用脚本在独立 Hyprland 实例中创建两个 headless 输出和 kitty 窗口，不重载主桌面插件。

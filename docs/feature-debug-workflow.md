@@ -22,7 +22,7 @@
 这套流程默认适用于：
 
 - `src/overview/*`
-- `src/layout/canvas/*`
+- `src/layout/karta/*`
 - `src/layout/lane/*`
 - `src/model/stack.*`
 - 任何需要同时验证“纯逻辑 + Hyprland 运行态 + 真正渲染结果”的修改
@@ -39,7 +39,7 @@
 
 - 先写清楚“这次要新增什么能力”
 - 先写清楚“哪些已有行为必须保持不变”
-- 对状态型 feature，先写清楚状态属于 window / stack / lane / canvas / workspace / session 的哪一层
+- 对状态型 feature，先写清楚状态属于 window / stack / lane / karta / workspace / session 的哪一层
 
 3. debug 先把现象固定下来，再改代码
 
@@ -88,7 +88,7 @@
 - 它的“失败表现”会长什么样？
 - 它会影响哪些模块：
   - `overview`
-  - `canvas`
+  - `karta`
   - `lane`
   - `stack`
   - dispatcher / session / render
@@ -103,7 +103,7 @@
   - `Window`
   - `Stack`
   - `Lane`
-  - `CanvasLayout`
+  - `KartaLayout`
   - `Workspace`
   - session / runtime repository
 - 状态要活多久：
@@ -134,7 +134,7 @@
 例如：
 
 - “增加一个 overview 里的新选择行为”
-- “让 canvas 在 layout switch 后恢复当前 workspace 布局”
+- “让 karta 在 layout switch 后恢复当前 workspace 布局”
 - “让某个 dispatcher 在 column 模式下新增一种尺寸策略”
 
 最小纵向切片的目标不是“功能做完”，而是：
@@ -185,7 +185,7 @@
 脚本要求尽量和 debug 场景一致：
 
 - 最小配置启动 nested `Hyprland`
-- 自动加载 `./Debug/hyprCanvas.so`
+- 自动加载 `./Debug/karta.so`
 - 明确窗口拓扑和 dispatcher 序列
 - 输出 run dir、log、result
 - 默认自动退出
@@ -301,15 +301,15 @@ ctest --test-dir Debug --output-on-failure
 - 预览渲染类问题：[`scripts/repro-overview.sh`](../scripts/repro-overview.sh)
 - overview 导航类问题：[`scripts/repro-overview-movefocus.sh`](../scripts/repro-overview-movefocus.sh)
 - overview 跨屏 accept 类问题：[`scripts/repro-overview-accept-cross-monitor.sh`](../scripts/repro-overview-accept-cross-monitor.sh)
-- overview canvas workspace / focusmonitor 链路：
-  [`scripts/repro-overview-canvas-workspaces.sh`](../scripts/repro-overview-canvas-workspaces.sh)
+- overview karta workspace / focusmonitor 链路：
+  [`scripts/repro-overview-karta-workspaces.sh`](../scripts/repro-overview-karta-workspaces.sh)
 
 如果已有脚本不够，就在它基础上改，不要新造完全不同的启动方式。
 
 脚本设计要求：
 
 - 用最小配置启动 nested `Hyprland`
-- 自动加载 `./Debug/hyprCanvas.so`
+- 自动加载 `./Debug/karta.so`
 - 明确窗口拓扑和 dispatcher 序列
 - 默认自动退出，避免残留测试会话
 - 输出 run dir、log、result
@@ -355,7 +355,7 @@ ctest --test-dir Debug --output-on-failure
 - `hyprctl -i <instance> clients -j`
 - `hyprctl -i <instance> workspaces -j`
 - `hyprctl -i <instance> activeworkspace -j`
-- `~/.hyprland/plugins/hyprCanvas/hyprCanvas.log`
+- `~/.hyprland/plugins/karta/karta.log`
 
 原则：
 
@@ -456,7 +456,7 @@ ctest --test-dir Debug --output-on-failure
 
 - 在 nested `Hyprland` 里创建 overview 场景
 - 构造图片预览窗口和多个终端窗口
-- 自动打开 `canvas:toggleoverview`
+- 自动打开 `karta:toggleoverview`
 - 让 preview 渲染路径稳定可观察
 
 ### 如何缩小到正确层
@@ -498,7 +498,7 @@ ctest --test-dir Debug --output-on-failure
 
 ### 现象
 
-- overview 中执行 `canvas:movefocus u/d/l/r` 时，偶尔会跳到视觉上并不是邻居的目标
+- overview 中执行 `karta:movefocus u/d/l/r` 时，偶尔会跳到视觉上并不是邻居的目标
 - 在两张 workspace 卡片并排、卡片内部再投影窗口预览的场景里，`movefocus` 会跳到另一张卡片里的对角线窗口
 
 ### 复现方式

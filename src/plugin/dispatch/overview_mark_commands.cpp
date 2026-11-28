@@ -7,7 +7,7 @@
 #include <lua.hpp>
 
 #include "core/core.h"
-#include "layout/canvas/internal.h"
+#include "layout/karta/internal.h"
 
 namespace dispatchers::detail {
 namespace {
@@ -46,29 +46,29 @@ void dispatch_canceloverview(std::string arg) {
 
 // marksadd <name>: save focused window under a named mark.
 void dispatch_marksadd(std::string arg) {
-    withWorkspaceLayout([&](CanvasLayout& layout, int workspace) {
+    withWorkspaceLayout([&](KartaLayout& layout, int workspace) {
         (void)workspace;
         const auto candidate = layout.getNextCandidate(nullptr);
         if (const auto window = candidate ? candidate->window() : nullptr)
-            CanvasCore::marksRegistry().add(window, arg);
+            KartaCore::marksRegistry().add(window, arg);
     });
 }
 
 // marksdelete <name>: remove a stored mark entry by name.
 void dispatch_marksdelete(std::string arg) {
-    CanvasCore::marksRegistry().del(arg);
+    KartaCore::marksRegistry().del(arg);
 }
 
 // marksvisit <name>: focus and activate the marked window if present.
 void dispatch_marksvisit(std::string arg) {
-    if (const auto window = CanvasCore::marksRegistry().visit(arg))
-        (void)CanvasLayoutInternal::switch_to_window(window, false);
+    if (const auto window = KartaCore::marksRegistry().visit(arg))
+        (void)KartaLayoutInternal::switch_to_window(window, false);
 }
 
 // marksreset: clear all marks.
 void dispatch_marksreset(std::string arg) {
     (void)arg;
-    CanvasCore::marksRegistry().reset();
+    KartaCore::marksRegistry().reset();
 }
 
 } // namespace
@@ -115,8 +115,8 @@ int lua_marks_reset(lua_State* state) {
 }
 
 void registerLuaFunction(const char* name, PLUGIN_LUA_FN function) {
-    if (!HyprlandAPI::addLuaFunction(PHANDLE, "canvas", name, function))
-        spdlog::warn("failed to register Lua function hl.plugin.canvas.{}", name);
+    if (!HyprlandAPI::addLuaFunction(PHANDLE, "karta", name, function))
+        spdlog::warn("failed to register Lua function hl.plugin.karta.{}", name);
 }
 
 } // namespace

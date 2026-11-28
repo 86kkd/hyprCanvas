@@ -9,8 +9,8 @@
  * Newcomer reading guide:
  * 1. Start at `PLUGIN_INIT` in this file.
  * 2. Follow dispatcher registration into `src/plugin/dispatch/registration.cpp`.
- * 3. Follow tiled-algorithm registration into `CanvasLayout` in
- *    `src/layout/canvas/layout.h`.
+ * 3. Follow tiled-algorithm registration into `KartaLayout` in
+ *    `src/layout/karta/layout.h`.
  * That path shows the whole runtime shell before you dive into lane or stack
  * details.
  */
@@ -36,11 +36,11 @@
 #include "plugin/config.h"
 #include "plugin/dispatch/registration.h"
 #include "hyprlang.hpp"
-#include "layout/canvas/internal.h"
-#include "layout/canvas/layout.h"
-#include "layout/canvas/layout_repository.h"
-#include "layout/canvas/canvas_workspace_repository.h"
-#include "layout/canvas/workspace_controller.h"
+#include "layout/karta/internal.h"
+#include "layout/karta/layout.h"
+#include "layout/karta/layout_repository.h"
+#include "layout/karta/karta_workspace_repository.h"
+#include "layout/karta/workspace_controller.h"
 #include "core/core.h"
 #include "core/focus_pointer_sync.h"
 #include "model/stack/pointer.h"
@@ -56,7 +56,7 @@ namespace {
 std::string log_file_path() {
     const char* home = std::getenv("HOME");
     const std::string base = home && home[0] != '\0' ? home : "/tmp";
-    return base + "/.hyprland/plugins/hyprCanvas/hyprCanvas.log";
+    return base + "/.hyprland/plugins/karta/karta.log";
 }
 
 bool ensure_directory(const std::string& path) {
@@ -82,7 +82,7 @@ bool ensure_directory(const std::string& path) {
 
 std::shared_ptr<spdlog::logger> make_stderr_logger() {
     auto sink = std::make_shared<spdlog::sinks::stderr_color_sink_mt>();
-    return std::make_shared<spdlog::logger>("hyprCanvas", std::move(sink));
+    return std::make_shared<spdlog::logger>("karta", std::move(sink));
 }
 
 // Initialize the plugin logger without letting filesystem setup abort plugin init.
@@ -91,7 +91,7 @@ void init_logging() {
     const auto split = path.find_last_of('/');
     const auto directory = split == std::string::npos ? std::string() : path.substr(0, split);
 
-    spdlog::drop("hyprCanvas");
+    spdlog::drop("karta");
 
     std::shared_ptr<spdlog::logger> logger;
     try {
@@ -99,18 +99,18 @@ void init_logging() {
             throw std::runtime_error(std::string("failed to create log directory: ") + directory + " (" + std::strerror(errno) + ")");
 
         auto sink = std::make_shared<spdlog::sinks::basic_file_sink_mt>(path, true);
-        logger = std::make_shared<spdlog::logger>("hyprCanvas", std::move(sink));
+        logger = std::make_shared<spdlog::logger>("karta", std::move(sink));
     } catch (const std::exception& e) {
         logger = make_stderr_logger();
         spdlog::set_default_logger(logger);
-        spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [hyprCanvas] [%^%l%$] %v");
+        spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [karta] [%^%l%$] %v");
         spdlog::set_level(spdlog::level::debug);
         spdlog::error("logging fallback to stderr: {}", e.what());
         return;
     }
 
     spdlog::set_default_logger(std::move(logger));
-    spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [hyprCanvas] [%^%l%$] %v");
+    spdlog::set_pattern("[%Y-%m-%d %H:%M:%S.%e] [karta] [%^%l%$] %v");
 #ifndef NDEBUG
     spdlog::set_level(spdlog::level::debug);
 #else
@@ -130,65 +130,65 @@ APICALL EXPORT std::string PLUGIN_API_VERSION() {
 // Register config values, Lua commands, and the tiled algorithm implementation.
 // For code readers, this is the root of the plugin's runtime graph:
 // Hyprland loads the plugin -> `PLUGIN_INIT` runs -> Lua commands are registered
-// -> `CanvasLayout` is registered as the `canvas` tiled algorithm.
+// -> `KartaLayout` is registered as the `karta` tiled algorithm.
 //
 // The returned description tuple is shown by Hyprland/plugin tooling as:
 // { name, description, author, version }.
 APICALL EXPORT PLUGIN_DESCRIPTION_INFO PLUGIN_INIT(HANDLE handle) {
     PHANDLE = handle;
     init_logging();
-    CanvasLayoutState::repository().initialize();
-    CanvasLayoutState::canvasRepository().initialize();
+    KartaLayoutState::repository().initialize();
+    KartaLayoutState::kartaRepository().initialize();
     spdlog::info("pluginInit handle={} hyprland_abi={}", static_cast<const void*>(handle), __hyprland_api_get_client_hash());
 
     spdlog::info("pluginInit: registering config values");
-    canvas::plugin_config::registerConfigValues(PHANDLE);
+    karta::plugin_config::registerConfigValues(PHANDLE);
     spdlog::info("pluginInit: config values registered");
 
     spdlog::info("pluginInit: registering Lua functions");
     dispatchers::addLuaFunctions();
     spdlog::info("pluginInit: Lua functions registered");
 
-    // Register canvas as a custom tiled algorithm only after all config values
+    // Register karta as a custom tiled algorithm only after all config values
     // it may read during initial workspace population have been registered.
-    spdlog::info("pluginInit: registering tiled algorithm canvas");
+    spdlog::info("pluginInit: registering tiled algorithm karta");
     HyprlandAPI::addTiledAlgo(
         PHANDLE,
-        "canvas",
-        &typeid(CanvasLayout),
-        []() -> UP<Layout::ITiledAlgorithm> { return makeUnique<CanvasLayout>(); });
+        "karta",
+        &typeid(KartaLayout),
+        []() -> UP<Layout::ITiledAlgorithm> { return makeUnique<KartaLayout>(); });
     spdlog::info("pluginInit: tiled algorithm registered");
 
     spdlog::info("pluginInit: initializing overview renderer hooks");
     Overview::initializeRendererHooks(PHANDLE);
-    CanvasCore::FocusPointerSync::initialize();
-    CanvasModel::DeckPointer::initialize();
+    KartaCore::FocusPointerSync::initialize();
+    KartaModel::DeckPointer::initialize();
     spdlog::info("pluginInit: overview renderer hooks initialized");
 
     // Export the same plugin identifier as the hyprpm manifest.
-    return {"hyprCanvas", "canvas window layout", "86kkd", "1.0"};
+    return {"karta", "karta window layout", "86kkd", "1.0"};
 }
 
 // Plugin shutdown hook: flush snapshots and release all managed service slots
 // in reverse dependency order.
 APICALL EXPORT void PLUGIN_EXIT() {
-    CanvasCore::FocusPointerSync::shutdown();
-    CanvasModel::DeckPointer::shutdown();
-    for (const auto &workspaceRef : CanvasCore::HyprlandRuntime::workspaces()) {
+    KartaCore::FocusPointerSync::shutdown();
+    KartaModel::DeckPointer::shutdown();
+    for (const auto &workspaceRef : KartaCore::HyprlandRuntime::workspaces()) {
         const auto workspace = workspaceRef.lock();
         if (!workspace)
             continue;
-        if (auto *layout = CanvasLayoutInternal::get_canvas_for_workspace(CanvasCore::HyprlandRuntime::workspaceId(workspace)))
+        if (auto *layout = KartaLayoutInternal::get_karta_for_workspace(KartaCore::HyprlandRuntime::workspaceId(workspace)))
             layout->persistCurrentSnapshot();
     }
     Overview::shutdownRendererHooks(PHANDLE);
     Overview::sessionSlot().reset();
     Overview::renderStateSlot().reset();
-    CanvasLayoutState::workspaceControllerSlot().reset();
-    CanvasLayoutState::repository().flush();
-    CanvasLayoutState::canvasRepository().shutdown();
-    CanvasLayoutState::canvasRepositorySlot().reset();
-    CanvasLayoutState::repositorySlot().reset();
-    CanvasCore::marksSlot().reset();
+    KartaLayoutState::workspaceControllerSlot().reset();
+    KartaLayoutState::repository().flush();
+    KartaLayoutState::kartaRepository().shutdown();
+    KartaLayoutState::kartaRepositorySlot().reset();
+    KartaLayoutState::repositorySlot().reset();
+    KartaCore::marksSlot().reset();
     spdlog::info("pluginExit");
 }

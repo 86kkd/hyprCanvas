@@ -12,7 +12,7 @@
 #include <hyprland/src/workspace/HLWorkspace.hpp>
 
 #include "core/hyprland_runtime.h"
-#include "layout/canvas/internal.h"
+#include "layout/karta/internal.h"
 #include "overview/session/effects_runtime.h"
 
 namespace Overview::SessionEffects {
@@ -23,11 +23,11 @@ constexpr MONITORID INVALID_MONITOR_ID = static_cast<MONITORID>(-1);
 class HyprlandSessionEffectsRuntime final : public Runtime {
   public:
     WORKSPACEID currentWorkspaceId() const override {
-        return CanvasLayoutInternal::get_workspace_id();
+        return KartaLayoutInternal::get_workspace_id();
     }
 
     PHLWORKSPACE getWorkspaceByID(WORKSPACEID workspaceId) const override {
-        return g_pCompositor ? CanvasCore::HyprlandRuntime::workspaceById(workspaceId) : nullptr;
+        return g_pCompositor ? KartaCore::HyprlandRuntime::workspaceById(workspaceId) : nullptr;
     }
 
     std::vector<PHLWORKSPACE> getWorkspaces() const override {
@@ -35,7 +35,7 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
         if (!g_pCompositor)
             return workspaces;
 
-        for (const auto& workspaceRef : CanvasCore::HyprlandRuntime::workspaces()) {
+        for (const auto& workspaceRef : KartaCore::HyprlandRuntime::workspaces()) {
             const auto workspace = workspaceRef.lock();
             if (workspace)
                 workspaces.push_back(workspace);
@@ -45,11 +45,11 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
     }
 
     PHLMONITOR getMonitorFromID(MONITORID monitorId) const override {
-        return g_pCompositor ? CanvasCore::HyprlandRuntime::monitorById(monitorId) : nullptr;
+        return g_pCompositor ? KartaCore::HyprlandRuntime::monitorById(monitorId) : nullptr;
     }
 
     PHLMONITOR getFocusedMonitor() const override {
-        return g_pCompositor ? CanvasCore::HyprlandRuntime::monitorForKeyboardAction() : nullptr;
+        return g_pCompositor ? KartaCore::HyprlandRuntime::monitorForKeyboardAction() : nullptr;
     }
 
     MONITORID monitorId(PHLMONITOR monitor) const override {
@@ -57,7 +57,7 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
     }
 
     WORKSPACEID workspaceId(PHLWORKSPACE workspace) const override {
-        return workspace ? CanvasCore::HyprlandRuntime::workspaceId(workspace) : WORKSPACE_INVALID;
+        return workspace ? KartaCore::HyprlandRuntime::workspaceId(workspace) : WORKSPACE_INVALID;
     }
 
     MONITORID workspaceMonitorId(PHLWORKSPACE workspace) const override {
@@ -65,7 +65,7 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
     }
 
     bool isWorkspaceSpecial(PHLWORKSPACE workspace) const override {
-        return workspace && CanvasCore::HyprlandRuntime::isSpecialWorkspace(workspace);
+        return workspace && KartaCore::HyprlandRuntime::isSpecialWorkspace(workspace);
     }
 
     PHLWINDOW workspaceLastFocusedWindow(PHLWORKSPACE workspace) const override {
@@ -81,14 +81,14 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
     }
 
     PHLMONITOR visibleMonitorForWorkspace(PHLWORKSPACE workspace) const override {
-        return CanvasLayoutInternal::visible_monitor_for_workspace(workspace);
+        return KartaLayoutInternal::visible_monitor_for_workspace(workspace);
     }
 
-    void syncCanvasTargetWindow(PHLWORKSPACE workspace, PHLWINDOW window, MONITORID monitorId) const override {
+    void syncKartaTargetWindow(PHLWORKSPACE workspace, PHLWINDOW window, MONITORID monitorId) const override {
         if (!workspace || !window)
             return;
 
-        auto* layout = CanvasLayoutInternal::get_canvas_for_workspace(CanvasCore::HyprlandRuntime::workspaceId(workspace));
+        auto* layout = KartaLayoutInternal::get_karta_for_workspace(KartaCore::HyprlandRuntime::workspaceId(workspace));
         if (!layout)
             return;
 
@@ -100,7 +100,7 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
         if (!workspace)
             return;
 
-        auto* layout = CanvasLayoutInternal::get_canvas_for_workspace(CanvasCore::HyprlandRuntime::workspaceId(workspace));
+        auto* layout = KartaLayoutInternal::get_karta_for_workspace(KartaCore::HyprlandRuntime::workspaceId(workspace));
         if (!layout)
             return;
 
@@ -109,11 +109,11 @@ class HyprlandSessionEffectsRuntime final : public Runtime {
 
     bool focusMonitorWorkspace(PHLMONITOR monitor, PHLWORKSPACE workspace, WORKSPACEID fallbackWorkspaceId,
                                bool requireMonitorFocus, const char* context) const override {
-        return CanvasLayoutInternal::focus_monitor_workspace(monitor, workspace, fallbackWorkspaceId, requireMonitorFocus, context);
+        return KartaLayoutInternal::focus_monitor_workspace(monitor, workspace, fallbackWorkspaceId, requireMonitorFocus, context);
     }
 
     bool switchToWindow(PHLWINDOW window, bool warpCursor) const override {
-        return CanvasLayoutInternal::switch_to_window(window, warpCursor);
+        return KartaLayoutInternal::switch_to_window(window, warpCursor);
     }
 };
 

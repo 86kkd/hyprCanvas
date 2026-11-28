@@ -6,7 +6,7 @@
 
 #include "layout_profile.h"
 
-namespace CanvasCore {
+namespace KartaCore {
 
 ReservedEdges raw_reserved_edges(PHLMONITOR monitor) {
     if (!monitor)
@@ -56,4 +56,4 @@ Mode default_mode_for_monitor(PHLMONITOR monitor) {
     return default_mode_for_extent(size.x, size.y);
 }
 
-} // namespace CanvasCore
+} // namespace KartaCore

@@ -9,7 +9,7 @@
 
 #include "types.h"
 
-namespace CanvasCore {
+namespace KartaCore {
 
 struct ReservedEdges {
     double top = 0.0;
@@ -40,4 +40,4 @@ Box                       logical_workarea_box(const Hyprutils::Math::Vector2D& 
                                                const ReservedEdges& rawReserved,
                                                double outerGap);
 
-} // namespace CanvasCore
+} // namespace KartaCore

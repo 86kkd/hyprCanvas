@@ -21,17 +21,17 @@
 namespace Overview {
 namespace {
 
-using CanvasCore::window_key;
+using KartaCore::window_key;
 
-Vector2D box_position(const CanvasCore::Box& box) {
+Vector2D box_position(const KartaCore::Box& box) {
     return Vector2D(box.x, box.y);
 }
 
-Vector2D box_size(const CanvasCore::Box& box) {
+Vector2D box_size(const KartaCore::Box& box) {
     return Vector2D(std::max(1.0, box.w), std::max(1.0, box.h));
 }
 
-bool valid_preview_box(const CanvasCore::Box& box) {
+bool valid_preview_box(const KartaCore::Box& box) {
     return finiteBox(box) && box.w > 1.0 && box.h > 1.0;
 }
 
@@ -68,7 +68,7 @@ void attach_preview_damage_callback(PHLANIMVAR<Vector2D>& animation, int monitor
         return;
 
     animation->setUpdateCallback([monitorId](auto) {
-        if (const auto monitor = CanvasCore::HyprlandRuntime::monitorById(monitorId))
+        if (const auto monitor = KartaCore::HyprlandRuntime::monitorById(monitorId))
             g_pHyprRenderer->damageMonitor(monitor);
     });
 }
@@ -176,7 +176,7 @@ bool RenderState::selectionAnimationActive(int monitorId, steady_tp now) const {
     return it != selectionPulses_.end() && now - it->second.startedAt < kSelectionDuration;
 }
 
-CanvasCore::Box RenderState::animatedSelectionBox(const CanvasCore::Box& selectionBox, int monitorId, steady_tp now) const {
+KartaCore::Box RenderState::animatedSelectionBox(const KartaCore::Box& selectionBox, int monitorId, steady_tp now) const {
     const auto it = selectionPulses_.find(monitorId);
     if (it == selectionPulses_.end())
         return selectionBox;
@@ -223,7 +223,7 @@ void RenderState::rebuildPreviewAnimations(const Model& model) {
 
                 *animation.position = box_position(goalBox);
                 *animation.size = box_size(goalBox);
-                previewAnimations_[previewKey(target.canvasId, monitor->m_id, window_key(target.window))] = std::move(animation);
+                previewAnimations_[previewKey(target.kartaId, monitor->m_id, window_key(target.window))] = std::move(animation);
             }
         }
     }
@@ -241,8 +241,8 @@ bool RenderState::previewAnimationActive(int monitorId) const {
     return false;
 }
 
-CanvasCore::Box RenderState::animatedPreviewBox(int canvasId, int monitorId, PHLWINDOW window, const CanvasCore::Box& fallbackBox) const {
-    const auto it = previewAnimations_.find(previewKey(canvasId, monitorId, window_key(window)));
+KartaCore::Box RenderState::animatedPreviewBox(int kartaId, int monitorId, PHLWINDOW window, const KartaCore::Box& fallbackBox) const {
+    const auto it = previewAnimations_.find(previewKey(kartaId, monitorId, window_key(window)));
     if (it == previewAnimations_.end() || it->second.monitorId != monitorId)
         return fallbackBox;
 
@@ -275,8 +275,8 @@ void RenderState::clearTextCache() {
     textCache_.clear();
 }
 
-CanvasCore::ServiceSlot<RenderState>& renderStateSlot() {
-    static CanvasCore::ServiceSlot<RenderState> slot;
+KartaCore::ServiceSlot<RenderState>& renderStateSlot() {
+    static KartaCore::ServiceSlot<RenderState> slot;
     return slot;
 }
 

@@ -1,5 +1,5 @@
 /** @file logic.cpp
- * @brief Project stable canvas coordinates into a bounded local map.
+ * @brief Project stable karta coordinates into a bounded local map.
  */
 #include "logic.h"
 #include "overview/navigation/logic.h"
@@ -8,31 +8,31 @@
 #include <cstdint>
 
 namespace Overview::Minimap {
-Map layout(std::vector<Canvas> canvases, int current, int selected, const CanvasCore::Box& area) {
+Map layout(std::vector<Karta> kartas, int current, int selected, const KartaCore::Box& area) {
     Map map;
-    if (canvases.empty() || area.w < 180 || area.h < 180)
+    if (kartas.empty() || area.w < 180 || area.h < 180)
         return map;
-    std::sort(canvases.begin(), canvases.end(), [](const auto& a, const auto& b) { return a.id < b.id; });
-    auto anchor = std::find_if(canvases.begin(), canvases.end(), [&](const auto& c) { return c.id == selected; });
-    if (anchor == canvases.end())
-        anchor = std::find_if(canvases.begin(), canvases.end(), [&](const auto& c) { return c.id == current; });
-    if (anchor == canvases.end())
-        anchor = canvases.begin();
-    const Canvas center = *anchor;
+    std::sort(kartas.begin(), kartas.end(), [](const auto& a, const auto& b) { return a.id < b.id; });
+    auto anchor = std::find_if(kartas.begin(), kartas.end(), [&](const auto& c) { return c.id == selected; });
+    if (anchor == kartas.end())
+        anchor = std::find_if(kartas.begin(), kartas.end(), [&](const auto& c) { return c.id == current; });
+    if (anchor == kartas.end())
+        anchor = kartas.begin();
+    const Karta center = *anchor;
     std::vector<Cell> cells;
-    cells.reserve(canvases.size() + 4);
-    for (size_t i = 0; i < canvases.size(); ++i) {
-        const auto& c = canvases[i];
-        cells.push_back({.canvas = c, .number = static_cast<int>(i + 1), .box = {},
+    cells.reserve(kartas.size() + 4);
+    for (size_t i = 0; i < kartas.size(); ++i) {
+        const auto& c = kartas[i];
+        cells.push_back({.karta = c, .number = static_cast<int>(i + 1), .box = {},
                          .current = c.id == current, .selected = c.id == selected});
     }
     // Only advertise immediate creation slots. Empty temporary/synthetic pages
     // cannot grow another page, matching the repository's one-empty-page rule.
     std::vector<OverviewLogic::TargetCandidate> candidates;
-    candidates.reserve(canvases.size());
-    for (const auto& c : canvases)
+    candidates.reserve(kartas.size());
+    for (const auto& c : kartas)
         candidates.push_back({.monitorId = 0, .box = {double(c.x) * 128, double(c.y) * 128, 96, 96}});
-    const size_t centerIndex = static_cast<size_t>(anchor - canvases.begin());
+    const size_t centerIndex = static_cast<size_t>(anchor - kartas.begin());
     if (!center.temporary && !center.synthetic) {
         constexpr std::array<std::pair<int, int>, 4> deltas{{{-1, 0}, {1, 0}, {0, -1}, {0, 1}}};
         for (const auto& delta : deltas) {
@@ -46,14 +46,14 @@ Map layout(std::vector<Canvas> canvases, int current, int selected, const Canvas
             const int64_t y = static_cast<int64_t>(center.y) + delta.second;
             if (x < INT32_MIN || x > INT32_MAX || y < INT32_MIN || y > INT32_MAX)
                 continue;
-            if (std::none_of(canvases.begin(), canvases.end(), [&](const auto& c) { return c.x == x && c.y == y; }))
-                cells.push_back({.canvas = {.x = static_cast<int>(x), .y = static_cast<int>(y)}, .box = {}, .create = true});
+            if (std::none_of(kartas.begin(), kartas.end(), [&](const auto& c) { return c.x == x && c.y == y; }))
+                cells.push_back({.karta = {.x = static_cast<int>(x), .y = static_cast<int>(y)}, .box = {}, .create = true});
         }
     }
     int64_t minX = center.x, maxX = center.x, minY = center.y, maxY = center.y;
     for (const auto& cell : cells) {
-        minX = std::min(minX, int64_t(cell.canvas.x)); maxX = std::max(maxX, int64_t(cell.canvas.x));
-        minY = std::min(minY, int64_t(cell.canvas.y)); maxY = std::max(maxY, int64_t(cell.canvas.y));
+        minX = std::min(minX, int64_t(cell.karta.x)); maxX = std::max(maxX, int64_t(cell.karta.x));
+        minY = std::min(minY, int64_t(cell.karta.y)); maxY = std::max(maxY, int64_t(cell.karta.y));
     }
     // Keep readable cells instead of shrinking a sparse world into tiny dots.
     if (maxX - minX > 4) { minX = int64_t(center.x) - 2; maxX = int64_t(center.x) + 2; }
@@ -65,15 +65,15 @@ Map layout(std::vector<Canvas> canvases, int current, int selected, const Canvas
                  panelWidth, rows * step + 70};
     const double gridInset = (panelWidth - columns * step) * 0.5;
     for (auto cell : cells) {
-        if (cell.canvas.x < minX || cell.canvas.x > maxX || cell.canvas.y < minY || cell.canvas.y > maxY) {
+        if (cell.karta.x < minX || cell.karta.x > maxX || cell.karta.y < minY || cell.karta.y > maxY) {
             if (!cell.create) {
-                map.left |= cell.canvas.x < minX; map.right |= cell.canvas.x > maxX;
-                map.up |= cell.canvas.y < minY; map.down |= cell.canvas.y > maxY;
+                map.left |= cell.karta.x < minX; map.right |= cell.karta.x > maxX;
+                map.up |= cell.karta.y < minY; map.down |= cell.karta.y > maxY;
             }
             continue;
         }
-        cell.box = {map.panel.x + gridInset + (int64_t(cell.canvas.x) - minX) * step,
-                    map.panel.y + 34 + (int64_t(cell.canvas.y) - minY) * step, step - 5, step - 5};
+        cell.box = {map.panel.x + gridInset + (int64_t(cell.karta.x) - minX) * step,
+                    map.panel.y + 34 + (int64_t(cell.karta.y) - minY) * step, step - 5, step - 5};
         map.cells.push_back(cell);
     }
     return map;

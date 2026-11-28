@@ -13,15 +13,15 @@
 namespace Overview {
 namespace {
 
-using CanvasCore::OverviewProjection;
+using KartaCore::OverviewProjection;
 
 // Keep the pure scene-layout helpers free of rendering/color dependencies so
 // logic tests can link them without pulling in Hyprland's OpenGL stack.
 constexpr double kWorkspaceContentInset = 14.0;
 constexpr double kWorkspaceHeaderHeight = 26.0;
 
-OverviewProjection computeProjection(std::span<const CanvasCore::Box> items, const CanvasCore::Box& visibleBox) {
-    std::vector<CanvasCore::OverviewRect> rects;
+OverviewProjection computeProjection(std::span<const KartaCore::Box> items, const KartaCore::Box& visibleBox) {
+    std::vector<KartaCore::OverviewRect> rects;
     rects.reserve(items.size());
 
     for (const auto& item : items) {
@@ -33,11 +33,11 @@ OverviewProjection computeProjection(std::span<const CanvasCore::Box> items, con
         });
     }
 
-    return CanvasCore::compute_overview_projection(rects, visibleBox);
+    return KartaCore::compute_overview_projection(rects, visibleBox);
 }
 
-CanvasCore::Box applyProjection(const CanvasCore::Box& source,
-                                  const CanvasCore::Box& visibleBox,
+KartaCore::Box applyProjection(const KartaCore::Box& source,
+                                  const KartaCore::Box& visibleBox,
                                   const OverviewProjection& projection) {
     if (projection.width <= 0.0 || projection.height <= 0.0)
         return visibleBox;
@@ -52,11 +52,11 @@ CanvasCore::Box applyProjection(const CanvasCore::Box& source,
 
 } // namespace
 
-CanvasCore::Box localizeGlobalBox(const CanvasCore::Box& box, double originX, double originY) {
+KartaCore::Box localizeGlobalBox(const KartaCore::Box& box, double originX, double originY) {
     return translateBox(box, -originX, -originY);
 }
 
-CanvasCore::Box buildWorkspaceContentBox(const CanvasCore::Box& workspaceBox) {
+KartaCore::Box buildWorkspaceContentBox(const KartaCore::Box& workspaceBox) {
     auto contentBox = insetBox(workspaceBox,
                                kWorkspaceContentInset,
                                kWorkspaceContentInset);
@@ -65,11 +65,11 @@ CanvasCore::Box buildWorkspaceContentBox(const CanvasCore::Box& workspaceBox) {
     return contentBox;
 }
 
-std::vector<CanvasCore::Box> projectBoxesToContent(std::span<const CanvasCore::Box> sourceBoxes,
-                                                     const CanvasCore::Box& contentBox) {
+std::vector<KartaCore::Box> projectBoxesToContent(std::span<const KartaCore::Box> sourceBoxes,
+                                                     const KartaCore::Box& contentBox) {
     const auto projection = computeProjection(sourceBoxes, contentBox);
 
-    std::vector<CanvasCore::Box> projected;
+    std::vector<KartaCore::Box> projected;
     projected.reserve(sourceBoxes.size());
     for (const auto& sourceBox : sourceBoxes)
         projected.push_back(applyProjection(sourceBox, contentBox, projection));
@@ -77,18 +77,18 @@ std::vector<CanvasCore::Box> projectBoxesToContent(std::span<const CanvasCore::B
     return projected;
 }
 
-std::vector<CanvasCore::Box> projectGlobalBoxesToContent(std::span<const CanvasCore::Box> sourceBoxes,
-                                                           const CanvasCore::Box& contentBox,
+std::vector<KartaCore::Box> projectGlobalBoxesToContent(std::span<const KartaCore::Box> sourceBoxes,
+                                                           const KartaCore::Box& contentBox,
                                                            double originX,
                                                            double originY) {
-    std::vector<CanvasCore::Box> localized;
+    std::vector<KartaCore::Box> localized;
     localized.reserve(sourceBoxes.size());
     for (const auto& sourceBox : sourceBoxes)
         localized.push_back(translateBox(sourceBox, -originX, -originY));
 
     const auto projectedLocal = projectBoxesToContent(localized, translateBox(contentBox, -originX, -originY));
 
-    std::vector<CanvasCore::Box> projected;
+    std::vector<KartaCore::Box> projected;
     projected.reserve(projectedLocal.size());
     for (const auto& box : projectedLocal)
         projected.push_back(translateBox(box, originX, originY));
@@ -96,7 +96,7 @@ std::vector<CanvasCore::Box> projectGlobalBoxesToContent(std::span<const CanvasC
     return projected;
 }
 
-CanvasCore::Box buildEmptyWorkspacePreviewBox(const CanvasCore::Box& contentBox) {
+KartaCore::Box buildEmptyWorkspacePreviewBox(const KartaCore::Box& contentBox) {
     return insetBox(contentBox, std::max(12.0, contentBox.w * 0.12), std::max(12.0, contentBox.h * 0.14));
 }
 

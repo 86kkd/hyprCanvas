@@ -11,13 +11,13 @@
 namespace {
 
 void test_overview_projection() {
-    const CanvasCore::Box visible(0.0, 0.0, 200.0, 100.0);
-    const std::vector<CanvasCore::OverviewRect> items = {
+    const KartaCore::Box visible(0.0, 0.0, 200.0, 100.0);
+    const std::vector<KartaCore::OverviewRect> items = {
         {.x0 = 10.0, .x1 = 60.0, .y0 = 20.0, .y1 = 70.0},
         {.x0 = 60.0, .x1 = 110.0, .y0 = 10.0, .y1 = 90.0},
     };
 
-    const auto projection = CanvasCore::compute_overview_projection(items, visible);
+    const auto projection = KartaCore::compute_overview_projection(items, visible);
     expect_near(projection.min.x, 10.0, 1e-9, "overview projection tracks minimum x");
     expect_near(projection.min.y, 10.0, 1e-9, "overview projection tracks minimum y");
     expect_near(projection.max.x, 110.0, 1e-9, "overview projection tracks maximum x");
@@ -28,10 +28,10 @@ void test_overview_projection() {
     expect_near(projection.offset.x, 37.5, 1e-9, "overview projection centers on x");
     expect_near(projection.offset.y, 0.0, 1e-9, "overview projection centers on y");
 
-    const std::vector<CanvasCore::OverviewRect> degenerate = {
+    const std::vector<KartaCore::OverviewRect> degenerate = {
         {.x0 = 50.0, .x1 = 50.0, .y0 = 10.0, .y1 = 40.0},
     };
-    const auto degenerateProjection = CanvasCore::compute_overview_projection(degenerate, visible);
+    const auto degenerateProjection = KartaCore::compute_overview_projection(degenerate, visible);
     expect_near(degenerateProjection.scale, 1.0, 1e-9, "degenerate projection keeps scale at 1");
     expect_near(degenerateProjection.offset.x, 50.0, 1e-9, "degenerate projection preserves raw x offset");
     expect_near(degenerateProjection.offset.y, 10.0, 1e-9, "degenerate projection preserves raw y offset");
@@ -85,11 +85,11 @@ void test_overview_target_selection_across_monitors() {
 }
 
 void test_overview_target_selection_prefers_rendered_neighbor() {
-    const std::vector<CanvasCore::Box> workspaceOneBoxes = {
+    const std::vector<KartaCore::Box> workspaceOneBoxes = {
         {0.0, 0.0, 100.0, 80.0},
         {0.0, 120.0, 100.0, 80.0},
     };
-    const std::vector<CanvasCore::Box> workspaceTwoBoxes = {
+    const std::vector<KartaCore::Box> workspaceTwoBoxes = {
         {0.0, 0.0, 100.0, 80.0},
         {0.0, 120.0, 100.0, 80.0},
         {0.0, 240.0, 100.0, 80.0},
@@ -124,27 +124,27 @@ void test_overview_target_selection_stops_at_preview_edge() {
                 "overview movefocus stops when there is no preview to the right");
 }
 
-void test_overview_target_selection_keeps_empty_targets_reachable_in_canvas() {
-    const std::vector<OverviewLogic::CanvasTargetCandidate> targets = {
-        {.canvasId = 10, .monitorId = 1, .box = {0.0, 0.0, 100.0, 100.0}},
-        {.canvasId = 10, .monitorId = 1, .box = {140.0, 0.0, 100.0, 100.0}},
-        {.canvasId = 20, .monitorId = 1, .box = {120.0, 0.0, 100.0, 100.0}},
+void test_overview_target_selection_keeps_empty_targets_reachable_in_karta() {
+    const std::vector<OverviewLogic::KartaTargetCandidate> targets = {
+        {.kartaId = 10, .monitorId = 1, .box = {0.0, 0.0, 100.0, 100.0}},
+        {.kartaId = 10, .monitorId = 1, .box = {140.0, 0.0, 100.0, 100.0}},
+        {.kartaId = 20, .monitorId = 1, .box = {120.0, 0.0, 100.0, 100.0}},
     };
 
-    const auto next = OverviewLogic::pickTargetIndexInCanvas(targets, 0, Direction::Right);
+    const auto next = OverviewLogic::pickTargetIndexInKarta(targets, 0, Direction::Right);
     expect_true(next.has_value() && *next == 1,
-                "overview movefocus can select same-canvas empty workspace targets before accept");
+                "overview movefocus can select same-karta empty workspace targets before accept");
 }
 
 void test_overview_stack_navigation() {
     for (bool column : {false, true}) {
-        std::vector<OverviewLogic::CanvasTargetCandidate> targets = {
-            {.canvasId=10, .monitorId=1, .box={0, 0, 100, 100}, .stackId=1},
-            {.canvasId=10, .monitorId=1, .box={0, 120, 100, 100}, .stackId=1, .stackActive=true},
-            {.canvasId=10, .monitorId=1, .box={140, 0, 100, 100}, .stackId=2},
-            {.canvasId=10, .monitorId=1, .box={140, 120, 100, 100}, .stackId=2, .stackActive=true},
-            {.canvasId=10, .monitorId=2, .box={280, 0, 100, 220}}, // Empty workspace.
-            {.canvasId=20, .monitorId=1, .box={110, 0, 20, 220}, .stackId=3},
+        std::vector<OverviewLogic::KartaTargetCandidate> targets = {
+            {.kartaId=10, .monitorId=1, .box={0, 0, 100, 100}, .stackId=1},
+            {.kartaId=10, .monitorId=1, .box={0, 120, 100, 100}, .stackId=1, .stackActive=true},
+            {.kartaId=10, .monitorId=1, .box={140, 0, 100, 100}, .stackId=2},
+            {.kartaId=10, .monitorId=1, .box={140, 120, 100, 100}, .stackId=2, .stackActive=true},
+            {.kartaId=10, .monitorId=2, .box={280, 0, 100, 220}}, // Empty workspace.
+            {.kartaId=20, .monitorId=1, .box={110, 0, 20, 220}, .stackId=3},
         };
         if (column) {
             for (auto& target : targets) {
@@ -156,16 +156,16 @@ void test_overview_stack_navigation() {
         const auto backward = column ? Direction::Up : Direction::Left;
         const auto within = column ? Direction::Right : Direction::Down;
         for (size_t index : {0u, 1u}) {
-            expect_true(OverviewLogic::pickTargetIndexInCanvas(targets, index, forward) == 3,
+            expect_true(OverviewLogic::pickTargetIndexInKarta(targets, index, forward) == 3,
                         "moving to a stack selects its remembered active window");
-            expect_true(!OverviewLogic::pickTargetIndexInCanvas(targets, index, within),
+            expect_true(!OverviewLogic::pickTargetIndexInKarta(targets, index, within),
                         "overview never moves between windows in the same stack");
-            expect_true(!OverviewLogic::pickTargetIndexInCanvas(targets, index, backward),
+            expect_true(!OverviewLogic::pickTargetIndexInKarta(targets, index, backward),
                         "overview stops at the stack boundary");
         }
-        expect_true(OverviewLogic::pickTargetIndexInCanvas(targets, 3, backward) == 1,
+        expect_true(OverviewLogic::pickTargetIndexInKarta(targets, 3, backward) == 1,
                     "returning to a stack preserves its active window");
-        expect_true(OverviewLogic::pickTargetIndexInCanvas(targets, 3, forward) == 4,
+        expect_true(OverviewLogic::pickTargetIndexInKarta(targets, 3, forward) == 4,
                     "stack navigation still reaches an empty workspace on another monitor");
     }
 }
@@ -174,16 +174,16 @@ void test_overview_axis_alignment_tolerance() {
     // Projection and symmetric deck insets can leave a few ulps of center
     // drift. A sibling above/below must not steal the first horizontal move.
     for (const double drift : {-1e-10, 1e-10}) {
-        const std::vector<OverviewLogic::CanvasTargetCandidate> targets = {
-            {.canvasId=10, .monitorId=1, .box={0, 100, 200, 200}},
-            {.canvasId=10, .monitorId=1, .box={10+drift, 120, 180, 200}},
-            {.canvasId=10, .monitorId=1, .box={-240, 100, 200, 200}},
-            {.canvasId=10, .monitorId=1, .box={240, 100, 200, 200}},
+        const std::vector<OverviewLogic::KartaTargetCandidate> targets = {
+            {.kartaId=10, .monitorId=1, .box={0, 100, 200, 200}},
+            {.kartaId=10, .monitorId=1, .box={10+drift, 120, 180, 200}},
+            {.kartaId=10, .monitorId=1, .box={-240, 100, 200, 200}},
+            {.kartaId=10, .monitorId=1, .box={240, 100, 200, 200}},
         };
         for (size_t index : {0u, 1u}) {
-            expect_true(OverviewLogic::pickTargetIndexInCanvas(targets, index, Direction::Left) == 2,
+            expect_true(OverviewLogic::pickTargetIndexInKarta(targets, index, Direction::Left) == 2,
                         "left skips same-stack center drift on first press");
-            expect_true(OverviewLogic::pickTargetIndexInCanvas(targets, index, Direction::Right) == 3,
+            expect_true(OverviewLogic::pickTargetIndexInKarta(targets, index, Direction::Right) == 3,
                         "right skips same-stack center drift on first press");
         }
         const std::vector<OverviewLogic::TargetCandidate> siblings = {
@@ -250,7 +250,7 @@ void run_overview_logic_tests() {
     test_overview_target_selection_across_monitors();
     test_overview_target_selection_prefers_rendered_neighbor();
     test_overview_target_selection_stops_at_preview_edge();
-    test_overview_target_selection_keeps_empty_targets_reachable_in_canvas();
+    test_overview_target_selection_keeps_empty_targets_reachable_in_karta();
     test_overview_axis_alignment_tolerance();
     test_overview_stack_navigation();
     test_overview_empty_accept_plan();

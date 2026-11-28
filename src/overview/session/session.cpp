@@ -1,10 +1,10 @@
 /**
  * @file overview/session/session.cpp
- * @brief Global read-only overview preview session spanning all canvases and monitors.
+ * @brief Global read-only overview preview session spanning all kartas and monitors.
  *
  * This file builds a monitor-scoped preview model from the current set of
  * tiled windows, keeps a logical selection independent from Hyprland focus,
- * and delegates final canvas activation to `CanvasWorkspaceController` only
+ * and delegates final karta activation to `KartaWorkspaceController` only
  * when overview closes with acceptance or origin restore.
  */
 #include "overview/session/session.h"
@@ -18,8 +18,8 @@
 #include <spdlog/spdlog.h>
 
 #include "core/hyprland_runtime.h"
-#include "layout/canvas/workspace_controller.h"
-#include "layout/canvas/workspace_controller_logic.h"
+#include "layout/karta/workspace_controller.h"
+#include "layout/karta/workspace_controller_logic.h"
 #include "overview/minimap/runtime.h"
 #include "overview/navigation/logic.h"
 #include "overview/navigation/selection.h"
@@ -33,7 +33,7 @@ const MonitorRegion* initial_empty_region(const Model& model) {
     if (model.monitors().empty())
         return nullptr;
 
-    const auto cursorMonitor = CanvasCore::HyprlandRuntime::monitorFromCursor();
+    const auto cursorMonitor = KartaCore::HyprlandRuntime::monitorFromCursor();
     if (!cursorMonitor)
         return &model.monitors().front();
 
@@ -42,7 +42,7 @@ const MonitorRegion* initial_empty_region(const Model& model) {
 }
 
 Target initial_empty_target(const MonitorRegion& region) {
-    return makeEmptyTarget(INVALID_CANVAS_ID,
+    return makeEmptyTarget(INVALID_KARTA_ID,
                            SessionEffects::nextWorkspaceId(),
                            region.monitorId,
                            false,
@@ -53,12 +53,12 @@ Target initial_empty_target(const MonitorRegion& region) {
                            true);
 }
 
-bool try_select_origin_window(Model& model, int canvasId) {
+bool try_select_origin_window(Model& model, int kartaId) {
     const auto originWindow = model.origin().window;
     if (!originWindow)
         return false;
 
-    const auto ref = model.findByWindow(originWindow, canvasId);
+    const auto ref = model.findByWindow(originWindow, kartaId);
     if (!ref)
         return false;
 
@@ -66,12 +66,12 @@ bool try_select_origin_window(Model& model, int canvasId) {
     return true;
 }
 
-bool try_select_origin_workspace(Model& model, int canvasId) {
+bool try_select_origin_workspace(Model& model, int kartaId) {
     const auto originWorkspace = model.origin().workspaceId;
     if (originWorkspace == INVALID_WORKSPACE_ID)
         return false;
 
-    const auto ref = model.findByWorkspace(originWorkspace, canvasId);
+    const auto ref = model.findByWorkspace(originWorkspace, kartaId);
     if (!ref)
         return false;
 
@@ -79,16 +79,16 @@ bool try_select_origin_workspace(Model& model, int canvasId) {
     return true;
 }
 
-std::vector<CanvasLayoutState::CanvasTileNode> canvas_tiles_from_model(
+std::vector<KartaLayoutState::KartaTileNode> karta_tiles_from_model(
     const Model& model,
-    const CanvasLayoutState::CanvasWorkspaceRepository& repo) {
-    const auto& graph = model.canvasGraph();
-    std::vector<CanvasLayoutState::CanvasTileNode> nodes;
+    const KartaLayoutState::KartaWorkspaceRepository& repo) {
+    const auto& graph = model.kartaGraph();
+    std::vector<KartaLayoutState::KartaTileNode> nodes;
     nodes.reserve(graph.size());
     for (const auto& entry : graph) {
-        const auto record = repo.find(entry.canvasId);
+        const auto record = repo.find(entry.kartaId);
         nodes.push_back({
-            .canvasId = entry.canvasId,
+            .kartaId = entry.kartaId,
             .tileX = entry.tileX,
             .tileY = entry.tileY,
             .ephemeral = entry.synthetic || (record && record->ephemeral),
@@ -100,16 +100,16 @@ std::vector<CanvasLayoutState::CanvasTileNode> canvas_tiles_from_model(
 
 } // namespace
 
-Session::Session(CanvasLayoutState::CanvasWorkspaceRepository* repository,
-                 CanvasLayoutState::CanvasWorkspaceController* controller)
+Session::Session(KartaLayoutState::KartaWorkspaceRepository* repository,
+                 KartaLayoutState::KartaWorkspaceController* controller)
     : repository_(repository), controller_(controller) {}
 
-CanvasLayoutState::CanvasWorkspaceRepository& Session::canvasRepo() const {
-    return repository_ ? *repository_ : CanvasLayoutState::canvasRepository();
+KartaLayoutState::KartaWorkspaceRepository& Session::kartaRepo() const {
+    return repository_ ? *repository_ : KartaLayoutState::kartaRepository();
 }
 
-CanvasLayoutState::CanvasWorkspaceController& Session::workspaceController() const {
-    return controller_ ? *controller_ : CanvasLayoutState::workspaceController();
+KartaLayoutState::KartaWorkspaceController& Session::workspaceController() const {
+    return controller_ ? *controller_ : KartaLayoutState::workspaceController();
 }
 
 bool Session::active() const {
@@ -127,8 +127,8 @@ void Session::damageMonitors() const {
     }
 }
 
-CanvasCore::ServiceSlot<Session>& sessionSlot() {
-    static CanvasCore::ServiceSlot<Session> slot;
+KartaCore::ServiceSlot<Session>& sessionSlot() {
+    static KartaCore::ServiceSlot<Session> slot;
     return slot;
 }
 
@@ -140,9 +140,9 @@ void Session::clear() {
     active_ = false;
     inputHandling_.reset();
     model_.clear();
-    originCanvasId_ = INVALID_CANVAS_ID;
-    viewCanvasId_ = INVALID_CANVAS_ID;
-    pendingCanvases_.clear();
+    originKartaId_ = INVALID_KARTA_ID;
+    viewKartaId_ = INVALID_KARTA_ID;
+    pendingKartas_.clear();
 }
 
 void Session::markInputHandled() {
@@ -155,16 +155,16 @@ bool Session::consumeInputHandled(bool released) {
 
 bool Session::selectInitialTarget() {
     const auto choice = chooseInitialSelectionChoice(!model_.targetGraph().empty(),
-                                                     model_.findByWindow(model_.origin().window, originCanvasId_).has_value(),
-                                                     model_.findByWorkspace(model_.origin().workspaceId, originCanvasId_).has_value(),
+                                                     model_.findByWindow(model_.origin().window, originKartaId_).has_value(),
+                                                     model_.findByWorkspace(model_.origin().workspaceId, originKartaId_).has_value(),
                                                      model_.firstTarget().has_value(),
                                                      initial_empty_region(model_) != nullptr);
 
     switch (choice) {
         case InitialSelectionChoice::OriginWindow:
-            return try_select_origin_window(model_, originCanvasId_);
+            return try_select_origin_window(model_, originKartaId_);
         case InitialSelectionChoice::OriginWorkspace:
-            return try_select_origin_workspace(model_, originCanvasId_);
+            return try_select_origin_workspace(model_, originKartaId_);
         case InitialSelectionChoice::FirstTarget:
             if (const auto ref = model_.firstTarget()) {
                 model_.setSelection(*ref);
@@ -183,16 +183,16 @@ bool Session::selectInitialTarget() {
     }
 }
 
-bool Session::selectCanvas(int canvasId, std::optional<int> preferredMonitorId) {
-    const auto ref = model_.firstTargetInCanvas(canvasId, preferredMonitorId);
+bool Session::selectKarta(int kartaId, std::optional<int> preferredMonitorId) {
+    const auto ref = model_.firstTargetInKarta(kartaId, preferredMonitorId);
     if (!ref)
         return false;
 
     if (const auto* target = model_.resolve(*ref)) {
-        const auto workspace = CanvasCore::HyprlandRuntime::workspaceById(target->workspaceId);
+        const auto workspace = KartaCore::HyprlandRuntime::workspaceById(target->workspaceId);
         const auto remembered = workspace ? workspace->getLastFocusedWindow() : nullptr;
-        if (remembered && CanvasCore::HyprlandRuntime::windowWorkspaceId(remembered) == target->workspaceId) {
-            if (const auto rememberedRef = model_.findByWindow(remembered, canvasId)) {
+        if (remembered && KartaCore::HyprlandRuntime::windowWorkspaceId(remembered) == target->workspaceId) {
+            if (const auto rememberedRef = model_.findByWindow(remembered, kartaId)) {
                 model_.setSelection(*rememberedRef);
                 return true;
             }
@@ -207,23 +207,23 @@ void Session::open() {
         return;
 
     const auto origin = SessionEffects::captureOrigin();
-    originCanvasId_ = canvasRepo().ensureCurrentVisibleCanvas();
-    viewCanvasId_ = originCanvasId_;
+    originKartaId_ = kartaRepo().ensureCurrentVisibleKarta();
+    viewKartaId_ = originKartaId_;
     model_.setOrigin(origin.monitorId, origin.workspaceId, origin.window);
-    pendingCanvases_.clear();
+    pendingKartas_.clear();
     SessionEffects::prepareSnapshots();
-    model_.rebuild(pendingCanvases_, viewCanvasId_);
+    model_.rebuild(pendingKartas_, viewKartaId_);
     if (!selectInitialTarget()) {
         clear();
         spdlog::warn("overview_open: no targets available");
         return;
     }
 
-    if (const auto selectionCanvasId = model_.selectionCanvasId();
-        selectionCanvasId && *selectionCanvasId != viewCanvasId_) {
-        viewCanvasId_ = *selectionCanvasId;
-        model_.rebuild(pendingCanvases_, viewCanvasId_);
-        (void)selectCanvas(viewCanvasId_, model_.origin().monitorId);
+    if (const auto selectionKartaId = model_.selectionKartaId();
+        selectionKartaId && *selectionKartaId != viewKartaId_) {
+        viewKartaId_ = *selectionKartaId;
+        model_.rebuild(pendingKartas_, viewKartaId_);
+        (void)selectKarta(viewKartaId_, model_.origin().monitorId);
     }
 
     active_ = true;
@@ -246,7 +246,7 @@ std::optional<TargetRef> Session::findBestTarget(Direction direction) const {
     if (targetGraph.empty())
         return std::nullopt;
 
-    std::vector<OverviewLogic::CanvasTargetCandidate> candidates;
+    std::vector<OverviewLogic::KartaTargetCandidate> candidates;
     std::vector<TargetRef> refs;
     candidates.reserve(targetGraph.size());
     refs.reserve(targetGraph.size());
@@ -258,7 +258,7 @@ std::optional<TargetRef> Session::findBestTarget(Direction direction) const {
             continue;
 
         candidates.push_back({
-            .canvasId = target->canvasId,
+            .kartaId = target->kartaId,
             .monitorId = target->monitorId,
             .box = target->box,
             .stackId = reinterpret_cast<uintptr_t>(target->stackActiveWindow.get()),
@@ -273,7 +273,7 @@ std::optional<TargetRef> Session::findBestTarget(Direction direction) const {
     if (!currentIndex)
         return std::nullopt;
 
-    const auto nextIndex = OverviewLogic::pickTargetIndexInCanvas(candidates, *currentIndex, direction);
+    const auto nextIndex = OverviewLogic::pickTargetIndexInKarta(candidates, *currentIndex, direction);
     if (!nextIndex)
         return std::nullopt;
 
@@ -287,9 +287,9 @@ bool Session::moveSelection(Direction direction) {
     if (const auto targetRef = findBestTarget(direction)) {
         model_.setSelection(*targetRef);
         const auto* selection = model_.selection();
-        spdlog::info("overview_move: direction={} canvas={} workspace={} window={} synthetic={}",
-                     CanvasCore::direction_name(direction),
-                     selection ? selection->canvasId : INVALID_CANVAS_ID,
+        spdlog::info("overview_move: direction={} karta={} workspace={} window={} synthetic={}",
+                     KartaCore::direction_name(direction),
+                     selection ? selection->kartaId : INVALID_KARTA_ID,
                      selection ? selection->workspaceId : INVALID_WORKSPACE_ID,
                      static_cast<const void*>(selection && selection->window ? selection->window.get() : nullptr),
                      selection ? selection->synthetic : false);
@@ -300,94 +300,94 @@ bool Session::moveSelection(Direction direction) {
     return false;
 }
 
-bool Session::switchPreviewCanvas(int canvasId, int preferredMonitorId, bool keepSelectedPending) {
+bool Session::switchPreviewKarta(int kartaId, int preferredMonitorId, bool keepSelectedPending) {
     if (keepSelectedPending)
-        std::erase_if(pendingCanvases_, [&](const auto& pending) { return pending.canvas.canvasId != canvasId; });
-    viewCanvasId_ = canvasId;
-    model_.rebuild(pendingCanvases_, viewCanvasId_);
+        std::erase_if(pendingKartas_, [&](const auto& pending) { return pending.karta.kartaId != kartaId; });
+    viewKartaId_ = kartaId;
+    model_.rebuild(pendingKartas_, viewKartaId_);
     renderState().rebuildPreviewAnimations(model_);
-    const bool selected = selectCanvas(canvasId, preferredMonitorId);
+    const bool selected = selectKarta(kartaId, preferredMonitorId);
     damageMonitors();
     return selected;
 }
 
-bool Session::moveCanvasSelection(Direction direction) {
+bool Session::moveKartaSelection(Direction direction) {
     const auto* currentSelection = model_.selection();
     if (!active_ || !currentSelection)
         return false;
 
-    const auto currentCanvasId = model_.selectionCanvasId();
-    if (!currentCanvasId)
+    const auto currentKartaId = model_.selectionKartaId();
+    if (!currentKartaId)
         return false;
 
-    auto& repo = canvasRepo();
-    repo.refreshTemporaryCanvases();
-    const auto plan = CanvasLayoutState::planDirectionalCanvasMove(
-        canvas_tiles_from_model(model_, repo), *currentCanvasId, direction);
+    auto& repo = kartaRepo();
+    repo.refreshTemporaryKartas();
+    const auto plan = KartaLayoutState::planDirectionalKartaMove(
+        karta_tiles_from_model(model_, repo), *currentKartaId, direction);
 
     const auto preferredMonitorId = currentSelection->monitorId;
-    if (plan.action == CanvasLayoutState::CanvasNavigationAction::SelectExisting) {
-        if (!switchPreviewCanvas(plan.targetCanvasId, preferredMonitorId))
+    if (plan.action == KartaLayoutState::KartaNavigationAction::SelectExisting) {
+        if (!switchPreviewKarta(plan.targetKartaId, preferredMonitorId))
             return false;
 
         const auto* selection = model_.selection();
-        spdlog::info("overview_move_canvas: direction={} canvas={} workspace={}",
-                     CanvasCore::direction_name(direction),
-                     selection ? selection->canvasId : INVALID_CANVAS_ID,
+        spdlog::info("overview_move_karta: direction={} karta={} workspace={}",
+                     KartaCore::direction_name(direction),
+                     selection ? selection->kartaId : INVALID_KARTA_ID,
                      selection ? selection->workspaceId : INVALID_WORKSPACE_ID);
         return true;
     }
 
-    if (plan.action != CanvasLayoutState::CanvasNavigationAction::CreateSynthetic)
+    if (plan.action != KartaLayoutState::KartaNavigationAction::CreateSynthetic)
         return false;
 
-    pendingCanvases_.clear();
-    pendingCanvases_.push_back(repo.buildSyntheticCanvas(plan.createDirection, plan.anchorCanvasId, pendingCanvases_));
-    if (!switchPreviewCanvas(pendingCanvases_.back().canvas.canvasId, preferredMonitorId, false))
+    pendingKartas_.clear();
+    pendingKartas_.push_back(repo.buildSyntheticKarta(plan.createDirection, plan.anchorKartaId, pendingKartas_));
+    if (!switchPreviewKarta(pendingKartas_.back().karta.kartaId, preferredMonitorId, false))
         return false;
 
     const auto* selection = model_.selection();
-    spdlog::info("overview_create_canvas: direction={} canvas={} workspace={}",
-                 CanvasCore::direction_name(direction),
-                 selection ? selection->canvasId : INVALID_CANVAS_ID,
+    spdlog::info("overview_create_karta: direction={} karta={} workspace={}",
+                 KartaCore::direction_name(direction),
+                 selection ? selection->kartaId : INVALID_KARTA_ID,
                  selection ? selection->workspaceId : INVALID_WORKSPACE_ID);
     return true;
 }
 
-bool Session::previewCanvas(int canvasId) {
+bool Session::previewKarta(int kartaId) {
     if (!active_)
         return false;
-    const auto& graph = model_.canvasGraph();
-    if (std::none_of(graph.begin(), graph.end(), [&](const auto& node) { return node.canvasId == canvasId; }))
+    const auto& graph = model_.kartaGraph();
+    if (std::none_of(graph.begin(), graph.end(), [&](const auto& node) { return node.kartaId == kartaId; }))
         return false;
     const auto* selection = model_.selection();
     const int monitorId = selection ? selection->monitorId : model_.origin().monitorId;
-    return switchPreviewCanvas(canvasId, monitorId);
+    return switchPreviewKarta(kartaId, monitorId);
 }
 
-bool Session::selectCanvasNumber(int number) {
+bool Session::selectKartaNumber(int number) {
     if (!active_ || number < 1 || number > 10)
         return false;
 
-    auto& repo = canvasRepo();
-    repo.refreshTemporaryCanvases();
-    const auto currentCanvasId = model_.selectionCanvasId().value_or(viewCanvasId_);
-    const auto plan = CanvasLayoutState::planNumberedCanvasMove(
-        canvas_tiles_from_model(model_, repo), currentCanvasId, number);
-    if (plan.action == CanvasLayoutState::CanvasNavigationAction::None)
+    auto& repo = kartaRepo();
+    repo.refreshTemporaryKartas();
+    const auto currentKartaId = model_.selectionKartaId().value_or(viewKartaId_);
+    const auto plan = KartaLayoutState::planNumberedKartaMove(
+        karta_tiles_from_model(model_, repo), currentKartaId, number);
+    if (plan.action == KartaLayoutState::KartaNavigationAction::None)
         return false;
 
-    int targetId = plan.targetCanvasId;
+    int targetId = plan.targetKartaId;
     bool prunePending = true;
-    if (plan.action == CanvasLayoutState::CanvasNavigationAction::CreateSynthetic) {
-        pendingCanvases_.push_back(repo.buildSyntheticCanvas(plan.createDirection, plan.anchorCanvasId, pendingCanvases_));
-        targetId = pendingCanvases_.back().canvas.canvasId;
+    if (plan.action == KartaLayoutState::KartaNavigationAction::CreateSynthetic) {
+        pendingKartas_.push_back(repo.buildSyntheticKarta(plan.createDirection, plan.anchorKartaId, pendingKartas_));
+        targetId = pendingKartas_.back().karta.kartaId;
         prunePending = false;
     }
 
     const auto* selection = model_.selection();
     const auto monitorId = selection ? selection->monitorId : model_.origin().monitorId;
-    return switchPreviewCanvas(targetId, monitorId, prunePending);
+    return switchPreviewKarta(targetId, monitorId, prunePending);
 }
 
 bool Session::acceptSelection() {
@@ -396,20 +396,20 @@ bool Session::acceptSelection() {
         return false;
 
     auto selectionCopy = *selection;
-    if (selectionCopy.canvasId != INVALID_CANVAS_ID) {
-        auto& repo = canvasRepo();
-        if (repo.find(selectionCopy.canvasId))
-            repo.ensureCanvasHasVisibleMembers(selectionCopy.canvasId);
+    if (selectionCopy.kartaId != INVALID_KARTA_ID) {
+        auto& repo = kartaRepo();
+        if (repo.find(selectionCopy.kartaId))
+            repo.ensureKartaHasVisibleMembers(selectionCopy.kartaId);
 
-        const auto previewCanvases = repo.previewCanvases(pendingCanvases_);
-        const auto canvasIt = std::find_if(previewCanvases.begin(), previewCanvases.end(), [&](const auto& canvas) {
-            return canvas.canvasId == selectionCopy.canvasId;
+        const auto previewKartas = repo.previewKartas(pendingKartas_);
+        const auto kartaIt = std::find_if(previewKartas.begin(), previewKartas.end(), [&](const auto& karta) {
+            return karta.kartaId == selectionCopy.kartaId;
         });
-        if (canvasIt != previewCanvases.end()) {
-            const auto memberIt = std::find_if(canvasIt->members.begin(), canvasIt->members.end(), [&](const auto& member) {
+        if (kartaIt != previewKartas.end()) {
+            const auto memberIt = std::find_if(kartaIt->members.begin(), kartaIt->members.end(), [&](const auto& member) {
                 return member.monitorId == selectionCopy.monitorId;
             });
-            if (memberIt != canvasIt->members.end()) {
+            if (memberIt != kartaIt->members.end()) {
                 selectionCopy.workspaceId = memberIt->workspaceId;
                 selectionCopy.specialWorkspace = memberIt->special;
             }
@@ -417,21 +417,21 @@ bool Session::acceptSelection() {
 
         const auto requireSelectedMonitorFocus = selectionCopy.type != TargetType::Window || !selectionCopy.window;
         auto& controller = workspaceController();
-        if (!controller.activateCanvas(selectionCopy.canvasId,
+        if (!controller.activateKarta(selectionCopy.kartaId,
                                        selectionCopy.monitorId,
                                        requireSelectedMonitorFocus,
-                                       pendingCanvases_,
-                                       "overview_accept_canvas"))
+                                       pendingKartas_,
+                                       "overview_accept_karta"))
             return false;
 
-        if (!controller.finalizeCanvasTarget(selectionCopy.workspaceId, selectionCopy.window, true))
+        if (!controller.finalizeKartaTarget(selectionCopy.workspaceId, selectionCopy.window, true))
             return false;
 
-        if (!pendingCanvases_.empty())
-            repo.commitSyntheticCanvases(pendingCanvases_, selectionCopy.canvasId);
+        if (!pendingKartas_.empty())
+            repo.commitSyntheticKartas(pendingKartas_, selectionCopy.kartaId);
         else
-            repo.markActive(selectionCopy.canvasId);
-        pendingCanvases_.clear();
+            repo.markActive(selectionCopy.kartaId);
+        pendingKartas_.clear();
         return true;
     }
 
@@ -439,16 +439,16 @@ bool Session::acceptSelection() {
 }
 
 bool Session::restoreOrigin() {
-    if (originCanvasId_ != INVALID_CANVAS_ID) {
-        auto& repo = canvasRepo();
-        if (repo.find(originCanvasId_))
-            repo.ensureCanvasHasVisibleMembers(originCanvasId_);
+    if (originKartaId_ != INVALID_KARTA_ID) {
+        auto& repo = kartaRepo();
+        if (repo.find(originKartaId_))
+            repo.ensureKartaHasVisibleMembers(originKartaId_);
         const auto& origin = model_.origin();
         const auto restoreWindow = origin.window && origin.window->mapped();
         auto& controller = workspaceController();
-        if (!controller.activateCanvas(originCanvasId_, origin.monitorId, !restoreWindow, pendingCanvases_, "overview_restore_canvas"))
+        if (!controller.activateKarta(originKartaId_, origin.monitorId, !restoreWindow, pendingKartas_, "overview_restore_karta"))
             return false;
-        return restoreWindow ? controller.finalizeCanvasTarget(origin.workspaceId, origin.window, false) : true;
+        return restoreWindow ? controller.finalizeKartaTarget(origin.workspaceId, origin.window, false) : true;
     }
 
     return SessionEffects::restoreOrigin(model_.origin());
@@ -465,10 +465,10 @@ void Session::close(bool acceptSelectionFlag) {
     }
 
     const auto* selection = model_.selection();
-    spdlog::info("overview_close: accepted={} resolved={} selection_canvas={} selection_workspace={} selection_window={}",
+    spdlog::info("overview_close: accepted={} resolved={} selection_karta={} selection_workspace={} selection_window={}",
                  acceptSelectionFlag,
                  resolved,
-                 selection ? selection->canvasId : INVALID_CANVAS_ID,
+                 selection ? selection->kartaId : INVALID_KARTA_ID,
                  selection ? selection->workspaceId : INVALID_WORKSPACE_ID,
                  static_cast<const void*>(selection && selection->window ? selection->window.get() : nullptr));
     damageMonitors();
@@ -482,8 +482,8 @@ void Session::dismiss() {
         return;
 
     const auto* selection = model_.selection();
-    spdlog::info("overview_dismiss: selection_canvas={} selection_workspace={} selection_window={}",
-                 selection ? selection->canvasId : INVALID_CANVAS_ID,
+    spdlog::info("overview_dismiss: selection_karta={} selection_workspace={} selection_window={}",
+                 selection ? selection->kartaId : INVALID_KARTA_ID,
                  selection ? selection->workspaceId : INVALID_WORKSPACE_ID,
                  static_cast<const void*>(selection && selection->window ? selection->window.get() : nullptr));
     damageMonitors();

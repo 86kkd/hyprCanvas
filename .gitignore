@@ -1,6 +1,6 @@
 Debug/
 Release/
-hyprCanvas.so
+karta.so
 .cache/
 compile_commands.json
 build/

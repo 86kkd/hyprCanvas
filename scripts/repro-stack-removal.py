@@ -12,11 +12,11 @@ import tempfile
 import time
 
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument('--plugin', type=Path, default=Path(__file__).resolve().parents[1] / 'Debug/hyprCanvas.so')
+parser.add_argument('--plugin', type=Path, default=Path(__file__).resolve().parents[1] / 'Debug/karta.so')
 args = parser.parse_args()
 plugin = args.plugin.resolve()
 assert plugin.is_file(), f'Missing plugin: {plugin}'
-run = Path(tempfile.mkdtemp(prefix='hyprcanvas-stack-removal.'))
+run = Path(tempfile.mkdtemp(prefix='karta-stack-removal.'))
 print(f'Artifacts: {run}', flush=True)
 config = run / 'hyprland.lua'
 env = dict(os.environ)
@@ -61,7 +61,7 @@ def launch(name, color):
     raise RuntimeError(f'Window failed to map: {name}')
 
 
-config.write_text('hl.plugin.load(' + json.dumps(str(plugin)) + ')\n' + 'hl.config({general={layout="canvas"},input={follow_mouse=0},animations={enabled=true},misc={disable_hyprland_logo=true,disable_splash_rendering=true}})\n')
+config.write_text('hl.plugin.load(' + json.dumps(str(plugin)) + ')\n' + 'hl.config({general={layout="karta"},input={follow_mouse=0},animations={enabled=true},misc={disable_hyprland_logo=true,disable_splash_rendering=true}})\n')
 with (run / 'hyprland.log').open('w') as log:
     process = subprocess.Popen(['Hyprland', '-c', str(config)], env=env, stdout=log, stderr=subprocess.STDOUT)
     try:
@@ -91,7 +91,7 @@ with (run / 'hyprland.log').open('w') as log:
         def client(name):
             return next(c for c in json.loads(ctl('clients','-j')) if c['class']==name)
         def command(expr):
-            lua('hl.plugin.canvas.'+expr)
+            lua('hl.plugin.karta.'+expr)
             time.sleep(.3)
             print(expr, json.loads(ctl('activewindow','-j')).get('class'), [(c['class'],c['at'],c['size']) for c in json.loads(ctl('clients','-j'))],flush=True)
         for mode,back,axis,span in [('row','l',1,900),('column','u',0,1200)]:

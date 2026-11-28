@@ -6,11 +6,11 @@
 #include <utility>
 #include <vector>
 
-#include "layout/canvas/dispatch_runtime.h"
-#include "layout/canvas/dispatch_logic.h"
-#include "layout/canvas/handoff_state.h"
-#include "layout/canvas/route_logic.h"
-#include "layout/canvas/workspace_controller_logic.h"
+#include "layout/karta/dispatch_runtime.h"
+#include "layout/karta/dispatch_logic.h"
+#include "layout/karta/handoff_state.h"
+#include "layout/karta/route_logic.h"
+#include "layout/karta/workspace_controller_logic.h"
 
 #include "test_suite.h"
 #include "test_support.h"
@@ -25,7 +25,7 @@ SP<T> make_opaque_handle() {
     return reinterpretPointerCast<T>(makeShared<int>(0));
 }
 
-struct FakeDispatcherRuntime final : CanvasLayoutInternal::DispatcherRuntime {
+struct FakeDispatcherRuntime final : KartaLayoutInternal::DispatcherRuntime {
     bool registryAvailable = true;
     bool invocationSucceeds = true;
     std::vector<std::string> knownDispatchers;
@@ -269,7 +269,7 @@ void test_handoff_state() {
 }
 
 void test_route_logic() {
-    using namespace CanvasLayoutInternal;
+    using namespace KartaLayoutInternal;
 
     expect_true(!direction_moves_between_lanes(Mode::Row, Direction::Left),
                 "row left stays inside the current lane");
@@ -291,7 +291,7 @@ void test_route_logic() {
 }
 
 void test_dispatch_logic() {
-    using namespace CanvasLayoutInternal;
+    using namespace KartaLayoutInternal;
 
     FakeDispatcherRuntime runtime;
     runtime.registryAvailable = false;
@@ -324,7 +324,7 @@ void test_dispatch_logic() {
 }
 
 void test_focus_monitor_workspace_logic() {
-    using namespace CanvasLayoutInternal;
+    using namespace KartaLayoutInternal;
 
     FakeDispatcherRuntime runtime;
     runtime.knownDispatchers = {"focusmonitor", "workspace"};
@@ -388,7 +388,7 @@ void test_focus_monitor_workspace_logic() {
 }
 
 void test_switch_to_window_logic() {
-    using namespace CanvasLayoutInternal;
+    using namespace KartaLayoutInternal;
 
     FakeDispatcherRuntime runtime;
     runtime.knownDispatchers = {"focusmonitor", "focuswindow"};
@@ -422,55 +422,55 @@ void test_switch_to_window_logic() {
 }
 
 void test_workspace_controller_navigation_logic() {
-    using namespace CanvasLayoutState;
+    using namespace KartaLayoutState;
 
-    const std::vector<CanvasTileNode> grid = {
-        {.canvasId = 0, .tileX = 0, .tileY = 0, .ephemeral = false},
-        {.canvasId = 1, .tileX = 1, .tileY = 0, .ephemeral = false},
-        {.canvasId = 2, .tileX = 1, .tileY = 1, .ephemeral = true},
+    const std::vector<KartaTileNode> grid = {
+        {.kartaId = 0, .tileX = 0, .tileY = 0, .ephemeral = false},
+        {.kartaId = 1, .tileX = 1, .tileY = 0, .ephemeral = false},
+        {.kartaId = 2, .tileX = 1, .tileY = 1, .ephemeral = true},
     };
 
-    const auto rightExisting = planDirectionalCanvasMove(grid, 0, Direction::Right);
-    expect_eq(static_cast<int>(rightExisting.action), static_cast<int>(CanvasNavigationAction::SelectExisting),
-              "directional canvas move selects existing right neighbor");
-    expect_eq(rightExisting.targetCanvasId, 1, "directional move picks canvas 1 to the right of canvas 0");
+    const auto rightExisting = planDirectionalKartaMove(grid, 0, Direction::Right);
+    expect_eq(static_cast<int>(rightExisting.action), static_cast<int>(KartaNavigationAction::SelectExisting),
+              "directional karta move selects existing right neighbor");
+    expect_eq(rightExisting.targetKartaId, 1, "directional move picks karta 1 to the right of karta 0");
 
-    const auto leftCreate = planDirectionalCanvasMove(grid, 0, Direction::Left);
-    expect_eq(static_cast<int>(leftCreate.action), static_cast<int>(CanvasNavigationAction::CreateSynthetic),
-              "directional move from non-ephemeral edge creates synthetic canvas");
-    expect_eq(leftCreate.anchorCanvasId, 0, "synthetic canvas anchors on current canvas");
+    const auto leftCreate = planDirectionalKartaMove(grid, 0, Direction::Left);
+    expect_eq(static_cast<int>(leftCreate.action), static_cast<int>(KartaNavigationAction::CreateSynthetic),
+              "directional move from non-ephemeral edge creates synthetic karta");
+    expect_eq(leftCreate.anchorKartaId, 0, "synthetic karta anchors on current karta");
     expect_eq(static_cast<int>(leftCreate.createDirection), static_cast<int>(Direction::Left),
-              "synthetic canvas keeps requested creation direction");
+              "synthetic karta keeps requested creation direction");
 
-    const auto fromEphemeralEdge = planDirectionalCanvasMove(grid, 2, Direction::Down);
-    expect_eq(static_cast<int>(fromEphemeralEdge.action), static_cast<int>(CanvasNavigationAction::None),
-              "ephemeral canvas cannot extend further into blank space");
+    const auto fromEphemeralEdge = planDirectionalKartaMove(grid, 2, Direction::Down);
+    expect_eq(static_cast<int>(fromEphemeralEdge.action), static_cast<int>(KartaNavigationAction::None),
+              "ephemeral karta cannot extend further into blank space");
 
-    const auto fromEphemeralBack = planDirectionalCanvasMove(grid, 2, Direction::Up);
-    expect_eq(static_cast<int>(fromEphemeralBack.action), static_cast<int>(CanvasNavigationAction::SelectExisting),
-              "ephemeral canvas can still navigate back to an existing neighbor");
-    expect_eq(fromEphemeralBack.targetCanvasId, 1, "up from canvas 2 returns to canvas 1");
+    const auto fromEphemeralBack = planDirectionalKartaMove(grid, 2, Direction::Up);
+    expect_eq(static_cast<int>(fromEphemeralBack.action), static_cast<int>(KartaNavigationAction::SelectExisting),
+              "ephemeral karta can still navigate back to an existing neighbor");
+    expect_eq(fromEphemeralBack.targetKartaId, 1, "up from karta 2 returns to karta 1");
 
-    const auto numberedExisting = planNumberedCanvasMove(grid, 0, 2);
-    expect_eq(static_cast<int>(numberedExisting.action), static_cast<int>(CanvasNavigationAction::SelectExisting),
-              "numbered move selects existing canvas in creation order");
-    expect_eq(numberedExisting.targetCanvasId, 1, "canvas #2 maps to second canvasId");
+    const auto numberedExisting = planNumberedKartaMove(grid, 0, 2);
+    expect_eq(static_cast<int>(numberedExisting.action), static_cast<int>(KartaNavigationAction::SelectExisting),
+              "numbered move selects existing karta in creation order");
+    expect_eq(numberedExisting.targetKartaId, 1, "karta #2 maps to second kartaId");
 
-    const auto numberedBlockedByEphemeralTail = planNumberedCanvasMove(grid, 0, 4);
-    expect_eq(static_cast<int>(numberedBlockedByEphemeralTail.action), static_cast<int>(CanvasNavigationAction::None),
-              "numbered move refuses to append past an already-ephemeral tail canvas");
+    const auto numberedBlockedByEphemeralTail = planNumberedKartaMove(grid, 0, 4);
+    expect_eq(static_cast<int>(numberedBlockedByEphemeralTail.action), static_cast<int>(KartaNavigationAction::None),
+              "numbered move refuses to append past an already-ephemeral tail karta");
 
-    const std::vector<CanvasTileNode> solidGrid = {
-        {.canvasId = 5, .tileX = 1, .tileY = 0, .ephemeral = false},
-        {.canvasId = 2, .tileX = 0, .tileY = 0, .ephemeral = false},
+    const std::vector<KartaTileNode> solidGrid = {
+        {.kartaId = 5, .tileX = 1, .tileY = 0, .ephemeral = false},
+        {.kartaId = 2, .tileX = 0, .tileY = 0, .ephemeral = false},
     };
-    const auto numberedAppend = planNumberedCanvasMove(solidGrid, 2, 3);
-    expect_eq(static_cast<int>(numberedAppend.action), static_cast<int>(CanvasNavigationAction::CreateSynthetic),
+    const auto numberedAppend = planNumberedKartaMove(solidGrid, 2, 3);
+    expect_eq(static_cast<int>(numberedAppend.action), static_cast<int>(KartaNavigationAction::CreateSynthetic),
               "numbered move at size+1 creates one synthetic page when tail and current are solid");
-    expect_eq(numberedAppend.anchorCanvasId, 5, "numbered creation anchors on the highest canvasId");
+    expect_eq(numberedAppend.anchorKartaId, 5, "numbered creation anchors on the highest kartaId");
 
-    const auto numberedSkip = planNumberedCanvasMove(solidGrid, 2, 4);
-    expect_eq(static_cast<int>(numberedSkip.action), static_cast<int>(CanvasNavigationAction::None),
+    const auto numberedSkip = planNumberedKartaMove(solidGrid, 2, 4);
+    expect_eq(static_cast<int>(numberedSkip.action), static_cast<int>(KartaNavigationAction::None),
               "numbered move rejects skipping more than one page past the end");
 }
 

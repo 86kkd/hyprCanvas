@@ -18,11 +18,11 @@ namespace {
 
 // Overview navigation compares item centers rather than edges so targets of
 // different sizes can still be ranked consistently.
-double center_x(const CanvasCore::Box& box) {
+double center_x(const KartaCore::Box& box) {
     return box.x + box.w / 2.0;
 }
 
-double center_y(const CanvasCore::Box& box) {
+double center_y(const KartaCore::Box& box) {
     return box.y + box.h / 2.0;
 }
 
@@ -30,7 +30,7 @@ double overlap_length(double a0, double a1, double b0, double b1) {
     return std::max(0.0, std::min(a1, b1) - std::max(a0, b0));
 }
 
-double beam_overlap(const CanvasCore::Box& from, const CanvasCore::Box& candidate, Direction direction) {
+double beam_overlap(const KartaCore::Box& from, const KartaCore::Box& candidate, Direction direction) {
     switch (direction) {
         case Direction::Left:
         case Direction::Right:
@@ -47,7 +47,7 @@ bool nearly_equal(double lhs, double rhs, double epsilon = 1e-6) {
     return std::abs(lhs - rhs) <= epsilon;
 }
 
-bool is_in_direction(const CanvasCore::Box& from, const CanvasCore::Box& candidate, Direction direction) {
+bool is_in_direction(const KartaCore::Box& from, const KartaCore::Box& candidate, Direction direction) {
     // Projection arithmetic can move an otherwise aligned center by a few
     // ulps. Do not classify a same-column sibling as left/right (or a same-row
     // sibling as up/down), which would outrank the real directional neighbor.
@@ -69,7 +69,7 @@ bool is_in_direction(const CanvasCore::Box& from, const CanvasCore::Box& candida
 
 // Primary distance measures "how far along the navigation axis" the candidate
 // sits from the current target. Lower is always better.
-double primary_distance(const CanvasCore::Box& from, const CanvasCore::Box& candidate, Direction direction) {
+double primary_distance(const KartaCore::Box& from, const KartaCore::Box& candidate, Direction direction) {
     switch (direction) {
         case Direction::Left:
             return center_x(from) - center_x(candidate);
@@ -86,7 +86,7 @@ double primary_distance(const CanvasCore::Box& from, const CanvasCore::Box& cand
 
 // Secondary distance breaks ties using the perpendicular axis so horizontally
 // aligned moves prefer targets that are also vertically aligned, and vice versa.
-double secondary_distance(const CanvasCore::Box& from, const CanvasCore::Box& candidate, Direction direction) {
+double secondary_distance(const KartaCore::Box& from, const KartaCore::Box& candidate, Direction direction) {
     switch (direction) {
         case Direction::Left:
         case Direction::Right:
@@ -152,24 +152,24 @@ std::optional<size_t> pickTargetIndex(const std::vector<TargetCandidate>& target
     return bestIndex;
 }
 
-std::optional<size_t> pickTargetIndexInCanvas(const std::vector<CanvasTargetCandidate>& targets, size_t currentIndex,
+std::optional<size_t> pickTargetIndexInKarta(const std::vector<KartaTargetCandidate>& targets, size_t currentIndex,
                                               Direction direction) {
     if (currentIndex >= targets.size())
         return std::nullopt;
 
-    std::vector<TargetCandidate> canvasTargets;
+    std::vector<TargetCandidate> kartaTargets;
     std::vector<size_t> originalIndexes;
-    canvasTargets.reserve(targets.size());
+    kartaTargets.reserve(targets.size());
     originalIndexes.reserve(targets.size());
 
-    const auto currentCanvasId = targets[currentIndex].canvasId;
-    auto canvasCurrentIndex = std::optional<size_t>{};
+    const auto currentKartaId = targets[currentIndex].kartaId;
+    auto kartaCurrentIndex = std::optional<size_t>{};
     for (size_t index = 0; index < targets.size(); ++index) {
         const auto& target = targets[index];
-        if (target.canvasId != currentCanvasId)
+        if (target.kartaId != currentKartaId)
             continue;
 
-        auto groupIndex = canvasTargets.size();
+        auto groupIndex = kartaTargets.size();
         if (target.stackId != 0) {
             for (size_t group = 0; group < originalIndexes.size(); ++group) {
                 if (targets[originalIndexes[group]].stackId == target.stackId) {
@@ -180,14 +180,14 @@ std::optional<size_t> pickTargetIndexInCanvas(const std::vector<CanvasTargetCand
         }
 
         if (index == currentIndex)
-            canvasCurrentIndex = groupIndex;
+            kartaCurrentIndex = groupIndex;
 
-        if (groupIndex == canvasTargets.size()) {
-            canvasTargets.push_back({.monitorId = target.monitorId, .box = target.box});
+        if (groupIndex == kartaTargets.size()) {
+            kartaTargets.push_back({.monitorId = target.monitorId, .box = target.box});
             originalIndexes.push_back(index);
         } else {
             // Route by the entire preview stack, independent of its active card.
-            auto& box = canvasTargets[groupIndex].box;
+            auto& box = kartaTargets[groupIndex].box;
             const auto right = std::max(box.x + box.w, target.box.x + target.box.w);
             const auto bottom = std::max(box.y + box.h, target.box.y + target.box.h);
             box.x = std::min(box.x, target.box.x);
@@ -199,10 +199,10 @@ std::optional<size_t> pickTargetIndexInCanvas(const std::vector<CanvasTargetCand
             originalIndexes[groupIndex] = index;
     }
 
-    if (!canvasCurrentIndex)
+    if (!kartaCurrentIndex)
         return std::nullopt;
 
-    const auto nextIndex = pickTargetIndex(canvasTargets, *canvasCurrentIndex, direction);
+    const auto nextIndex = pickTargetIndex(kartaTargets, *kartaCurrentIndex, direction);
     if (!nextIndex)
         return std::nullopt;
 

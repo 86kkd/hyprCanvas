@@ -16,9 +16,9 @@
 namespace Overview {
 
 struct SceneTarget {
-    int               canvasId = INVALID_CANVAS_ID;
+    int               kartaId = INVALID_KARTA_ID;
     TargetType        type = TargetType::Window;
-    CanvasCore::Box box;
+    KartaCore::Box box;
     PHLWINDOW         window = nullptr;
     bool              synthetic = false;
     bool              selected = false;
@@ -26,8 +26,8 @@ struct SceneTarget {
 };
 
 struct SceneWorkspace {
-    CanvasCore::Box      box;
-    CanvasCore::Box      contentBox;
+    KartaCore::Box      box;
+    KartaCore::Box      contentBox;
     bool                   selected = false;
     bool                   special = false;
     std::string            label;
@@ -37,10 +37,10 @@ struct SceneWorkspace {
 struct SceneMonitor {
     int                      monitorId = INVALID_MONITOR_ID;
     std::string              monitorName;
-    CanvasCore::Box        box;
+    KartaCore::Box        box;
     std::vector<SceneWorkspace> workspaces;
     std::optional<SceneTarget> syntheticTarget;
-    std::optional<CanvasCore::Box> selectionBox;
+    std::optional<KartaCore::Box> selectionBox;
 };
 
 std::optional<SceneMonitor> buildSceneForMonitor(PHLMONITOR monitor, const Model& model);

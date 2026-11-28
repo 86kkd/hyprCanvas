@@ -23,10 +23,10 @@
 #include "core/monitor_geometry_runtime.h"
 #include "core/workarea_pager.h"
 
-namespace CanvasModel {
+namespace KartaModel {
 namespace {
 
-using CanvasCore::Box;
+using KartaCore::Box;
 
 Box logical_window_box(const Box &stackGeom, Mode mode, double border, const Vector2D &gap_x,
                        double localPos, double localSize, double gap0, double gap1) {
@@ -45,7 +45,7 @@ Box safe_committed_box(const Box &logicalBox, const Box &visibleBox, const Box &
     safeBox.w = std::max(safeBox.w, minSpan);
     safeBox.h = std::max(safeBox.h, minSpan);
 
-    const auto pageBox = CanvasCore::project_box_to_workarea_page(logicalBox, fullBox, visibleBox);
+    const auto pageBox = KartaCore::project_box_to_workarea_page(logicalBox, fullBox, visibleBox);
     if (pageBox.visible)
         return safeBox;
 
@@ -56,22 +56,22 @@ Box safe_committed_box(const Box &logicalBox, const Box &visibleBox, const Box &
 
     if (boxRight <= visibleBox.x) {
         safeBox.x = visibleBox.x - safeBox.w;
-        return CanvasCore::project_box_to_workarea_page(safeBox, fullBox, visibleBox).committed;
+        return KartaCore::project_box_to_workarea_page(safeBox, fullBox, visibleBox).committed;
     }
 
     if (logicalBox.x >= visibleRight) {
         safeBox.x = visibleRight;
-        return CanvasCore::project_box_to_workarea_page(safeBox, fullBox, visibleBox).committed;
+        return KartaCore::project_box_to_workarea_page(safeBox, fullBox, visibleBox).committed;
     }
 
     if (boxBottom <= visibleBox.y) {
         safeBox.y = visibleBox.y - safeBox.h;
-        return CanvasCore::project_box_to_workarea_page(safeBox, fullBox, visibleBox).committed;
+        return KartaCore::project_box_to_workarea_page(safeBox, fullBox, visibleBox).committed;
     }
 
     if (logicalBox.y >= visibleBottom) {
         safeBox.y = visibleBottom;
-        return CanvasCore::project_box_to_workarea_page(safeBox, fullBox, visibleBox).committed;
+        return KartaCore::project_box_to_workarea_page(safeBox, fullBox, visibleBox).committed;
     }
 
     return safeBox;
@@ -106,7 +106,7 @@ std::vector<WindowGeometryEntry> Stack::capture_window_boxes(const Vector2D &gap
                 frame.x += card.inset;
                 frame.w -= 2.0 * card.inset;
             }
-            const auto border = CanvasCore::HyprlandRuntime::windowBorderSize(window);
+            const auto border = KartaCore::HyprlandRuntime::windowBorderSize(window);
             const auto labelEdge = !card.narrow ? DeckLabelEdge::None : mode == Mode::Column
                 ? (card.index < activeIndex ? DeckLabelEdge::Left : DeckLabelEdge::Right)
                 : (card.index < activeIndex ? DeckLabelEdge::Top : DeckLabelEdge::Bottom);
@@ -123,7 +123,7 @@ std::vector<WindowGeometryEntry> Stack::capture_window_boxes(const Vector2D &gap
 
         const auto gap0 = win == windows.first() ? 0.0 : gap;
         const auto gap1 = win == windows.last() ? 0.0 : gap;
-        const auto border = CanvasCore::HyprlandRuntime::windowBorderSize(window);
+        const auto border = KartaCore::HyprlandRuntime::windowBorderSize(window);
         boxes.push_back({
             .window = window,
             .box = logical_window_box(geom, mode, border, gap_x, win->data()->get_geom_y(), win->data()->get_geom_h(), gap0, gap1),
@@ -146,11 +146,11 @@ void Stack::scale(const Vector2D &bmin, const Vector2D &start, double scale, dou
         PHLWINDOW window = win->data()->ptr().lock();
         if (!window)
             continue;
-        auto border = CanvasCore::HyprlandRuntime::windowBorderSize(window);
+        auto border = KartaCore::HyprlandRuntime::windowBorderSize(window);
         auto gap0 = win == windows.first() ? 0.0 : gap;
         auto gap1 = win == windows.last() ? 0.0 : gap;
-        auto position = CanvasCore::HyprlandRuntime::windowPosition(window);
-        auto size = CanvasCore::HyprlandRuntime::windowSize(window);
+        auto position = KartaCore::HyprlandRuntime::windowPosition(window);
+        auto size = KartaCore::HyprlandRuntime::windowSize(window);
         if (mode == Mode::Column) {
             position = Vector2D(win->data()->get_geom_y() + border + gap0,
                                 start.y + border + geom.y - bmin.y);
@@ -163,12 +163,12 @@ void Stack::scale(const Vector2D &bmin, const Vector2D &start, double scale, dou
             size.y = (size.y + 2.0 * border + gap0 + gap1) * scale - gap0 - gap1 - 2.0 * border;
         }
         size = Vector2D(std::max(size.x, 1.0), std::max(size.y, 1.0));
-        CanvasCore::HyprlandRuntime::setWindowGeometry(window, position, size);
+        KartaCore::HyprlandRuntime::setWindowGeometry(window, position, size);
         StackInternal::sync_window_target_geometry(window);
     }
 }
 
-bool Stack::toggle_fullscreen(const CanvasCore::Box &fullbbox) {
+bool Stack::toggle_fullscreen(const KartaCore::Box &fullbbox) {
     full = fullbbox;
     if (!active)
         return false;
@@ -188,7 +188,7 @@ bool Stack::toggle_fullscreen(const CanvasCore::Box &fullbbox) {
     return fullscreened;
 }
 
-void Stack::set_fullscreen(const CanvasCore::Box &fullbbox) {
+void Stack::set_fullscreen(const KartaCore::Box &fullbbox) {
     full = fullbbox;
 }
 
@@ -230,7 +230,7 @@ void Stack::toggle_maximized(double maxw, double maxh) {
     }
 }
 
-void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const CanvasCore::Box &visibleBox) {
+void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const KartaCore::Box &visibleBox) {
     if (!active)
         return;
 
@@ -246,7 +246,7 @@ void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const 
         if (!activeWindow)
             return;
         active->data()->set_geom_y(StackInternal::stack_local_origin(full, mode));
-        CanvasCore::HyprlandRuntime::setWindowGeometry(
+        KartaCore::HyprlandRuntime::setWindowGeometry(
             activeWindow,
             Vector2D(full.x, full.y),
             Vector2D(full.w, full.h));
@@ -310,8 +310,8 @@ void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const 
     // brings the active window back to a readable position in the viewport.
     const double newPos =
         mode == Mode::Column
-            ? CanvasCore::choose_anchor_x(next != nullptr, prev != nullptr, activeSize, nextSize, prevSize, wactive->get_geom_y(), geom)
-            : CanvasCore::choose_anchor_y(next != nullptr, prev != nullptr, activeSize, nextSize, prevSize, geom);
+            ? KartaCore::choose_anchor_x(next != nullptr, prev != nullptr, activeSize, nextSize, prevSize, wactive->get_geom_y(), geom)
+            : KartaCore::choose_anchor_y(next != nullptr, prev != nullptr, activeSize, nextSize, prevSize, geom);
     wactive->set_geom_y(newPos);
     adjust_windows(active, gap_x, gap, visibleBox);
     spdlog::debug("stack_recalc_auto: active_window={} prev_visible={} next_visible={} new_pos={}",
@@ -321,9 +321,9 @@ void Stack::recalculate_stack_geometry(const Vector2D &gap_x, double gap, const 
                   newPos);
 }
 
-void Stack::fit_windows_to_span(const Vector2D &gap_x, double gap, const CanvasCore::Box &visibleBox) {
+void Stack::fit_windows_to_span(const Vector2D &gap_x, double gap, const KartaCore::Box &visibleBox) {
     auto *from = windows.first();
-    if (!CanvasCore::scale_range_to_span(
+    if (!KartaCore::scale_range_to_span(
             from,
             windows.last(),
             StackInternal::stack_local_span(geom, mode),
@@ -341,21 +341,21 @@ void Stack::fit_windows_to_span(const Vector2D &gap_x, double gap, const CanvasC
     adjust_windows(from, gap_x, gap, visibleBox);
 }
 
-void Stack::adjust_windows(WindowNode *win, const Vector2D &gap_x, double gap, const CanvasCore::Box &visibleBox) {
+void Stack::adjust_windows(WindowNode *win, const Vector2D &gap_x, double gap, const KartaCore::Box &visibleBox) {
     if (!win)
         return;
 
     if (uses_deck()) {
         const auto anchor = active ? active->data()->ptr().lock() : nullptr;
-        const auto monitor = anchor ? CanvasCore::HyprlandRuntime::monitorById(anchor->monitorID()) : nullptr;
-        const auto fullBox = monitor ? CanvasCore::logical_monitor_box(monitor) : visibleBox;
+        const auto monitor = anchor ? KartaCore::HyprlandRuntime::monitorById(anchor->monitorID()) : nullptr;
+        const auto fullBox = monitor ? KartaCore::logical_monitor_box(monitor) : visibleBox;
         // Commit and raise from back to front, so both rendering and pointer
         // hit testing agree with the selected card. Focus itself is unchanged.
         std::vector<DeckPointer::Card> pointerCards;
         for (const auto &entry : capture_window_boxes(gap_x, gap)) {
             if (const auto node = findWindowNode(entry.window))
                 node->data()->set_deck_label(entry.labelEdge, entry.labelSpan);
-            const auto border = CanvasCore::HyprlandRuntime::windowBorderSize(entry.window);
+            const auto border = KartaCore::HyprlandRuntime::windowBorderSize(entry.window);
             const auto box = safe_committed_box(entry.box, visibleBox, fullBox, std::max(1.0, 2.0 * border + 1.0));
             // Submit one final goal through the layout target. Writing setBox
             // first and then syncing the target restarts the native animation
@@ -394,8 +394,8 @@ void Stack::adjust_windows(WindowNode *win, const Vector2D &gap_x, double gap, c
     }
 
     auto anchorWindow = win ? win->data()->ptr().lock() : nullptr;
-    auto monitor = anchorWindow ? CanvasCore::HyprlandRuntime::monitorById(anchorWindow->monitorID()) : nullptr;
-    const auto monitorBox = monitor ? CanvasCore::logical_monitor_box(monitor) : CanvasCore::Box{};
+    auto monitor = anchorWindow ? KartaCore::HyprlandRuntime::monitorById(anchorWindow->monitorID()) : nullptr;
+    const auto monitorBox = monitor ? KartaCore::logical_monitor_box(monitor) : KartaCore::Box{};
     const auto fullCommitBox = monitor ? monitorBox : visibleBox;
     const auto fullStart = monitor ? (mode == Mode::Column ? monitorBox.x : monitorBox.y) : StackInternal::stack_local_origin(geom, mode);
     const auto fullEnd = monitor
@@ -411,10 +411,10 @@ void Stack::adjust_windows(WindowNode *win, const Vector2D &gap_x, double gap, c
     for (auto w = windows.first(); w != nullptr; w = w->next()) {
         auto *wdata = w->data().get();
         const auto window = wdata->ptr().lock();
-        const auto border = window ? CanvasCore::HyprlandRuntime::windowBorderSize(window) : 0.0;
+        const auto border = window ? KartaCore::HyprlandRuntime::windowBorderSize(window) : 0.0;
         const auto gap0 = w == windows.first() ? 0.0 : gap;
         const auto gap1 = w == windows.last() ? 0.0 : gap;
-        const auto rendered = CanvasCore::rendered_local_interval(wdata->get_geom_y(), wdata->get_geom_h(), border, gap0, gap1);
+        const auto rendered = KartaCore::rendered_local_interval(wdata->get_geom_y(), wdata->get_geom_h(), border, gap0, gap1);
         const auto boxStart = wdata->get_geom_y();
 
         if (reservedBefore > 0.0 && rendered.end <= StackInternal::stack_local_origin(geom, mode)) {
@@ -447,12 +447,12 @@ void Stack::adjust_windows(WindowNode *win, const Vector2D &gap_x, double gap, c
             continue;
         auto gap0 = w == windows.first() ? 0.0 : gap;
         auto gap1 = w == windows.last() ? 0.0 : gap;
-        auto border = CanvasCore::HyprlandRuntime::windowBorderSize(window);
+        auto border = KartaCore::HyprlandRuntime::windowBorderSize(window);
         const auto localSize = w->data()->get_geom_h();
         const auto logicalBox = logical_window_box(geom, mode, border, gap_x, w->data()->get_geom_y(), localSize, gap0, gap1);
         const auto minCommittedSpan = std::max(1.0, 2.0 * border + 1.0);
         const auto committedBox = safe_committed_box(logicalBox, visibleBox, fullCommitBox, minCommittedSpan);
-        CanvasCore::HyprlandRuntime::setWindowGeometry(
+        KartaCore::HyprlandRuntime::setWindowGeometry(
             window,
             Vector2D(committedBox.x, committedBox.y),
             Vector2D(committedBox.w, committedBox.h));
@@ -460,7 +460,7 @@ void Stack::adjust_windows(WindowNode *win, const Vector2D &gap_x, double gap, c
     }
 }
 
-void Stack::resize_active_window(const CanvasCore::Box &bounds, const Vector2D &gap_x, double gap, const Vector2D &delta) {
+void Stack::resize_active_window(const KartaCore::Box &bounds, const Vector2D &gap_x, double gap, const Vector2D &delta) {
     if (!active)
         return;
 
@@ -468,7 +468,7 @@ void Stack::resize_active_window(const CanvasCore::Box &bounds, const Vector2D &
     if (!activeWindow)
         return;
 
-    auto border = CanvasCore::HyprlandRuntime::windowBorderSize(activeWindow);
+    auto border = KartaCore::HyprlandRuntime::windowBorderSize(activeWindow);
     // A pointer drag can resize along two logical axes at once:
     // - stackDelta changes the outer stack size inside the lane
     // - windowDelta changes the active child size inside that stack
@@ -476,7 +476,7 @@ void Stack::resize_active_window(const CanvasCore::Box &bounds, const Vector2D &
     const auto windowDelta = mode == Mode::Column ? delta.x : delta.y;
     auto renderedStackSpan = StackInternal::stack_primary_span(geom, mode) + stackDelta - 2.0 * border - gap_x.x - gap_x.y;
     auto maxStackSpan = StackInternal::stack_primary_span(geom, mode) + stackDelta - 2.0 * (border + std::max(std::max(gap_x.x, gap_x.y), gap));
-    const auto maxPrimary = CanvasCore::stack_primary_span_limit(mode, bounds);
+    const auto maxPrimary = KartaCore::stack_primary_span_limit(mode, bounds);
     if (maxStackSpan <= 0.0 || renderedStackSpan >= maxPrimary)
         return;
 
@@ -492,7 +492,7 @@ void Stack::resize_active_window(const CanvasCore::Box &bounds, const Vector2D &
                 return;
             if (win == active)
                 wh += windowDelta;
-            if (wh <= 0.0 || wh + 2.0 * CanvasCore::HyprlandRuntime::windowBorderSize(window) + gap0 + gap1 > StackInternal::stack_local_span(geom, mode))
+            if (wh <= 0.0 || wh + 2.0 * KartaCore::HyprlandRuntime::windowBorderSize(window) + gap0 + gap1 > StackInternal::stack_local_span(geom, mode))
                 return;
         }
     }
@@ -514,4 +514,4 @@ void Stack::resize_active_window(const CanvasCore::Box &bounds, const Vector2D &
     }
 }
 
-} // namespace CanvasModel
+} // namespace KartaModel

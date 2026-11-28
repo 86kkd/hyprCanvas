@@ -1,12 +1,12 @@
-# Source repository: https://github.com/86kkd/hyprCanvas.git
+# Source repository: https://github.com/86kkd/karta.git
 [repository]
-name = "hyprCanvas"
+name = "karta"
 authors = ["86kkd"]
 
 # Old hyprscroller pins are omitted: those commits export a different plugin
-# name and artifact. Add only verified hyprCanvas compatibility pins.
-[hyprCanvas]
-description = "A canvas layout plugin for Hyprland"
+# name and artifact. Add only verified karta compatibility pins.
+[karta]
+description = "A karta layout plugin for Hyprland"
 authors = ["86kkd"]
-output = "Release/hyprCanvas.so"
+output = "Release/karta.so"
 build = ["make release"]

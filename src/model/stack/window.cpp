@@ -3,7 +3,7 @@
  * @brief Implementation of the lightweight per-window model used by `Stack`.
  *
  * This file intentionally stays small: it only manages logical height and Y
- * state for a single tiled window. Canvas, lane, and stack placement are
+ * state for a single tiled window. Karta, lane, and stack placement are
  * handled at higher layers.
  */
 #include "model/stack/stack.h"
@@ -14,12 +14,12 @@
 
 extern HANDLE PHANDLE;
 
-namespace CanvasModel {
+namespace KartaModel {
 
 Window::Window(PHLWINDOW window, double box_h, Mode mode)
     : window(window),
       height(WindowHeight::One),
-      box_y(window ? CanvasCore::stack_local_origin_for_window(mode, CanvasCore::HyprlandRuntime::windowPosition(window)) - CanvasCore::HyprlandRuntime::windowBorderSize(window) : 0.0),
+      box_y(window ? KartaCore::stack_local_origin_for_window(mode, KartaCore::HyprlandRuntime::windowPosition(window)) - KartaCore::HyprlandRuntime::windowBorderSize(window) : 0.0),
       box_h(box_h) {}
 
 Window::~Window() {
@@ -133,10 +133,10 @@ void Window::restore_state(WindowHeight h, double geom_y, double geom_h, double 
     mem.box_h = mem_h;
 }
 
-CanvasLayoutSnapshot::WindowSnapshot Window::capture_snapshot() const {
+KartaLayoutSnapshot::WindowSnapshot Window::capture_snapshot() const {
     const auto compositorWindow = window.lock();
     return {
-        .key = CanvasCore::window_key(compositorWindow),
+        .key = KartaCore::window_key(compositorWindow),
         .heightMode = static_cast<int>(height),
         .geomY = box_y,
         .geomH = box_h,
@@ -145,4 +145,4 @@ CanvasLayoutSnapshot::WindowSnapshot Window::capture_snapshot() const {
     };
 }
 
-} // namespace CanvasModel
+} // namespace KartaModel

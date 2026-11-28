@@ -1,6 +1,6 @@
 #include <string>
 
-#include "core/canvas_workspace_snapshot.h"
+#include "core/karta_workspace_snapshot.h"
 #include "core/layout_snapshot.h"
 
 #include "test_suite.h"
@@ -8,7 +8,7 @@
 
 namespace {
 
-void expect_box_eq(const CanvasCore::Box &actual, const CanvasCore::Box &expected, std::string_view label) {
+void expect_box_eq(const KartaCore::Box &actual, const KartaCore::Box &expected, std::string_view label) {
     expect_near(actual.x, expected.x, 1e-9, std::string(label) + " x");
     expect_near(actual.y, expected.y, 1e-9, std::string(label) + " y");
     expect_near(actual.w, expected.w, 1e-9, std::string(label) + " w");
@@ -16,12 +16,12 @@ void expect_box_eq(const CanvasCore::Box &actual, const CanvasCore::Box &expecte
 }
 
 void test_snapshot_round_trip() {
-    using namespace CanvasLayoutSnapshot;
+    using namespace KartaLayoutSnapshot;
 
     RepositorySnapshot repository;
-    CanvasSnapshot canvas;
-    canvas.workspaceId = 7;
-    canvas.activeLaneIndex = 1;
+    KartaSnapshot karta;
+    karta.workspaceId = 7;
+    karta.activeLaneIndex = 1;
 
     LaneSnapshot firstLane;
     firstLane.mode = static_cast<int>(Mode::Row);
@@ -53,9 +53,9 @@ void test_snapshot_round_trip() {
         .windows = {{.key = 0x33, .heightMode = 4, .geomY = 15.0, .geomH = 600.0, .memY = 10.0, .memH = 580.0}},
     });
 
-    canvas.lanes.push_back(firstLane);
-    canvas.lanes.push_back(secondLane);
-    repository.emplace(canvas.workspaceId, canvas);
+    karta.lanes.push_back(firstLane);
+    karta.lanes.push_back(secondLane);
+    repository.emplace(karta.workspaceId, karta);
 
     const auto serialized = serialize_repository(repository);
     const auto parsed = deserialize_repository(serialized);
@@ -90,7 +90,7 @@ void test_snapshot_accepts_legacy_lane_format() {
         "LANE 0 0 0 0 1\n"
         "STACK 1 0 0 0 10 20 300 400 1 2 3 4 11 1\n"
         "WINDOW 11 3 20 300 20 300\n";
-    const auto parsed = CanvasLayoutSnapshot::deserialize_repository(legacy);
+    const auto parsed = KartaLayoutSnapshot::deserialize_repository(legacy);
     expect_true(parsed.has_value(), "layout snapshot accepts legacy v1 lane format");
     if (!parsed)
         return;
@@ -101,7 +101,7 @@ void test_snapshot_accepts_legacy_lane_format() {
         return;
 
     expect_eq(it->second.lanes.size(), static_cast<size_t>(1), "legacy layout snapshot keeps lanes");
-    expect_eq(it->second.version, CanvasLayoutSnapshot::kLegacyFormatVersion, "legacy snapshot keeps source format version");
+    expect_eq(it->second.version, KartaLayoutSnapshot::kLegacyFormatVersion, "legacy snapshot keeps source format version");
     expect_eq(it->second.lanes[0].stacks[0].width, 2, "legacy one-half width becomes two visible stacks");
 }
 
@@ -114,7 +114,7 @@ void test_snapshot_maps_legacy_width_presets() {
         "STACK 1 0 0 0 0 0 900 900 0 0 0 0 12 0\n"
         "STACK 2 0 0 0 0 0 1200 900 0 0 0 0 13 0\n"
         "STACK 4 0 0 0 0 0 700 900 0 0 0 0 14 0\n";
-    const auto parsed = CanvasLayoutSnapshot::deserialize_repository(v5);
+    const auto parsed = KartaLayoutSnapshot::deserialize_repository(v5);
     expect_true(parsed.has_value(), "layout snapshot accepts v5 width presets");
     if (!parsed)
         return;
@@ -126,7 +126,7 @@ void test_snapshot_maps_legacy_width_presets() {
     expect_eq(stacks[3].width, 0, "legacy free width stays free");
     expect_near(stacks[2].geom.w, 1200.0, 1e-9, "legacy two-thirds stack keeps its stored span");
 
-    const auto reparsed = CanvasLayoutSnapshot::deserialize_repository(CanvasLayoutSnapshot::serialize_repository(*parsed));
+    const auto reparsed = KartaLayoutSnapshot::deserialize_repository(KartaLayoutSnapshot::serialize_repository(*parsed));
     expect_true(reparsed.has_value() && reparsed->at(4).lanes[0].stacks[0].width == 3,
                 "migrated widths survive a current-format round trip");
 }
@@ -140,8 +140,8 @@ void test_snapshot_ignores_removed_grid_state() {
         "WINDOW 11 3 20 300 20 300\n"
         "GRID 1 0 2 -1 1 0\n"
         "GRIDITEM 11 2 0 1 1\n";
-    const auto parsed = CanvasLayoutSnapshot::deserialize_repository(v3);
-    expect_true(parsed.has_value(), "layout snapshot accepts files written with canvasgrid state");
+    const auto parsed = KartaLayoutSnapshot::deserialize_repository(v3);
+    expect_true(parsed.has_value(), "layout snapshot accepts files written with kartagrid state");
     if (!parsed)
         return;
 
@@ -152,7 +152,7 @@ void test_snapshot_ignores_removed_grid_state() {
 
     expect_eq(it->second.lanes.size(), static_cast<size_t>(1), "grid-era snapshot keeps lane state");
     expect_eq(it->second.lanes[0].stacks.size(), static_cast<size_t>(1), "grid lines do not truncate lane stacks");
-    expect_true(CanvasLayoutSnapshot::serialize_repository(*parsed).find("GRID") == std::string::npos,
+    expect_true(KartaLayoutSnapshot::serialize_repository(*parsed).find("GRID") == std::string::npos,
                 "serialized snapshot no longer writes grid state");
 }
 
@@ -161,19 +161,19 @@ void test_snapshot_preserves_mixed_window_key_versions() {
         "VERSION 5\n"
         "WORKSPACE 1 0 0 4\n"
         "WORKSPACE 2 0 0 5\n";
-    const auto parsed = CanvasLayoutSnapshot::deserialize_repository(mixed);
+    const auto parsed = KartaLayoutSnapshot::deserialize_repository(mixed);
     expect_true(parsed.has_value(), "layout snapshot accepts mixed key versions during migration");
     if (!parsed)
         return;
 
-    expect_eq(parsed->at(1).version, CanvasLayoutSnapshot::kFullscreenFormatVersion,
+    expect_eq(parsed->at(1).version, KartaLayoutSnapshot::kFullscreenFormatVersion,
               "mixed snapshot keeps legacy pointer key version");
-    expect_eq(parsed->at(2).version, CanvasLayoutSnapshot::kStableWindowKeyFormatVersion,
+    expect_eq(parsed->at(2).version, KartaLayoutSnapshot::kStableWindowKeyFormatVersion,
               "mixed snapshot keeps stable window key version");
 }
 
 void test_snapshot_rejects_invalid_version() {
-    const auto parsed = CanvasLayoutSnapshot::deserialize_repository("VERSION 99\n");
+    const auto parsed = KartaLayoutSnapshot::deserialize_repository("VERSION 99\n");
     expect_true(!parsed.has_value(), "layout snapshot rejects unsupported versions");
 }
 
@@ -183,17 +183,17 @@ void test_snapshot_rejects_malformed_stack_line() {
         "WORKSPACE 4 0 1\n"
         "LANE 0 0 0 1\n"
         "STACK 1 0 0 0 1 2 3\n";
-    const auto parsed = CanvasLayoutSnapshot::deserialize_repository(malformed);
+    const auto parsed = KartaLayoutSnapshot::deserialize_repository(malformed);
     expect_true(!parsed.has_value(), "layout snapshot rejects malformed stack lines");
 }
 
-void test_canvas_workspace_snapshot_round_trip() {
-    using namespace CanvasRepoSnapshot;
+void test_karta_workspace_snapshot_round_trip() {
+    using namespace KartaRepoSnapshot;
 
     RepositorySnapshot repository;
-    repository.activeCanvasId = 4;
-    repository.canvases.push_back({
-        .canvasId = 4,
+    repository.activeKartaId = 4;
+    repository.kartas.push_back({
+        .kartaId = 4,
         .tileX = 1,
         .tileY = -1,
         .members = {
@@ -204,52 +204,52 @@ void test_canvas_workspace_snapshot_round_trip() {
 
     const auto serialized = serialize_repository(repository);
     const auto parsed = deserialize_repository(serialized);
-    expect_true(parsed.has_value(), "canvas workspace snapshot round trip parses");
+    expect_true(parsed.has_value(), "karta workspace snapshot round trip parses");
     if (!parsed)
         return;
 
-    expect_eq(parsed->activeCanvasId, 4, "canvas workspace snapshot keeps active canvas id");
-    expect_eq(parsed->canvases.size(), static_cast<size_t>(1), "canvas workspace snapshot keeps canvas count");
-    expect_eq(parsed->canvases[0].canvasId, 4, "canvas workspace snapshot keeps canvas id");
-    expect_eq(parsed->canvases[0].tileX, 1, "canvas workspace snapshot keeps tile x");
-    expect_eq(parsed->canvases[0].tileY, -1, "canvas workspace snapshot keeps tile y");
-    expect_eq(parsed->canvases[0].members.size(), static_cast<size_t>(2), "canvas workspace snapshot keeps member count");
-    expect_true(parsed->canvases[0].members[1].special, "canvas workspace snapshot keeps special member flag");
+    expect_eq(parsed->activeKartaId, 4, "karta workspace snapshot keeps active karta id");
+    expect_eq(parsed->kartas.size(), static_cast<size_t>(1), "karta workspace snapshot keeps karta count");
+    expect_eq(parsed->kartas[0].kartaId, 4, "karta workspace snapshot keeps karta id");
+    expect_eq(parsed->kartas[0].tileX, 1, "karta workspace snapshot keeps tile x");
+    expect_eq(parsed->kartas[0].tileY, -1, "karta workspace snapshot keeps tile y");
+    expect_eq(parsed->kartas[0].members.size(), static_cast<size_t>(2), "karta workspace snapshot keeps member count");
+    expect_true(parsed->kartas[0].members[1].special, "karta workspace snapshot keeps special member flag");
 }
 
-void test_legacy_canvas_members_become_exclusive() {
-    using namespace CanvasRepoSnapshot;
+void test_legacy_karta_members_become_exclusive() {
+    using namespace KartaRepoSnapshot;
     RepositorySnapshot repository;
-    repository.activeCanvasId = 1; // Stale ACTIVE must not trump visible canvas 0.
-    repository.canvases = {
+    repository.activeKartaId = 1; // Stale ACTIVE must not trump visible karta 0.
+    repository.kartas = {
         {0, 0, 0, {{0, 1, false}, {1, 2, false}}},
         {1, 1, 0, {{0, 1, false}, {1, 4, false}}},
         {2, 2, 0, {{0, 1, false}, {1, 3, false}}},
     };
     expect_true(make_members_exclusive(repository, 0, 21), "legacy shared monitor members are migrated");
-    expect_eq(repository.canvases[0].members[0].workspaceId, 1, "visible left workspace stays intact");
-    expect_eq(repository.canvases[0].members[1].workspaceId, 2, "visible right workspace stays intact");
-    expect_eq(repository.canvases[1].members[0].workspaceId, 21, "second canvas receives independent left workspace");
-    expect_eq(repository.canvases[2].members[0].workspaceId, 22, "third canvas receives another independent left workspace");
-    expect_eq(repository.canvases[1].members[1].workspaceId, 4, "unique hidden workspace keeps its windows");
+    expect_eq(repository.kartas[0].members[0].workspaceId, 1, "visible left workspace stays intact");
+    expect_eq(repository.kartas[0].members[1].workspaceId, 2, "visible right workspace stays intact");
+    expect_eq(repository.kartas[1].members[0].workspaceId, 21, "second karta receives independent left workspace");
+    expect_eq(repository.kartas[2].members[0].workspaceId, 22, "third karta receives another independent left workspace");
+    expect_eq(repository.kartas[1].members[1].workspaceId, 4, "unique hidden workspace keeps its windows");
     expect_true(!make_members_exclusive(repository, 0, 23), "migration is idempotent");
 
-    repository.canvases.push_back({3, 3, 0, {{0, 1, false}, {1, 2, false}}});
+    repository.kartas.push_back({3, 3, 0, {{0, 1, false}, {1, 2, false}}});
     expect_true(make_members_exclusive(repository, 3, 23), "new native combination claims its visible members");
-    expect_eq(repository.canvases[3].members[0].workspaceId, 1, "new visible canvas retains real windows");
-    expect_eq(repository.canvases[0].members[0].workspaceId, 23, "older canvas cannot retain shared member");
+    expect_eq(repository.kartas[3].members[0].workspaceId, 1, "new visible karta retains real windows");
+    expect_eq(repository.kartas[0].members[0].workspaceId, 23, "older karta cannot retain shared member");
 }
 
-void test_canvas_members_follow_monitors() {
-    using namespace CanvasRepoSnapshot;
+void test_karta_members_follow_monitors() {
+    using namespace KartaRepoSnapshot;
 
     const auto visible = visible_members({{.monitorId = 2, .workspaceId = 12}, {.monitorId = 0, .workspaceId = 3}});
     expect_eq(visible.size(), static_cast<size_t>(2), "visible members hold one entry per monitor");
     expect_eq(visible[0].monitorId, 0, "visible members are ordered by monitor");
     expect_true(!visible[0].special && !visible[1].special, "visible members are never special workspaces");
 
-    CanvasWorkspaceSnapshot canvas{
-        .canvasId = 1,
+    KartaWorkspaceSnapshot karta{
+        .kartaId = 1,
         .members = {
             {.monitorId = 0, .workspaceId = 3, .special = false},
             {.monitorId = 0, .workspaceId = 4, .special = false},
@@ -257,63 +257,63 @@ void test_canvas_members_follow_monitors() {
             {.monitorId = 5, .workspaceId = 9, .special = false},
         },
     };
-    expect_true(fill_monitor_members(canvas, {0, 1, 2}, 20), "monitor members are normalized");
-    expect_eq(canvas.members.size(), static_cast<size_t>(4), "each connected monitor gets one member, disconnected ones stay");
-    expect_eq(canvas.members[0].workspaceId, 3, "the first member of a monitor wins over duplicates");
-    expect_true(canvas.members[1].monitorId == 1 && !canvas.members[1].special && canvas.members[1].workspaceId == 20,
+    expect_true(fill_monitor_members(karta, {0, 1, 2}, 20), "monitor members are normalized");
+    expect_eq(karta.members.size(), static_cast<size_t>(4), "each connected monitor gets one member, disconnected ones stay");
+    expect_eq(karta.members[0].workspaceId, 3, "the first member of a monitor wins over duplicates");
+    expect_true(karta.members[1].monitorId == 1 && !karta.members[1].special && karta.members[1].workspaceId == 20,
                 "a special member is replaced by a fresh ordinary workspace");
-    expect_true(canvas.members[2].monitorId == 2 && canvas.members[2].workspaceId == 21,
+    expect_true(karta.members[2].monitorId == 2 && karta.members[2].workspaceId == 21,
                 "a missing monitor receives the next fresh workspace");
-    expect_true(canvas.members[3].monitorId == 5 && canvas.members[3].workspaceId == 9,
+    expect_true(karta.members[3].monitorId == 5 && karta.members[3].workspaceId == 9,
                 "a disconnected monitor keeps its member for later");
-    expect_true(!fill_monitor_members(canvas, {0, 1, 2}, 20), "monitor member normalization is idempotent");
+    expect_true(!fill_monitor_members(karta, {0, 1, 2}, 20), "monitor member normalization is idempotent");
 }
 
 void test_special_members_are_not_exclusive_pages() {
-    using namespace CanvasRepoSnapshot;
+    using namespace KartaRepoSnapshot;
     RepositorySnapshot repository;
-    repository.canvases = {
+    repository.kartas = {
         {0, 0, 0, {{0, 1, false}, {1, -98, true}}},
         {1, 1, 0, {{0, 5, false}, {1, -98, true}}},
     };
     expect_true(!make_members_exclusive(repository, 0, 10), "legacy special members are not reassigned as pages");
-    expect_eq(repository.canvases[1].members[1].workspaceId, -98, "a shared special member keeps its workspace");
+    expect_eq(repository.kartas[1].members[1].workspaceId, -98, "a shared special member keeps its workspace");
 }
 
-void test_temporary_canvas_lifecycle() {
-    using namespace CanvasRepoSnapshot;
+void test_temporary_karta_lifecycle() {
+    using namespace KartaRepoSnapshot;
     RepositorySnapshot repository;
-    repository.activeCanvasId = 1;
-    repository.canvases = {
+    repository.activeKartaId = 1;
+    repository.kartas = {
         {0, 0, 0, {{0, 1, false}, {1, 2, false}}},
         {1, 1, 0, {{0, 3, false}, {1, 4, false}}, true},
     };
     auto restored = deserialize_repository(serialize_repository(repository));
-    expect_true(restored && restored->canvases[1].ephemeral, "temporary status survives plugin reload");
+    expect_true(restored && restored->kartas[1].ephemeral, "temporary status survives plugin reload");
     if (!restored)
         return;
-    expect_true(!reconcile_temporary_canvases(repository, {}, true), "active blank insertion page remains visible");
-    repository.activeCanvasId = 0;
-    expect_true(reconcile_temporary_canvases(repository, {}, true), "leaving unused temporary canvas removes it");
-    expect_eq(repository.canvases.size(), size_t{1}, "no empty canvas left between populated canvases");
+    expect_true(!reconcile_temporary_kartas(repository, {}, true), "active blank insertion page remains visible");
+    repository.activeKartaId = 0;
+    expect_true(reconcile_temporary_kartas(repository, {}, true), "leaving unused temporary karta removes it");
+    expect_eq(repository.kartas.size(), size_t{1}, "no empty karta left between populated kartas");
 
     repository = *restored;
-    expect_true(reconcile_temporary_canvases(repository, {4}, false), "window on any member promotes whole canvas");
-    expect_true(!repository.canvases[1].ephemeral, "promoted canvas is permanent");
-    repository.activeCanvasId = 0;
-    expect_true(!reconcile_temporary_canvases(repository, {}, true), "closing its last window does not undo promotion");
-    expect_eq(repository.canvases.size(), size_t{2}, "previously populated canvas remains");
+    expect_true(reconcile_temporary_kartas(repository, {4}, false), "window on any member promotes whole karta");
+    expect_true(!repository.kartas[1].ephemeral, "promoted karta is permanent");
+    repository.activeKartaId = 0;
+    expect_true(!reconcile_temporary_kartas(repository, {}, true), "closing its last window does not undo promotion");
+    expect_eq(repository.kartas.size(), size_t{2}, "previously populated karta remains");
 
-    const auto legacy = deserialize_repository("VERSION 1\nACTIVE 0\nCANVAS 0 0 0 1\nMEMBER 0 1 0\n");
-    expect_true(legacy && !legacy->canvases[0].ephemeral, "legacy canvases remain permanent");
-    expect_true(!deserialize_repository("VERSION 1\nACTIVE 0\nCANVAS 0 0 0 0 2\n"), "invalid temporary flag is rejected");
+    const auto legacy = deserialize_repository("VERSION 1\nACTIVE 0\nKARTA 0 0 0 1\nMEMBER 0 1 0\n");
+    expect_true(legacy && !legacy->kartas[0].ephemeral, "legacy kartas remain permanent");
+    expect_true(!deserialize_repository("VERSION 1\nACTIVE 0\nKARTA 0 0 0 0 2\n"), "invalid temporary flag is rejected");
 }
 
-void test_canvas_workspace_snapshot_rejects_missing_active_line() {
-    const auto parsed = CanvasRepoSnapshot::deserialize_repository(
+void test_karta_workspace_snapshot_rejects_missing_active_line() {
+    const auto parsed = KartaRepoSnapshot::deserialize_repository(
         "VERSION 1\n"
-        "CANVAS 0 0 0 0\n");
-    expect_true(!parsed.has_value(), "canvas workspace snapshot rejects missing ACTIVE line");
+        "KARTA 0 0 0 0\n");
+    expect_true(!parsed.has_value(), "karta workspace snapshot rejects missing ACTIVE line");
 }
 
 } // namespace
@@ -326,10 +326,10 @@ void run_layout_snapshot_tests() {
     test_snapshot_preserves_mixed_window_key_versions();
     test_snapshot_rejects_invalid_version();
     test_snapshot_rejects_malformed_stack_line();
-    test_canvas_workspace_snapshot_round_trip();
-    test_temporary_canvas_lifecycle();
-    test_legacy_canvas_members_become_exclusive();
-    test_canvas_members_follow_monitors();
+    test_karta_workspace_snapshot_round_trip();
+    test_temporary_karta_lifecycle();
+    test_legacy_karta_members_become_exclusive();
+    test_karta_members_follow_monitors();
     test_special_members_are_not_exclusive_pages();
-    test_canvas_workspace_snapshot_rejects_missing_active_line();
+    test_karta_workspace_snapshot_rejects_missing_active_line();
 }

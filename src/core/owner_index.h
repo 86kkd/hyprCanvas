@@ -3,12 +3,12 @@
 #include <unordered_map>
 #include <utility>
 
-namespace CanvasCore {
+namespace KartaCore {
 
 /**
  * @brief Shared cache for "member key -> owning object" lookups.
  *
- * Both `Lane` and `CanvasLayout` keep a small cache that maps window keys to
+ * Both `Lane` and `KartaLayout` keep a small cache that maps window keys to
  * their current owning stack/lane. The mutation rules are the same in both
  * places: look up a cached owner, drop stale entries eagerly, bulk remember all
  * members of one owner, bulk forget a removed owner, and verify the cache in
@@ -96,4 +96,4 @@ private:
     mutable std::unordered_map<Key, Owner *> owners_;
 };
 
-} // namespace CanvasCore
+} // namespace KartaCore

@@ -20,7 +20,7 @@ jobs:
           node-version: '22'
 
       - name: Run Lua keybind tests
-        run: lua5.4 tests/canvas_keybinds_tests.lua
+        run: lua5.4 tests/karta_keybinds_tests.lua
 
       - name: Run stack-tuner JS tests
         run: node --test tools/stack-tuner/model.test.mjs
@@ -44,6 +44,6 @@ jobs:
 
       - name: Build plugin and run sanitized logic tests
         run: |
-          cmake -B ./ci-build -DCMAKE_BUILD_TYPE=Debug -DHYPRCANVAS_ENABLE_SANITIZERS=ON
+          cmake -B ./ci-build -DCMAKE_BUILD_TYPE=Debug -DKARTA_ENABLE_SANITIZERS=ON
           cmake --build ./ci-build -j"$(nproc)"
           ctest --test-dir ./ci-build --output-on-failure

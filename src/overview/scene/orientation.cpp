@@ -9,7 +9,7 @@
 namespace Overview {
 namespace {
 
-CanvasCore::Box round_box(const CanvasCore::Box& box) {
+KartaCore::Box round_box(const KartaCore::Box& box) {
     return {
         std::round(box.x),
         std::round(box.y),
@@ -18,7 +18,7 @@ CanvasCore::Box round_box(const CanvasCore::Box& box) {
     };
 }
 
-CanvasCore::Box transform_box_landscape(const CanvasCore::Box& box,
+KartaCore::Box transform_box_landscape(const KartaCore::Box& box,
                                           wl_output_transform transform,
                                           double renderWidth,
                                           double renderHeight) {
@@ -36,7 +36,7 @@ CanvasCore::Box transform_box_landscape(const CanvasCore::Box& box,
     }
 }
 
-CanvasCore::Box transform_box_portrait(const CanvasCore::Box& box,
+KartaCore::Box transform_box_portrait(const KartaCore::Box& box,
                                          wl_output_transform transform,
                                          double renderWidth,
                                          double renderHeight) {
@@ -82,7 +82,7 @@ std::string_view orientation_name(MonitorOrientation orientation) {
     }
 }
 
-CanvasCore::Box transform_box_to_render_space(const CanvasCore::Box& box,
+KartaCore::Box transform_box_to_render_space(const KartaCore::Box& box,
                                                 wl_output_transform transform,
                                                 double renderWidth,
                                                 double renderHeight) {

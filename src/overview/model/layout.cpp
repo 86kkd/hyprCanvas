@@ -17,7 +17,7 @@ void finalizeWorkspaceTargets(WorkspaceNode& node) {
 
     // A workspace with no real windows still needs a selectable target so
     // directional navigation and "accept" keep working uniformly.
-    node.targets.push_back(makeEmptyTarget(node.canvasId,
+    node.targets.push_back(makeEmptyTarget(node.kartaId,
                                            node.workspaceId,
                                            node.monitorId,
                                            node.specialWorkspace,
@@ -25,7 +25,7 @@ void finalizeWorkspaceTargets(WorkspaceNode& node) {
                                            node.synthetic));
 }
 
-void layoutCanvasTiles(MonitorRegion& region, int anchorTileX, int anchorTileY) {
+void layoutKartaTiles(MonitorRegion& region, int anchorTileX, int anchorTileY) {
     const auto horizontalStride = region.box.w + std::max(48.0, region.box.w * 0.08);
     const auto verticalStride = region.box.h + std::max(48.0, region.box.h * 0.08);
 
@@ -34,8 +34,8 @@ void layoutCanvasTiles(MonitorRegion& region, int anchorTileX, int anchorTileY) 
             return lhs.tileY < rhs.tileY;
         if (lhs.tileX != rhs.tileX)
             return lhs.tileX < rhs.tileX;
-        if (lhs.canvasId != rhs.canvasId)
-            return lhs.canvasId < rhs.canvasId;
+        if (lhs.kartaId != rhs.kartaId)
+            return lhs.kartaId < rhs.kartaId;
         return lhs.workspaceId < rhs.workspaceId;
     });
 
@@ -54,15 +54,15 @@ void layoutCanvasTiles(MonitorRegion& region, int anchorTileX, int anchorTileY) 
 
 } // namespace
 
-Target makeEmptyTarget(int canvasId,
+Target makeEmptyTarget(int kartaId,
                        WORKSPACEID workspaceId,
                        int monitorId,
                        bool specialWorkspace,
-                       const CanvasCore::Box& workspaceBox,
+                       const KartaCore::Box& workspaceBox,
                        bool synthetic) {
     Target target;
     target.type = TargetType::EmptyWorkspace;
-    target.canvasId = canvasId;
+    target.kartaId = kartaId;
     target.workspaceId = workspaceId;
     target.monitorId = monitorId;
     target.specialWorkspace = specialWorkspace;
@@ -77,7 +77,7 @@ void layoutWorkspaceGrid(MonitorRegion& region, int anchorTileX, int anchorTileY
     if (region.workspaces.empty())
         return;
 
-    layoutCanvasTiles(region, anchorTileX, anchorTileY);
+    layoutKartaTiles(region, anchorTileX, anchorTileY);
 }
 
 } // namespace Overview

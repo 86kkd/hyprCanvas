@@ -1,6 +1,6 @@
 # Planned Work
 
-集中记录当前已在代码中标注、但尚未落地的计划项：公开 API 清理、功能落地（如拓扑邻居索引）、以及目标模型对齐（如 Canvas Workspace）。按 `TODO(...)` 检索与执行。
+集中记录当前已在代码中标注、但尚未落地的计划项：公开 API 清理、功能落地（如拓扑邻居索引）、以及目标模型对齐（如 Karta Workspace）。按 `TODO(...)` 检索与执行。
 
 > 状态：§1–§9 已落地；本文保留为决策记录。
 > 未勾选：§3「overview 空白预览问题单独跟踪」、§10 `TODO(deck-card-share)`。
@@ -14,17 +14,17 @@ TODO(remove-fit-size-command)
 TODO(remove-focus-lane)
 TODO(remove-create-lane-command)
 TODO(remove-admit-expel-window)
-TODO(remove-canvasgrid)
+TODO(remove-kartagrid)
 TODO(topology-neighbor-index)
-TODO(canvas-workspace-model)
+TODO(karta-workspace-model)
 TODO(deck-card-share)
 ```
 
 相关决策背景也可对照：
 
 - [`architecture-cn.md`](./architecture-cn.md) / [`architecture.md`](./architecture.md)
-- [`topology-neighbor-index.md`](./topology-neighbor-index.md)（Feature：拓扑邻居索引；先瘦身并删 canvasgrid）
-- 下文 [§9](#9-todocanvas-workspace-model目标所有权层级canvas-workspace)（Canvas Workspace 目标模型）
+- [`topology-neighbor-index.md`](./topology-neighbor-index.md)（Feature：拓扑邻居索引；先瘦身并删 kartagrid）
+- 下文 [§9](#9-todokarta-workspace-model目标所有权层级karta-workspace)（Karta Workspace 目标模型）
 - README 中的 Lua commands 表（清理后需同步删文档示例）
 
 ---
@@ -42,15 +42,15 @@ TODO(deck-card-share)
 ### 不做 / 注意
 
 - 当前 `Lane::resize_active_stack` 只拦 `maximized()`，对 expanded/fullscreen 防护偏弱；新 API 应明确与这些状态的交互
-- `plugin:canvas:column_default_width`（`onehalf` / `onethird` / …）需一并迁到「可见 stack 数」模型
-- `canvasgrid` 目前共用 `cycle_size` 命令表面，需同步改或删除
+- `plugin:karta:column_default_width`（`onehalf` / `onethird` / …）需一并迁到「可见 stack 数」模型
+- `kartagrid` 目前共用 `cycle_size` 命令表面，需同步改或删除
 
 ### 主要落点
 
 | 区域 | 文件 |
 |---|---|
 | Lua / dispatch | `src/plugin/dispatch/layout_commands.cpp` |
-| Canvas API | `src/layout/canvas/layout.h`, `src/layout/canvas/commands.cpp` |
+| Karta API | `src/layout/karta/layout.h`, `src/layout/karta/commands.cpp` |
 | Lane | `src/layout/lane/lane.h`, `src/layout/lane/actions.cpp` |
 | Stack 预设 | `src/model/stack/stack.h`, `src/model/stack/core.cpp` |
 | Grid | `src/layout/grid/layout.h`, `src/layout/grid/layout.cpp` |
@@ -58,7 +58,7 @@ TODO(deck-card-share)
 
 ### 建议完成判定
 
-- [x] 已提供 `hl.plugin.canvas.set_window_size(n)`（或最终定名）
+- [x] 已提供 `hl.plugin.karta.set_window_size(n)`（或最终定名）
 - [x] `cycle_size` / `cycle_window_size` / `resize_active_stack(step)` 及 1/3·1/2·2/3 循环路径已删除
 - [x] 默认宽度配置与新语义对齐
 - [x] grid 侧不再残留旧 cycle API
@@ -75,9 +75,9 @@ TODO(deck-card-share)
 
 ### 删除范围
 
-- Lua：`hl.plugin.canvas.align_window`
+- Lua：`hl.plugin.karta.align_window`
 - dispatch：`dispatch_alignwindow`
-- Canvas / Grid：`align_window`
+- Karta / Grid：`align_window`
 - Lane：`align_stack`
 - Stack：`align_window`
 
@@ -86,7 +86,7 @@ TODO(deck-card-share)
 | 区域 | 文件 |
 |---|---|
 | Lua / dispatch | `src/plugin/dispatch/layout_commands.cpp` |
-| Canvas | `src/layout/canvas/layout.h`, `src/layout/canvas/commands.cpp` |
+| Karta | `src/layout/karta/layout.h`, `src/layout/karta/commands.cpp` |
 | Lane | `src/layout/lane/lane.h`, `src/layout/lane/actions.cpp` |
 | Stack | `src/model/stack/stack.h`, `src/model/stack/membership.cpp` |
 | Grid | `src/layout/grid/layout.h`, `src/layout/grid/layout.cpp` |
@@ -117,9 +117,9 @@ TODO(deck-card-share)
 
 ### 删除范围（公共命令）
 
-- Lua：`hl.plugin.canvas.fit_size`
+- Lua：`hl.plugin.karta.fit_size`
 - dispatch：`dispatch_fitsize`
-- Canvas / Grid / Lane 的命令向 `fit_size(...)` 入口
+- Karta / Grid / Lane 的命令向 `fit_size(...)` 入口
 
 ### 暂留 / 另议
 
@@ -134,7 +134,7 @@ TODO(deck-card-share)
 | 区域 | 文件 |
 |---|---|
 | Lua / dispatch | `src/plugin/dispatch/layout_commands.cpp` |
-| Canvas | `src/layout/canvas/layout.h`, `src/layout/canvas/commands.cpp` |
+| Karta | `src/layout/karta/layout.h`, `src/layout/karta/commands.cpp` |
 | Lane | `src/layout/lane/lane.h`, `src/layout/lane/actions.cpp` |
 | Core helper | `src/core/fit_size.h`（先标命令删除；helper 可后清） |
 | Stack（内部） | `src/model/stack/stack.h`, `src/model/stack/geometry.cpp` |
@@ -143,7 +143,7 @@ TODO(deck-card-share)
 
 ### 建议完成判定
 
-- [x] 公共 `fit_size` Lua/命令/Canvas/Lane/Grid 入口已删除
+- [x] 公共 `fit_size` Lua/命令/Karta/Lane/Grid 入口已删除
 - [x] admit/relayout 等内部调用已有明确去留方案
 - [x] README 中 fitsize 说明与 submap 示例已更新
 - [ ] overview 空白预览问题单独跟踪，不与本项捆绑
@@ -169,7 +169,7 @@ TODO(deck-card-share)
 
 - Lua：`create_lane` / `focus_lane`
 - dispatch：`dispatch_createlane` / `dispatch_focuslane`
-- Canvas：`CanvasLayout::create_lane` / `focus_lane`
+- Karta：`KartaLayout::create_lane` / `focus_lane`
 - Grid：`GridLayout::focus_lane`；`GridLayout::create_lane` 需先改写
   `expel_window_right`（当前直接调用 `create_lane`），再删除
 
@@ -178,16 +178,16 @@ TODO(deck-card-share)
 | 区域 | 文件 |
 |---|---|
 | Lua / dispatch | `src/plugin/dispatch/layout_commands.cpp` |
-| Canvas | `src/layout/canvas/layout.h`, `src/layout/canvas/commands.cpp` |
+| Karta | `src/layout/karta/layout.h`, `src/layout/karta/commands.cpp` |
 | Grid | `src/layout/grid/layout.h`, `src/layout/grid/layout.cpp` |
 | 文档 | `README.md`, `docs/hyprland-testing.md` |
 
 ### 建议完成判定
 
-- [x] 公共 Lua/dispatch/Canvas `focus_lane` 已删除
-- [x] 公共 Lua/dispatch/Canvas `create_lane` 已删除
-- [x] `GridLayout::expel_window_right` 不再依赖 `create_lane`（随 canvasgrid 一并删除）
-- [x] `GridLayout::focus_lane` / `create_lane` 已删除（随 canvasgrid 一并删除）
+- [x] 公共 Lua/dispatch/Karta `focus_lane` 已删除
+- [x] 公共 Lua/dispatch/Karta `create_lane` 已删除
+- [x] `GridLayout::expel_window_right` 不再依赖 `create_lane`（随 kartagrid 一并删除）
+- [x] `GridLayout::focus_lane` / `create_lane` 已删除（随 kartagrid 一并删除）
 - [x] README 与 hyprland-testing 示例已去掉这两条命令
 - [x] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 
@@ -213,7 +213,7 @@ TODO(deck-card-share)
 
 - Lua：`admit_window` / `expel_window`
 - dispatch：`dispatch_admitwindow` / `dispatch_expelwindow`
-- Canvas：`admit_window_left` / `expel_window_right`
+- Karta：`admit_window_left` / `expel_window_right`
 - Lane：`admit_window_left` / `expel_window_right`
 - Grid：`admit_window_left`（已是 `move_window` 包装）、`expel_window_right`（仍走 `create_lane`，与 §4 一起清）
 
@@ -226,7 +226,7 @@ TODO(deck-card-share)
 | 区域 | 文件 |
 |---|---|
 | Lua / dispatch | `src/plugin/dispatch/layout_commands.cpp` |
-| Canvas | `src/layout/canvas/layout.h`, `src/layout/canvas/commands.cpp` |
+| Karta | `src/layout/karta/layout.h`, `src/layout/karta/commands.cpp` |
 | Lane | `src/layout/lane/lane.h`, `src/layout/lane/actions.cpp` |
 | Grid | `src/layout/grid/layout.h`, `src/layout/grid/layout.cpp` |
 | Stack（保留） | `src/model/stack/stack.h`, `src/model/stack/membership.cpp` |
@@ -234,11 +234,11 @@ TODO(deck-card-share)
 
 ### 建议完成判定
 
-- [x] 公共 admit/expel Lua/命令/Canvas/Lane/Grid 入口已删除
+- [x] 公共 admit/expel Lua/命令/Karta/Lane/Grid 入口已删除
 - [x] `Stack::admit_window` 仍保留给 `move_window` 内部路径
 - [x] README Admit/Expel 说明与绑定示例已删除或改写为 `move_window`
 
-> 已完成：repro 脚本中的 `admit_window()` / `canvas:admitwindow` 已改写为 stack 轴 `move_window`。
+> 已完成：repro 脚本中的 `admit_window()` / `karta:admitwindow` 已改写为 stack 轴 `move_window`。
 - [x] 测试/脚本清理见 [§6](#6-测试脚本与文档清理计划)
 
 ---
@@ -255,11 +255,11 @@ TODO(deck-card-share)
 | `focus_lane` | 否 | 否 | 无测试改动 |
 | `create_lane` | 否 | 否 | 无测试改动 |
 | `admit_window` / `expel_window` | 否 | 否（无公开命令引用） | 无测试改动 |
-| `align_window` 公开命令 | 否 | 否（无 `align_window`/`align_stack`） | 无 canvas 侧测试改动 |
-| `cycle_size` 公开命令 | 否 | 否 | 无 canvas 侧测试改动 |
+| `align_window` 公开命令 | 否 | 否（无 `align_window`/`align_stack`） | 无 karta 侧测试改动 |
+| `cycle_size` 公开命令 | 否 | 否 | 无 karta 侧测试改动 |
 | `fit_size` 公开命令 | 否 | **有 helper** | 见下 |
-| `canvasgrid` / `GridModel` | **有** [`tests/grid_logic_tests.cpp`](../tests/grid_logic_tests.cpp) | 整模块 | 随 `TODO(remove-canvasgrid)` 删除测试 |
-| grid resize/align 模型 | 否（非 Lua） | **有**（同上） | 随 canvasgrid 删除，不再单独迁移 |
+| `kartagrid` / `GridModel` | **有** [`tests/grid_logic_tests.cpp`](../tests/grid_logic_tests.cpp) | 整模块 | 随 `TODO(remove-kartagrid)` 删除测试 |
+| grid resize/align 模型 | 否（非 Lua） | **有**（同上） | 随 kartagrid 删除，不再单独迁移 |
 
 #### 必须处理的测试
 
@@ -290,11 +290,11 @@ TODO(deck-card-share)
 
 | 文件 | 用到的旧 API | 清理动作 |
 |---|---|---|
-| [`scripts/repro-overview-accept-lane.sh`](../scripts/repro-overview-accept-lane.sh) | `canvas:createlane` | 改为 `move_focus` / `move_window` 等价路径，或删除该步骤 |
-| [`scripts/repro-layout-persistence.sh`](../scripts/repro-layout-persistence.sh) | `canvas:createlane` | 同上 |
-| [`scripts/repro-grid-real-coverage.sh`](../scripts/repro-grid-real-coverage.sh) | `canvasgrid` / `fitsize` 等 | 随删除 canvasgrid **整脚本删除或改写为 canvas 场景** |
+| [`scripts/repro-overview-accept-lane.sh`](../scripts/repro-overview-accept-lane.sh) | `karta:createlane` | 改为 `move_focus` / `move_window` 等价路径，或删除该步骤 |
+| [`scripts/repro-layout-persistence.sh`](../scripts/repro-layout-persistence.sh) | `karta:createlane` | 同上 |
+| [`scripts/repro-grid-real-coverage.sh`](../scripts/repro-grid-real-coverage.sh) | `kartagrid` / `fitsize` 等 | 随删除 kartagrid **整脚本删除或改写为 karta 场景** |
 
-说明：这些脚本里不少仍是旧 `dispatch canvas:...` 写法；清理时一并迁到 `hl.plugin.canvas.*`，避免 0.57 上假绿/假红。  
+说明：这些脚本里不少仍是旧 `dispatch karta:...` 写法；清理时一并迁到 `hl.plugin.karta.*`，避免 0.57 上假绿/假红。  
 目前未发现 repro 脚本直接调用 `admitwindow` / `expelwindow`；删除时仍应全库再搜一遍。
 
 ### 6.3 文档清单
@@ -309,35 +309,35 @@ TODO(deck-card-share)
 
 - [x] `ctest --test-dir ./Debug --output-on-failure` 全绿
 - [x] `core_logic_tests` 中 fit_size helper 测试已按 helper 去留更新
-- [x] `grid_logic_tests` 已随 canvasgrid 删除（或确认不再构建）
-- [x] 相关 repro 脚本不再依赖 createlane / fitsize / canvasgrid
-- [x] smoke-test / hyprland-testing / README 不再推荐已删命令（含 admit/expel / canvasgrid）
+- [x] `grid_logic_tests` 已随 kartagrid 删除（或确认不再构建）
+- [x] 相关 repro 脚本不再依赖 createlane / fitsize / kartagrid
+- [x] smoke-test / hyprland-testing / README 不再推荐已删命令（含 admit/expel / kartagrid）
 
 ---
 
-## 7. `TODO(remove-canvasgrid)`：删除第二种布局算法
+## 7. `TODO(remove-kartagrid)`：删除第二种布局算法
 
 ### 目标
 
-删除 `canvasgrid`。它不是寻路简化方案，而是平行的格子布局产品；与「只改 move_focus/move_window 表达、保留 lane/stack」的目标不符。
+删除 `kartagrid`。它不是寻路简化方案，而是平行的格子布局产品；与「只改 move_focus/move_window 表达、保留 lane/stack」的目标不符。
 
 功能计划见 [`topology-neighbor-index.md`](./topology-neighbor-index.md)。
 
 ### 删除范围
 
-- `PLUGIN_INIT` 中 `HyprlandAPI::addTiledAlgo(..., "canvasgrid", ...)`
+- `PLUGIN_INIT` 中 `HyprlandAPI::addTiledAlgo(..., "kartagrid", ...)`
 - [`src/layout/grid/`](../src/layout/grid/)（`GridLayout` / `GridModel` 等）
 - dispatch 里对 `GridLayout` 的并列分支（`workspaceGridLayoutForAction` 等）
 - overview / snapshot / persist 中仅服务 grid 的路径（若有）
 - [`tests/grid_logic_tests.cpp`](../tests/grid_logic_tests.cpp)
-- [`scripts/repro-grid-real-coverage.sh`](../scripts/repro-grid-real-coverage.sh) 及文档中的 canvasgrid 说明
+- [`scripts/repro-grid-real-coverage.sh`](../scripts/repro-grid-real-coverage.sh) 及文档中的 kartagrid 说明
 
 ### 建议完成判定
 
-- [x] 无法再 `layout = canvasgrid` 加载该算法
-- [x] 仓库无 `CanvasGrid::` / `src/layout/grid` 生产路径
+- [x] 无法再 `layout = kartagrid` 加载该算法
+- [x] 仓库无 `KartaGrid::` / `src/layout/grid` 生产路径
 - [x] ctest 不再编译/运行 grid 专用测试
-- [x] README / architecture / smoke-test 不再把 canvasgrid 写成并存布局
+- [x] README / architecture / smoke-test 不再把 kartagrid 写成并存布局
 
 > 已完成：旧快照文件中的 `GRID` / `GRIDITEM` 行仍可解析但会被忽略，lane 状态照常恢复；
 > `repro-grid-*.sh` 三个脚本已删除。
@@ -348,63 +348,63 @@ TODO(deck-card-share)
 
 完整指令向功能计划见 [`topology-neighbor-index.md`](./topology-neighbor-index.md)。
 
-摘要：在 **保留 lane/stack** 的前提下，把 `move_focus` / `move_window` 的「下一步去哪」收成只读派生索引 + 纯函数路由；删除 canvasgrid，不引入格子布局。
+摘要：在 **保留 lane/stack** 的前提下，把 `move_focus` / `move_window` 的「下一步去哪」收成只读派生索引 + 纯函数路由；删除 kartagrid，不引入格子布局。
 
 ### 建议完成判定
 
 - [x] 按 feature 文档 §3–§4 完成实现与验收
 - [x] `move_focus` 与 `move_window` 共用同一邻居/路由决策出口
-- [x] 不再依赖 `GridModel` / `canvasgrid`
+- [x] 不再依赖 `GridModel` / `kartagrid`
 
 ---
 
-## 9. `TODO(canvas-workspace-model)`：目标所有权层级（Canvas Workspace）
+## 9. `TODO(karta-workspace-model)`：目标所有权层级（Karta Workspace）
 
 ### 目标模型
 
-在 **不替换** Hyprland workspace 的前提下，把 hyprcanvas 的跨屏场景正式抽象为：
+在 **不替换** Hyprland workspace 的前提下，把 karta 的跨屏场景正式抽象为：
 
 ```text
-Canvas Workspace          ← hyprcanvas 抽象：一整套多屏桌面
+Karta Workspace          ← karta 抽象：一整套多屏桌面
   └─ Hyprland workspace × N(= monitor 数)   ← 每屏一块真实桌面
         └─ Lane → Stack → window
 ```
 
 含义：
 
-- **Canvas Workspace**：插件侧「场景」——一次切换应对齐整套多屏桌面；只做索引与切换策略，**不是**窗口归属的权威来源。
+- **Karta Workspace**：插件侧「场景」——一次切换应对齐整套多屏桌面；只做索引与切换策略，**不是**窗口归属的权威来源。
 - **Hyprland workspace × N**：每个 monitor 挂且仅挂一个 member workspace；可见性 / 焦点 / `window→m_workspace` 仍由合成器决定。
-- **Lane → Stack → window**：继续挂在**单个** Hyprland workspace 对应的 `CanvasLayout` 上；单屏排窗与寻路不跨过合成器 workspace。
+- **Lane → Stack → window**：继续挂在**单个** Hyprland workspace 对应的 `KartaLayout` 上；单屏排窗与寻路不跨过合成器 workspace。
 
 ### 与现状的关系
 
 | 概念 | 现状 | 目标角色 |
 |---|---|---|
-| `CanvasWorkspaceRepository` / overview canvas | 已用 `{monitorId, workspaceId}` members 分组，并有 `make_members_exclusive` | 升格为正式 **Canvas Workspace** 模型，而不只是 overview 旁路 |
-| `CanvasLayout` | 每个 Hyprland workspace 一个 tiled 实例，拥有 Lane 列表 | **保持**：单屏布局器；命名上勿与「Canvas Workspace」混称 |
-| `TODO(topology-neighbor-index)` | 单 workspace 内简化 `move_focus` / `move_window` | 仍在 **Lane/Stack** 层；跨屏切场景走 Canvas Workspace |
+| `KartaWorkspaceRepository` / overview karta | 已用 `{monitorId, workspaceId}` members 分组，并有 `make_members_exclusive` | 升格为正式 **Karta Workspace** 模型，而不只是 overview 旁路 |
+| `KartaLayout` | 每个 Hyprland workspace 一个 tiled 实例，拥有 Lane 列表 | **保持**：单屏布局器；命名上勿与「Karta Workspace」混称 |
+| `TODO(topology-neighbor-index)` | 单 workspace 内简化 `move_focus` / `move_window` | 仍在 **Lane/Stack** 层；跨屏切场景走 Karta Workspace |
 
 ### 必须守住的约束
 
 - **N = 当前 monitor 数** 是运行时不变量；插拔屏要重建或补齐 members。
-- **普通 member workspace 互斥**：同一编号 workspace 不得同时属于两个 Canvas Workspace（沿用 / 强化 `make_members_exclusive`）。
-- **special workspace 单独规则**：可「存在但不显示」，不得与普通 member 对等默认绑进每个 canvas。
-- **禁止** `Canvas Workspace → Lane`（跳过 Hyprland workspace）；合成器不认该归属。
-- **禁止** 把 Canvas Workspace 当成窗口权威归属；单屏命令仍落到「当前 monitor 上的那个 member workspace」。
+- **普通 member workspace 互斥**：同一编号 workspace 不得同时属于两个 Karta Workspace（沿用 / 强化 `make_members_exclusive`）。
+- **special workspace 单独规则**：可「存在但不显示」，不得与普通 member 对等默认绑进每个 karta。
+- **禁止** `Karta Workspace → Lane`（跳过 Hyprland workspace）；合成器不认该归属。
+- **禁止** 把 Karta Workspace 当成窗口权威归属；单屏命令仍落到「当前 monitor 上的那个 member workspace」。
 
 ### 建议落地范围（文档优先，代码随后）
 
-1. 在架构文档中固定上述层级与命名（区分 Canvas Workspace vs `CanvasLayout`）。
-2. 梳理 overview / `ensureCurrentVisibleCanvas` / 跨屏 handoff，使「切 Canvas Workspace」语义与 member×monitor 对齐。
+1. 在架构文档中固定上述层级与命名（区分 Karta Workspace vs `KartaLayout`）。
+2. 梳理 overview / `ensureCurrentVisibleKarta` / 跨屏 handoff，使「切 Karta Workspace」语义与 member×monitor 对齐。
 3. 需要公开切换 API 时，再单独加命令；本 TODO 先锁定模型，不强制本轮加 Lua。
 
 ### 建议完成判定
 
-- [x] `architecture.md` / `architecture-cn.md` 写明 Canvas Workspace → Hyprland workspace×N → Lane → Stack
-- [x] 代码与文档中「Canvas Workspace」与 `CanvasLayout` 角色不再混用
-- [x] Canvas Workspace members 与 monitor 数 / 互斥约束有明确实现或测试覆盖
-- [x] special workspace 不误当作普通 member 默认并入每个 canvas
-- [x] 单屏 `move_focus` / `move_window` 仍以当前 member workspace 的 `CanvasLayout` 为入口（可与拓扑邻居索引共存）
+- [x] `architecture.md` / `architecture-cn.md` 写明 Karta Workspace → Hyprland workspace×N → Lane → Stack
+- [x] 代码与文档中「Karta Workspace」与 `KartaLayout` 角色不再混用
+- [x] Karta Workspace members 与 monitor 数 / 互斥约束有明确实现或测试覆盖
+- [x] special workspace 不误当作普通 member 默认并入每个 karta
+- [x] 单屏 `move_focus` / `move_window` 仍以当前 member workspace 的 `KartaLayout` 为入口（可与拓扑邻居索引共存）
 
 ---
 
@@ -445,22 +445,22 @@ Canvas Workspace          ← hyprcanvas 抽象：一整套多屏桌面
 
 ---
 
-## 11. `TODO(canvas-world-map)`：独立全局地图（方案 B）
+## 11. `TODO(karta-world-map)`：独立全局地图（方案 B）
 
 ### 目标与定位
 
 在 A（切换时短暂显示的角落地图）和 C（overview 中的导航地图）之外，
-保留一个可独立打开的全局地图，供用户查看全部 canvas 的空间位置并远距离跳转。
+保留一个可独立打开的全局地图，供用户查看全部 karta 的空间位置并远距离跳转。
 本轮先实现 A + C；B 仅记录设计，不作为本轮实现范围。
 
 ### 交互方案
 
-- 独立快捷键展开居中的全局地图，位置沿用 canvas 的 `tileX / tileY`，保留空洞。
-- 方向键移动选择，Enter 接受，Esc 取消；点击已有 canvas 可直接跳转。
-- 当前 canvas 与待选择 canvas 分别标记，预览不改变真实桌面。
-- 大地图支持平移和缩放，打开时保证当前 canvas 可见。
+- 独立快捷键展开居中的全局地图，位置沿用 karta 的 `tileX / tileY`，保留空洞。
+- 方向键移动选择，Enter 接受，Esc 取消；点击已有 karta 可直接跳转。
+- 当前 karta 与待选择 karta 分别标记，预览不改变真实桌面。
+- 大地图支持平移和缩放，打开时保证当前 karta 可见。
 - 格子代表一整套多屏桌面；选中后再展示成员显示器分布、窗口数量。
-- 可选 canvas 名称属于后续扩展，首版可只显示创建顺序编号。
+- 可选 karta 名称属于后续扩展，首版可只显示创建顺序编号。
 - 临时页面、新建入口与正式页面必须区分，保持现有临时页面回收规则。
 
 ### 完成判定
@@ -468,7 +468,7 @@ Canvas Workspace          ← hyprcanvas 抽象：一整套多屏桌面
 - [ ] 独立地图入口、键盘选择、接受与取消
 - [ ] 全局地图平移 / 缩放以及远距离跳转
 - [ ] 当前与预览状态同步，取消不创建页面
-- [ ] 与 A / C 共用 canvas 数据源、状态标识和空间坐标
+- [ ] 与 A / C 共用 karta 数据源、状态标识和空间坐标
 - [ ] 双屏、稀疏布局、临时页面及退出清理回归
 
 ---
@@ -479,9 +479,9 @@ Canvas Workspace          ← hyprcanvas 抽象：一整套多屏桌面
 2. **`remove-admit-expel-window`** — 无 ctest 引用；保留 `Stack::admit_window`  
 3. **`remove-align-window`** / **`remove-create-lane-command`** / **`remove-fit-size-command`** — 继续瘦身公开命令  
 4. **`set_window_size` + 删除 `cycle_size`** — 尺寸语义替换  
-5. **`remove-canvasgrid`** — 删除第二种布局及 grid 测试/脚本（可与命令瘦身并行，但勿再往 grid 加功能）  
-6. **`topology-neighbor-index`** — 在 canvas 上落地邻居索引，简化 `move_focus` / `move_window`  
-7. **`canvas-workspace-model`** — 文档与 overview/canvas 仓库对齐目标层级（可与 6 并行规划；改跨屏切换语义时再动代码）
+5. **`remove-kartagrid`** — 删除第二种布局及 grid 测试/脚本（可与命令瘦身并行，但勿再往 grid 加功能）  
+6. **`topology-neighbor-index`** — 在 karta 上落地邻居索引，简化 `move_focus` / `move_window`  
+7. **`karta-workspace-model`** — 文档与 overview/karta 仓库对齐目标层级（可与 6 并行规划；改跨屏切换语义时再动代码）
 8. **`deck-card-share`** — 横向/纵向 stack 卡牌交叉轴逐层缩放（已实现，待人工验收）
 
 ## 验证建议

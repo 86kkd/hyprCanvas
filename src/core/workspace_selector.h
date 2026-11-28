@@ -8,7 +8,7 @@
 
 #include "hyprland_runtime.h"
 
-namespace CanvasCore {
+namespace KartaCore {
 
 inline std::string workspace_selector(PHLWORKSPACE workspace) {
     if (!workspace)
@@ -17,7 +17,7 @@ inline std::string workspace_selector(PHLWORKSPACE workspace) {
     if (!workspace->displayName().empty())
         return workspace->displayName();
 
-    return std::to_string(CanvasCore::HyprlandRuntime::workspaceId(workspace));
+    return std::to_string(KartaCore::HyprlandRuntime::workspaceId(workspace));
 }
 
-} // namespace CanvasCore
+} // namespace KartaCore

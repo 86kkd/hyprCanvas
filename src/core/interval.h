@@ -9,7 +9,7 @@
  */
 #pragma once
 
-namespace CanvasCore::Interval {
+namespace KartaCore::Interval {
 /**
  * @brief Return true when a segment intersects a viewport interval.
  */
@@ -25,4 +25,4 @@ inline bool intersects(double start, double end, double viewportStart, double vi
 inline bool fully_visible(double start, double end, double viewportStart, double viewportEnd) {
     return start >= viewportStart && end <= viewportEnd;
 }
-} // namespace CanvasCore::Interval
+} // namespace KartaCore::Interval

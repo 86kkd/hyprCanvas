@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Record a dual-monitor (landscape + portrait) showcase video for HyprCanvas.
+"""Record a dual-monitor (landscape + portrait) showcase video for Karta.
 
 Launches an isolated headless Hyprland instance (leaving the outer desktop
 untouched), populates realistic developer windows across a landscape monitor
@@ -22,7 +22,7 @@ from PIL import Image, ImageDraw, ImageFilter, ImageFont
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 
-# Studio canvas layout (1920x1080)
+# Studio karta layout (1920x1080)
 FRAME_W, FRAME_H = 1920, 1080
 MON_L_W, MON_L_H = 1280, 720
 MON_P_W, MON_P_H = 492, 800
@@ -103,8 +103,8 @@ def generate_studio_backdrop(path: Path) -> None:
 
     # Accent dot + title
     draw.rounded_rectangle((56, 30, 66, 62), radius=5, fill=(137, 180, 250, 255))
-    draw.text((80, 28), "HyprCanvas", font=f_title, fill=(241, 245, 249, 255))
-    draw.text((284, 38), "Scrolling Lanes · Card Stacks · Multi-Monitor Canvas · Overview", font=f_sub, fill=(148, 163, 184, 230))
+    draw.text((80, 28), "Karta", font=f_title, fill=(241, 245, 249, 255))
+    draw.text((284, 38), "Scrolling Lanes · Card Stacks · Multi-Monitor Karta · Overview", font=f_sub, fill=(148, 163, 184, 230))
 
     # Monitor drop shadows & sleek frames
     def draw_monitor_frame(x: int, y: int, w: int, h: int, label: str, accent: tuple[int, int, int]) -> None:
@@ -228,14 +228,14 @@ def fg(r, g, b): return f"\033[38;2;{r};{g};{b}m"
 def bg(r, g, b): return f"\033[48;2;{r};{g};{b}m"
 
 PALETTES = {
-    "editor":       ((137, 180, 250), " NEOVIM ", "src/layout/canvas/core.cpp",   "C++23"),
-    "metrics":      ((148, 226, 213), " SYSTEM ", "HyprCanvas Telemetry",         "60 Hz"),
-    "fetch":        ((203, 166, 247), " SHELL  ", "hyprCanvas · Arch Linux",      "fish"),
-    "git":          ((250, 179, 135), "  GIT   ", "hyprCanvas · main",            "HEAD"),
-    "docs":         ((245, 194, 231), "  DOCS  ", "Canvas Model",                 "md"),
+    "editor":       ((137, 180, 250), " NEOVIM ", "src/layout/karta/core.cpp",   "C++23"),
+    "metrics":      ((148, 226, 213), " SYSTEM ", "Karta Telemetry",         "60 Hz"),
+    "fetch":        ((203, 166, 247), " SHELL  ", "karta · Arch Linux",      "fish"),
+    "git":          ((250, 179, 135), "  GIT   ", "karta · main",            "HEAD"),
+    "docs":         ((245, 194, 231), "  DOCS  ", "Karta Model",                 "md"),
     "logs":         ((116, 199, 236), "  IPC   ", "Event Stream",                 "sock2"),
-    "canvas2_code": ((166, 227, 161), "CANVAS 2", "overview/render/draw.cpp",     "GL"),
-    "canvas2_test": ((249, 226, 175), " TESTS  ", "Regression Suite",             "ctest"),
+    "karta2_code": ((166, 227, 161), "KARTA 2", "overview/render/draw.cpp",     "GL"),
+    "karta2_test": ((249, 226, 175), " TESTS  ", "Regression Suite",             "ctest"),
 }
 
 accent, badge, title, right = PALETTES[kind]
@@ -264,20 +264,20 @@ def make_header(cols):
 def render_editor(cols, rows):
     out = make_header(cols) + [""]
     code_lines = [
-        (142, "namespace canvas::canvas {", "kw"),
+        (142, "namespace karta::karta {", "kw"),
         (143, "", ""),
-        (144, "void CanvasController::activate(CanvasId id) {", "fn"),
-        (145, "  auto* canvas = repo_.findCanvas(id);", "code"),
-        (146, "  if (!canvas || id == activeId_) return;", "kw"),
+        (144, "void KartaController::activate(KartaId id) {", "fn"),
+        (145, "  auto* karta = repo_.findKarta(id);", "code"),
+        (146, "  if (!karta || id == activeId_) return;", "kw"),
         (147, "", ""),
         (148, "  // Switch all monitors in lockstep", "cmt"),
-        (149, "  for (auto& [mon, ws] : canvas->members()) {", "code"),
+        (149, "  for (auto& [mon, ws] : karta->members()) {", "code"),
         (150, "    runtime_.activateWorkspace(mon, ws);", "call"),
         (151, "    syncOrientation(mon); // auto row/col", "cmt"),
         (152, "  }", "code"),
         (153, "", ""),
-        (154, "  restoreFocusMemory(*canvas);", "call"),
-        (155, "  minimap_.flashCanvasMap(id);", "call"),
+        (154, "  restoreFocusMemory(*karta);", "call"),
+        (155, "  minimap_.flashKartaMap(id);", "call"),
         (156, "}", "fn"),
         (157, "", ""),
         (158, "bool Stack::isCardDeck() const noexcept {", "fn"),
@@ -319,10 +319,10 @@ def render_metrics(cols, rows, tick):
     out.append("")
     out.append(f"  {fg(148,226,213)}{BOLD}ACTIVE LAYOUT STATE{RESET}")
     kv = [
-        ("Engine",     "HyprCanvas v0.57 (canvas)", (205,214,244)),
+        ("Engine",     "Karta v0.57 (karta)", (205,214,244)),
         ("Monitors",   "Landscape row + Portrait col", (137,180,250)),
         ("Card Stack", "3+ windows fan out cleanly", (166,227,161)),
-        ("Canvas Map", "Auto-HUD on switch & overview", (249,226,175)),
+        ("Karta Map", "Auto-HUD on switch & overview", (249,226,175)),
         ("Frame Pace", "16.6 ms (60.0 FPS locked)", (148,226,213)),
     ]
     for k, v, (r, g, b) in kv:
@@ -338,18 +338,18 @@ def render_fetch(cols, rows):
         " █ │ C1 ││ C2 │ █ ",
         " █ └────┘└────┘ █ ",
         " █ ┌──────────┐ █ ",
-        " █ │HyprCanvas│ █ ",
+        " █ │Karta│ █ ",
         " █ └──────────┘ █ ",
         "  ▀▀▀▀▀▀▀▀▀▀▀▀▀▀  ",
     ]
     info = [
-        (f"{fg(203,166,247)}{BOLD}hyprCanvas{RESET}@{fg(137,180,250)}hyprland{RESET}", 20),
+        (f"{fg(203,166,247)}{BOLD}karta{RESET}@{fg(137,180,250)}hyprland{RESET}", 20),
         (f"{fg(108,112,134)}{'─' * min(22, max(8, cols - 22))}{RESET}", 22),
-        (f"{fg(203,166,247)}Plugin  {RESET} HyprCanvas (C++23)", 26),
+        (f"{fg(203,166,247)}Plugin  {RESET} Karta (C++23)", 26),
         (f"{fg(203,166,247)}WM      {RESET} Hyprland 0.57 Lua", 26),
         (f"{fg(203,166,247)}Lanes   {RESET} Auto row / col", 23),
         (f"{fg(203,166,247)}Stacks  {RESET} Fanned card deck", 25),
-        (f"{fg(203,166,247)}Canvas  {RESET} 2D synced spaces", 25),
+        (f"{fg(203,166,247)}Karta  {RESET} 2D synced spaces", 25),
         (f"{fg(203,166,247)}Overview{RESET} Live minimap", 21),
     ]
     for a, (b, _) in zip(art, info):
@@ -365,10 +365,10 @@ def render_fetch(cols, rows):
 def render_git(cols, rows):
     out = make_header(cols) + [""]
     commits = [
-        ("5e1254d", "prioritize canvas shortcuts"),
+        ("5e1254d", "prioritize karta shortcuts"),
         ("128c786", "move workspace keys to lower row"),
-        ("126b03b", "move windows between canvases"),
-        ("845f64d", "ergonomic canvas keybindings"),
+        ("126b03b", "move windows between kartas"),
+        ("845f64d", "ergonomic karta keybindings"),
         ("00a4f47", "restore source window memory"),
         ("b88a769", "render live overview cards"),
         ("9c4e21a", "overlapping card deck layout"),
@@ -381,7 +381,7 @@ def render_git(cols, rows):
     out.append(f"  {fg(250,179,135)}{BOLD}REPOSITORY TREE{RESET}")
     for line in [
         "  src/",
-        "  ├── layout/canvas/  2D canvas",
+        "  ├── layout/karta/  2D karta",
         "  ├── layout/lane/    row/col",
         "  ├── model/stack/    card deck",
         "  └── overview/       minimap",
@@ -391,10 +391,10 @@ def render_git(cols, rows):
 
 def render_docs(cols, rows):
     out = make_header(cols) + [""]
-    out.append(f"  {fg(245,194,231)}{BOLD}# HyprCanvas Model{RESET}")
+    out.append(f"  {fg(245,194,231)}{BOLD}# Karta Model{RESET}")
     for line in [
         "  ┌──────────────────────┐",
-        "  │ 2D Canvas Workspace  │",
+        "  │ 2D Karta Workspace  │",
         "  │ (Monitors in sync)   │",
         "  └──────────┬───────────┘",
         "       ┌─────┴─────┐",
@@ -412,7 +412,7 @@ def render_docs(cols, rows):
         ("Win+Shift+HJKL", "Swap stack"),
         ("Win+F",          "Expand stack"),
         ("Ctrl+Win+HJKL",  "Monitor"),
-        ("Win+NM,.",       "2D canvas"),
+        ("Win+NM,.",       "2D karta"),
         ("Win+I",          "Overview"),
     ]:
         out.append(f"  {fg(137,180,250)}{k:<15}{RESET} {fg(186,194,222)}{trunc(desc, max(6, cols - 19))}{RESET}")
@@ -428,12 +428,12 @@ def render_logs(cols, rows, tick):
         ("17:12:04", "SWAP",     "stack[0] <-> [1]"),
         ("17:12:05", "EXPAND",   "stack fullscreen"),
         ("17:12:06", "HANDOFF",  "DEMO-L -> DEMO-P"),
-        ("17:12:07", "CANVAS",   "switch (0,0)->(1,0)"),
+        ("17:12:07", "KARTA",   "switch (0,0)->(1,0)"),
         ("17:12:08", "TRANSFER", "carry win -> (1,0)"),
         ("17:12:09", "OVERVIEW", "2D preview open"),
         ("17:12:10", "ACCEPT",   "focus restored"),
     ]
-    out.append(f"  {fg(116,199,236)}{BOLD}HYPRCANVAS EVENTS{RESET}")
+    out.append(f"  {fg(116,199,236)}{BOLD}KARTA EVENTS{RESET}")
     out.append("")
     shift = int(tick) % len(events)
     ordered = events[shift:] + events[:shift]
@@ -442,13 +442,13 @@ def render_logs(cols, rows, tick):
         out.append(f" {fg(108,112,134)}{ts}{RESET} {fg(116,199,236)}{BOLD}{tag:<8}{RESET} {fg(205,214,244)}{trunc(msg, max_msg)}{RESET}")
     return out
 
-def render_canvas2_code(cols, rows):
+def render_karta2_code(cols, rows):
     out = make_header(cols) + [""]
     lines = [
         (88,  "// Live workspace cards without altering", "cmt"),
         (89,  "// real tiled window geometry.", "cmt"),
         (90,  "void OverviewRenderer::drawCard(", "fn"),
-        (91,  "    const CanvasPreview& preview,", "code"),
+        (91,  "    const KartaPreview& preview,", "code"),
         (92,  "    const CBox& viewport,", "code"),
         (93,  "    bool isSelected) {", "code"),
         (94,  "  drawBackdrop(viewport, isSelected);", "call"),
@@ -471,10 +471,10 @@ def render_canvas2_code(cols, rows):
         }.get(tok, fg(205, 214, 244))
         out.append(f"{num}{color}{t}{RESET}")
     out.append("")
-    out.append(f"  {bg(166,227,161)}{fg(17,17,27)}{BOLD} CANVAS 2 · WORKSPACE (1, 0) {RESET}")
+    out.append(f"  {bg(166,227,161)}{fg(17,17,27)}{BOLD} KARTA 2 · WORKSPACE (1, 0) {RESET}")
     return out
 
-def render_canvas2_test(cols, rows):
+def render_karta2_test(cols, rows):
     out = make_header(cols) + [""]
     tests = [
         ("core_logic_tests",     "42/42", "0.01s"),
@@ -482,10 +482,10 @@ def render_canvas2_test(cols, rows):
         ("topology_route_tests", "24/24", "0.01s"),
         ("overview_session",     "31/31", "0.01s"),
         ("keybinds_tests",       "5/5",   "0.01s"),
-        ("canvas_transfer",      "PASS",  "2.40s"),
+        ("karta_transfer",      "PASS",  "2.40s"),
         ("shared_workspace",     "PASS",  "3.10s"),
     ]
-    out.append(f"  {fg(249,226,175)}{BOLD}CANVAS 2 · TEST SUITE{RESET}")
+    out.append(f"  {fg(249,226,175)}{BOLD}KARTA 2 · TEST SUITE{RESET}")
     out.append("")
     for name, res, dur in tests:
         out.append(f"  {fg(166,227,161)}✓{RESET} {fg(205,214,244)}{trunc(name, max(8, cols - 5))}{RESET}")
@@ -504,8 +504,8 @@ while True:
     elif kind == "git": lines_out = render_git(cols, rows)
     elif kind == "docs": lines_out = render_docs(cols, rows)
     elif kind == "logs": lines_out = render_logs(cols, rows, tick)
-    elif kind == "canvas2_code": lines_out = render_canvas2_code(cols, rows)
-    elif kind == "canvas2_test": lines_out = render_canvas2_test(cols, rows)
+    elif kind == "karta2_code": lines_out = render_karta2_code(cols, rows)
+    elif kind == "karta2_test": lines_out = render_karta2_test(cols, rows)
     else: lines_out = make_header(cols)
     render_screen(lines_out, rows)
     time.sleep(1.2 if kind in ("metrics", "logs") else 2.0)
@@ -515,9 +515,9 @@ while True:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--plugin", type=Path, default=REPO_ROOT / "Release/hyprCanvas.so")
-    parser.add_argument("--mp4", type=Path, default=REPO_ROOT / "videos/hyprcanvas-showcase.mp4")
-    parser.add_argument("--gif", type=Path, default=REPO_ROOT / "videos/hyprcanvas-showcase.gif")
+    parser.add_argument("--plugin", type=Path, default=REPO_ROOT / "Release/karta.so")
+    parser.add_argument("--mp4", type=Path, default=REPO_ROOT / "videos/karta-showcase.mp4")
+    parser.add_argument("--gif", type=Path, default=REPO_ROOT / "videos/karta-showcase.gif")
     parser.add_argument("--keep-tmp", action="store_true")
     args = parser.parse_args()
 
@@ -525,7 +525,7 @@ def main() -> None:
     assert plugin.is_file(), f"Missing plugin: {plugin}"
     args.mp4.parent.mkdir(parents=True, exist_ok=True)
 
-    run = Path(tempfile.mkdtemp(prefix="hyprcanvas-showcase-"))
+    run = Path(tempfile.mkdtemp(prefix="karta-showcase-"))
     print(f"Working dir: {run}", flush=True)
 
     # 1. Prepare visual assets & helper scripts
@@ -559,7 +559,7 @@ def main() -> None:
         f"hl.plugin.load({json.dumps(str(plugin))})\n"
         "hl.config({\n"
         "  general = {\n"
-        "    layout = 'canvas',\n"
+        "    layout = 'karta',\n"
         "    gaps_in = 8,\n"
         "    gaps_out = 16,\n"
         "    border_size = 3,\n"
@@ -584,9 +584,9 @@ def main() -> None:
         "    background_color = 'rgb(0d101b)',\n"
         "  },\n"
         "  plugin = {\n"
-        "    hyprCanvas = {\n"
+        "    karta = {\n"
         "      column_default_width = '2',\n"
-        "      canvas_map = 1,\n"
+        "      karta_map = 1,\n"
         "      focus_wrap = 0,\n"
         "    },\n"
         "  },\n"
@@ -619,20 +619,20 @@ def main() -> None:
     def query(name: str):
         return json.loads(ctl(name, "-j"))
 
-    def canvas(name: str, arg=None, wait: float = 0.55) -> None:
-        call = f"hl.plugin.canvas.{name}({json.dumps(arg) if arg is not None else ''})"
+    def karta(name: str, arg=None, wait: float = 0.55) -> None:
+        call = f"hl.plugin.karta.{name}({json.dumps(arg) if arg is not None else ''})"
         lua(call)
         time.sleep(wait)
 
     WINDOW_TITLES = {
         "editor": "Neovim - core.cpp",
         "metrics": "System Telemetry",
-        "fetch": "Shell - hyprCanvas",
+        "fetch": "Shell - karta",
         "git": "Git - main",
-        "docs": "Docs - Canvas Model",
+        "docs": "Docs - Karta Model",
         "logs": "IPC Event Stream",
-        "canvas2_code": "Overview Renderer",
-        "canvas2_test": "Test Suite",
+        "karta2_code": "Overview Renderer",
+        "karta2_test": "Test Suite",
     }
 
     def launch(cls: str, kind: str) -> str:
@@ -694,17 +694,17 @@ def main() -> None:
         subprocess.run(["awww", "img", "-o", "DEMO-P", str(wp_p), "--transition-type", "none"], env=nested_env, check=False)
         time.sleep(0.5)
 
-        # Pre-populate Canvas 2 (to the right) first so Canvas 2 is rich & ready
+        # Pre-populate Karta 2 (to the right) first so Karta 2 is rich & ready
         lua('hl.dispatch(hl.dsp.focus({monitor="DEMO-L"}))')
-        canvas("switch_workspace", "r", wait=0.45)
-        launch("demo-c2-code", "canvas2_code")
+        karta("switch_workspace", "r", wait=0.45)
+        launch("demo-c2-code", "karta2_code")
         lua('hl.dispatch(hl.dsp.focus({monitor="DEMO-P"}))')
-        launch("demo-c2-test", "canvas2_test")
+        launch("demo-c2-test", "karta2_test")
         time.sleep(0.3)
 
-        # Return to Canvas 1 and populate Landscape (3 stacks) + Portrait (2 stacks)
+        # Return to Karta 1 and populate Landscape (3 stacks) + Portrait (2 stacks)
         lua('hl.dispatch(hl.dsp.focus({monitor="DEMO-L"}))')
-        canvas("switch_workspace", "l", wait=0.45)
+        karta("switch_workspace", "l", wait=0.45)
         lua('hl.dispatch(hl.dsp.focus({monitor="DEMO-P"}))')
         w_docs = launch("demo-docs", "docs")
         w_logs = launch("demo-logs", "logs")
@@ -746,65 +746,65 @@ def main() -> None:
         # ---- CHAPTER 1: Auto Orientation & Scrolling Lanes ----
         beat(1, "Auto Orientation & Scrolling Lanes", "Win + H / L", "Scroll horizontally across stacks on Landscape (auto row)")
         time.sleep(0.8)
-        canvas("move_focus", "r", wait=0.8)
-        canvas("move_focus", "r", wait=0.8)
-        canvas("move_focus", "r", wait=0.8)
+        karta("move_focus", "r", wait=0.8)
+        karta("move_focus", "r", wait=0.8)
+        karta("move_focus", "r", wait=0.8)
 
         beat(1, "Auto Orientation & Scrolling Lanes", "Ctrl + Win + L  ·  Win + J / K", "Jump to Portrait (auto col) and scroll vertically")
-        canvas("focus_monitor", "r", wait=0.75)
-        canvas("move_focus", "d", wait=0.8)
-        canvas("move_focus", "u", wait=0.75)
-        canvas("focus_monitor", "l", wait=0.65)
+        karta("focus_monitor", "r", wait=0.75)
+        karta("move_focus", "d", wait=0.8)
+        karta("move_focus", "u", wait=0.75)
+        karta("focus_monitor", "l", wait=0.65)
 
         # ---- CHAPTER 2: Overlapping Card Stacks ----
         beat(2, "Overlapping Card Stacks", "Win + Alt + H", "Merge 3+ windows into a fanned overlapping card stack")
         focus_win(w_metrics, wait=0.35)
-        canvas("move_window", "l", wait=0.85)  # merge metrics into editor stack (2)
+        karta("move_window", "l", wait=0.85)  # merge metrics into editor stack (2)
         focus_win(w_fetch, wait=0.35)
-        canvas("move_window", "l", wait=1.05)  # merge fetch into stack -> 3-card overlapping deck!
+        karta("move_window", "l", wait=1.05)  # merge fetch into stack -> 3-card overlapping deck!
 
         beat(2, "Overlapping Card Stacks", "Win + J / K", "Cycle cards inside the stack — focused window pops to front")
-        canvas("move_focus", "u", wait=0.9)
-        canvas("move_focus", "u", wait=0.9)
-        canvas("move_focus", "d", wait=0.9)
-        canvas("move_focus", "d", wait=0.9)
+        karta("move_focus", "u", wait=0.9)
+        karta("move_focus", "u", wait=0.9)
+        karta("move_focus", "d", wait=0.9)
+        karta("move_focus", "d", wait=0.9)
 
         # ---- CHAPTER 3: Swap & Expand Stack ----
         beat(3, "Swap & Expand Stack", "Win + Shift + L", "Swap active windows across adjacent stacks in place")
-        canvas("swap_window", "r", wait=1.2)
-        canvas("swap_window", "l", wait=1.0)
+        karta("swap_window", "r", wait=1.2)
+        karta("swap_window", "l", wait=1.0)
 
         beat(3, "Swap & Expand Stack", "Win + F", "Expand the focused stack to fill the monitor, press again to restore")
-        canvas("toggle_fullscreen", wait=1.45)
-        canvas("toggle_fullscreen", wait=1.05)
+        karta("toggle_fullscreen", wait=1.45)
+        karta("toggle_fullscreen", wait=1.05)
 
         # ---- CHAPTER 4: Cross-Monitor Direct Transfer ----
         beat(4, "Cross-Monitor Transfer", "Ctrl + Win + Alt + L", "Send focused window straight to Portrait — auto-adapts to col")
-        canvas("move_focus", "r", wait=0.45)
-        canvas("move_window_to_monitor", "r", wait=1.5)
+        karta("move_focus", "r", wait=0.45)
+        karta("move_window_to_monitor", "r", wait=1.5)
 
         beat(4, "Cross-Monitor Transfer", "Ctrl + Win + Alt + H", "Bring the window back to Landscape while keeping focus")
-        canvas("move_window_to_monitor", "l", wait=1.2)
+        karta("move_window_to_monitor", "l", wait=1.2)
 
-        # ---- CHAPTER 5: Synchronized 2D Canvas Workspaces ----
-        beat(5, "Synchronized 2D Canvas Workspaces", "Win + . / N", "Switch ALL monitors together as one 2D canvas (with live Canvas Map)")
-        canvas("switch_workspace", "r", wait=1.55)
-        canvas("switch_workspace", "l", wait=1.35)
+        # ---- CHAPTER 5: Synchronized 2D Karta Workspaces ----
+        beat(5, "Synchronized 2D Karta Workspaces", "Win + . / N", "Switch ALL monitors together as one 2D karta (with live Karta Map)")
+        karta("switch_workspace", "r", wait=1.55)
+        karta("switch_workspace", "l", wait=1.35)
 
-        beat(5, "Synchronized 2D Canvas Workspaces", "Win + Alt + .", "Carry focused window into an adjacent canvas — all monitors follow")
-        canvas("move_window_to_workspace", "r", wait=1.7)
+        beat(5, "Synchronized 2D Karta Workspaces", "Win + Alt + .", "Carry focused window into an adjacent karta — all monitors follow")
+        karta("move_window_to_workspace", "r", wait=1.7)
 
-        # ---- CHAPTER 6: Interactive 2D Canvas Overview ----
-        beat(6, "Interactive 2D Overview", "Win + I", "Open live Canvas Overview without disturbing tiled geometry")
-        canvas("toggle_overview", wait=1.6)
+        # ---- CHAPTER 6: Interactive 2D Karta Overview ----
+        beat(6, "Interactive 2D Overview", "Win + I", "Open live Karta Overview without disturbing tiled geometry")
+        karta("toggle_overview", wait=1.6)
 
-        beat(6, "Interactive 2D Overview", "Win + H / L  ·  Ctrl + Win + H", "Preview canvases & select stacks across monitors")
-        canvas("focus_monitor", "l", wait=1.35)
-        canvas("move_focus", "l", wait=1.15)
-        canvas("move_focus", "r", wait=1.15)
+        beat(6, "Interactive 2D Overview", "Win + H / L  ·  Ctrl + Win + H", "Preview kartas & select stacks across monitors")
+        karta("focus_monitor", "l", wait=1.35)
+        karta("move_focus", "l", wait=1.15)
+        karta("move_focus", "r", wait=1.15)
 
-        beat(6, "Interactive 2D Overview", "Win + I", "Accept selection to land directly on the target canvas & window")
-        canvas("toggle_overview", wait=1.8)
+        beat(6, "Interactive 2D Overview", "Win + I", "Accept selection to land directly on the target karta & window")
+        karta("toggle_overview", wait=1.8)
 
         total_dur = time.monotonic() - t0
         print(f"Recorded choreography duration: {total_dur:.2f}s ({len(beats)} beats)", flush=True)

@@ -2,7 +2,7 @@
 
 本仓库遵循 [Conventional Commits](https://www.conventionalcommits.org/) 规范，
 并在此基础上约定更明确的标题、作用域和正文写法，方便后续排查
-`layout` / `overview` / `canvas` / `lane` / `stack` 等路径上的行为变化。
+`layout` / `overview` / `karta` / `lane` / `stack` 等路径上的行为变化。
 
 ## 提交消息结构
 
@@ -60,7 +60,7 @@ fix(layout): restore portrait fullscreen geometry on insert
 | `docs` | 仅文档修改 | `docs(readme): clarify smoke test workflow` |
 | `feat` | 新功能 | `feat(overview): add workspace selection preview` |
 | `fix` | 缺陷修复 | `fix(layout): restore portrait fullscreen geometry on insert` |
-| `perf` | 性能优化 | `perf(canvas): reduce relayout work during focus changes` |
+| `perf` | 性能优化 | `perf(karta): reduce relayout work during focus changes` |
 | `refactor` | 不改变外部行为的重构 | `refactor(layout): flatten nested control flow` |
 | `style` | 不改变语义的格式或样式调整 | `style(core): normalize include ordering` |
 | `test` | 测试增补或修正 | `test(layout): cover portrait fullscreen insertion regression` |
@@ -74,8 +74,8 @@ fix(layout): restore portrait fullscreen geometry on insert
 
 | 作用域 | 适用模块 |
 | --- | --- |
-| `layout` | 横跨 `canvas` / `lane` / `stack` 的布局行为修改 |
-| `canvas` | `src/layout/canvas/*` |
+| `layout` | 横跨 `karta` / `lane` / `stack` 的布局行为修改 |
+| `karta` | `src/layout/karta/*` |
 | `lane` | `src/layout/lane/*` |
 | `stack` | `src/model/stack.*` 或 stack 级逻辑 |
 | `overview` | `src/overview/*` |
@@ -104,7 +104,7 @@ fix(layout): restore portrait fullscreen geometry on insert
 ```text
 docs(readme): clarify fullscreen behavior
 
-Document that canvas fullscreen is different from Hyprland native fullscreen.
+Document that karta fullscreen is different from Hyprland native fullscreen.
 ```
 
 ### 按类型选正文模板
@@ -313,10 +313,10 @@ fix(layout): restore portrait fullscreen geometry on insert
 示例：
 
 ```text
-perf(canvas): reduce relayout work during focus changes
+perf(karta): reduce relayout work during focus changes
 
 1. 📉 性能目标 (Performance Target)
-- focus 高频切换时会重复触发整 canvas relayout，导致热路径开销偏高。
+- focus 高频切换时会重复触发整 karta relayout，导致热路径开销偏高。
 
 2. ⚙️ 优化策略 (Optimization)
 - 将 focus 更新收敛到窗口级或 lane 级重排，避免无变化时的整画布重算。
@@ -355,10 +355,10 @@ perf(canvas): reduce relayout work during focus changes
 示例：
 
 ```text
-refactor(layout): split canvas restore logic from target callbacks
+refactor(layout): split karta restore logic from target callbacks
 
 1. 🎯 重构动机 (Motivation)
-- canvas 生命周期、target callback 和 restore 逻辑混在一起，导致恢复路径难以单独推理。
+- karta 生命周期、target callback 和 restore 逻辑混在一起，导致恢复路径难以单独推理。
 
 2. 🧱 结构调整 (Structural Changes)
 - 将 snapshot capture/restore 与普通 new/remove target 流程拆开，保留原有 dispatcher 入口不变。
@@ -578,7 +578,7 @@ bump(release): prepare v0.4.0
 ```text
 refactor(dispatch)!: rename fullscreen dispatcher arguments
 
-BREAKING CHANGE: `canvas:togglefullscreen` no longer accepts legacy aliases.
+BREAKING CHANGE: `karta:togglefullscreen` no longer accepts legacy aliases.
 ```
 
 ## Trailer 约定

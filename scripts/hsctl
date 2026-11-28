@@ -17,12 +17,12 @@
 #
 # Instance selection (first match wins):
 #   1. -i / --instance SIGNATURE
-#   2. $HYPRCANVAS_INSTANCE
+#   2. $KARTA_INSTANCE
 #   3. newest Hyprland instance that is not the current session
 #   4. newest instance overall
 set -euo pipefail
 
-INSTANCE="${HYPRCANVAS_INSTANCE:-}"
+INSTANCE="${KARTA_INSTANCE:-}"
 
 die() {
     printf 'hsctl: %s\n' "$*" >&2
@@ -31,24 +31,24 @@ die() {
 
 usage() {
     cat <<'EOF'
-hsctl — short hyprctl wrapper for nested hyprcanvas tests
+hsctl — short hyprctl wrapper for nested karta tests
 
 Commands:
-  focus <l|r|u|d|...>     hl.plugin.canvas.move_focus
-  move  <l|r|u|d|...>     hl.plugin.canvas.move_window
-  move-workspace <l|r|u|d> move window to adjacent canvas and follow
+  focus <l|r|u|d|...>     hl.plugin.karta.move_focus
+  move  <l|r|u|d|...>     hl.plugin.karta.move_window
+  move-workspace <l|r|u|d> move window to adjacent karta and follow
   move-monitor <l|r|u|d>  move window directly to adjacent monitor and follow
-  swap  <l|r|u|d|...>     hl.plugin.canvas.swap_window (adjacent stack)
-  monitor <l|r|u|d>      focus monitor / select canvas in overview
+  swap  <l|r|u|d|...>     hl.plugin.karta.swap_window (adjacent stack)
+  monitor <l|r|u|d>      focus monitor / select karta in overview
   workspace <l|r|u|d|1-10>
-                          switch canvas workspace (alias: canvas)
+                          switch karta workspace (alias: karta)
   marks add <name>        mark the focused window
   marks visit <name>      focus a marked window
   marks delete <name>     delete a mark
   marks reset             clear all marks (alias: mark)
-  size  <1-8>             hl.plugin.canvas.set_window_size
-  mode  <row|col>         hl.plugin.canvas.set_mode
-  fullscreen              hl.plugin.canvas.toggle_fullscreen
+  size  <1-8>             hl.plugin.karta.set_window_size
+  mode  <row|col>         hl.plugin.karta.set_mode
+  fullscreen              hl.plugin.karta.toggle_fullscreen
   overview                open overview, or accept if already open
   overview accept         accept selection and leave overview
   overview cancel         leave overview without accepting
@@ -71,7 +71,7 @@ Options:
   -h, --help
 
 Environment:
-  HYPRCANVAS_INSTANCE   default instance signature
+  KARTA_INSTANCE   default instance signature
 EOF
 }
 
@@ -104,16 +104,16 @@ run_eval() {
     run_hypr eval "$1"
 }
 
-canvas() {
+karta() {
     local fn="$1"
     shift
     if [[ $# -eq 0 ]]; then
-        run_eval "hl.plugin.canvas.${fn}()"
+        run_eval "hl.plugin.karta.${fn}()"
     else
         # Encode control characters as well as quotes without evaluating input.
         local arg
         arg="$(lua_string "$1")"
-        run_eval "hl.plugin.canvas.${fn}(${arg})"
+        run_eval "hl.plugin.karta.${fn}(${arg})"
     fi
 }
 
@@ -176,38 +176,38 @@ case "$cmd" in
         ;;
     focus)
         [[ $# -ge 1 ]] || die "focus needs a direction"
-        canvas move_focus "$1"
+        karta move_focus "$1"
         ;;
     move)
         [[ $# -ge 1 ]] || die "move needs a direction"
-        canvas move_window "$1"
+        karta move_window "$1"
         ;;
     move-monitor)
         one_arg "$@"
         cardinal_direction "$1"
-        canvas move_window_to_monitor "$1"
+        karta move_window_to_monitor "$1"
         ;;
     move-workspace)
         one_arg "$@"
         cardinal_direction "$1"
-        canvas move_window_to_workspace "$1"
+        karta move_window_to_workspace "$1"
         ;;
     swap)
         [[ $# -ge 1 ]] || die "swap needs a direction"
-        canvas swap_window "$1"
+        karta swap_window "$1"
         ;;
     monitor|focusmonitor)
         one_arg "$@"
         cardinal_direction "$1"
-        canvas focus_monitor "$1"
+        karta focus_monitor "$1"
         ;;
-    workspace|canvas)
+    workspace|karta)
         one_arg "$@"
         case "$1" in
             [1-9]|10) ;;
             *) cardinal_direction "$1" ;;
         esac
-        canvas switch_workspace "$1"
+        karta switch_workspace "$1"
         ;;
     marks|mark)
         [[ $# -ge 1 ]] || die "marks needs add, visit, delete, or reset"
@@ -217,11 +217,11 @@ case "$cmd" in
             add|visit|delete)
                 one_arg "$@"
                 [[ -n "$1" ]] || die "mark name must not be empty"
-                canvas "marks_${action}" "$1"
+                karta "marks_${action}" "$1"
                 ;;
             reset)
                 [[ $# -eq 0 ]] || die "marks reset takes no arguments"
-                canvas marks_reset
+                karta marks_reset
                 ;;
             *) die "unknown marks action: $action" ;;
         esac
@@ -229,27 +229,27 @@ case "$cmd" in
     size)
         one_arg "$@"
         [[ "$1" =~ ^[1-8]$ ]] || die "size needs an integer 1-8"
-        run_eval "hl.plugin.canvas.set_window_size($1)"
+        run_eval "hl.plugin.karta.set_window_size($1)"
         ;;
     mode)
         one_arg "$@"
         [[ "$1" == row || "$1" == col ]] || die "mode needs row or col"
-        canvas set_mode "$1"
+        karta set_mode "$1"
         ;;
     fullscreen)
-        canvas toggle_fullscreen
+        karta toggle_fullscreen
         ;;
     overview|ov)
         [[ $# -le 1 ]] || die "overview takes at most one action"
         case "${1:-}" in
             "")
-                canvas toggle_overview
+                karta toggle_overview
                 ;;
             accept|confirm|enter)
-                canvas toggle_overview accept
+                karta toggle_overview accept
                 ;;
             cancel|abort|close)
-                canvas cancel_overview
+                karta cancel_overview
                 ;;
             *)
                 die "overview accepts accept or cancel"

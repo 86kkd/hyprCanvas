@@ -5,7 +5,7 @@
 #include <hyprland/src/desktop/view/window/Window.hpp>
 #include <hyprland/src/desktop/view/window/WindowMetadata.hpp>
 
-namespace CanvasCore {
+namespace KartaCore {
 
 // Use Hyprland's lifetime-stable window identity. Pointer addresses can be reused
 // after a view closes, which corrupts persisted layouts across plugin reloads.
@@ -23,4 +23,4 @@ inline uintptr_t snapshot_window_key(PHLWINDOW window, int snapshotVersion, int 
     return snapshotVersion >= stableKeyVersion ? window_key(window) : legacy_window_key(window);
 }
 
-} // namespace CanvasCore
+} // namespace KartaCore

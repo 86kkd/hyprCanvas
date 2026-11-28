@@ -15,7 +15,7 @@ class CRenderContext;
 
 namespace Overview {
 
-void drawCanvasMap(Render::CRenderContext& ctx, const Minimap::Map& map, double alpha, double scale, RenderState& state);
+void drawKartaMap(Render::CRenderContext& ctx, const Minimap::Map& map, double alpha, double scale, RenderState& state);
 void snapshotBackdropLayers(const Model& model, RenderState& state);
 void enqueueMonitorBackdrop(Render::CRenderContext& ctx, PHLMONITOR monitor, const RenderState& state);
 void drawSceneMonitor(Render::CRenderContext& ctx, const SceneMonitor& scene, steady_tp now, RenderState& state);

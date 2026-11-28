@@ -2,7 +2,7 @@
 
 #include <hyprland/src/Compositor.hpp>
 
-namespace CanvasCore {
+namespace KartaCore {
 
 // Return null if target doesn't carry a window yet.
 PHLWINDOW windowFromTarget(SP<Layout::ITarget> target) {
@@ -11,7 +11,7 @@ PHLWINDOW windowFromTarget(SP<Layout::ITarget> target) {
 
 // Keyboard commands must follow focus even when pointer warping is disabled.
 PHLMONITOR monitorForKeyboardAction() {
-    return CanvasCore::HyprlandRuntime::monitorForKeyboardAction();
+    return KartaCore::HyprlandRuntime::monitorForKeyboardAction();
 }
 
 // Drop all marks to avoid stale references after disable/reset.
@@ -65,4 +65,4 @@ Marks& marksRegistry() {
     return marksSlot().get();
 }
 
-} // namespace CanvasCore
+} // namespace KartaCore

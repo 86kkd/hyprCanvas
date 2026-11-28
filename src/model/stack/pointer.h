@@ -4,7 +4,7 @@
 #include <hyprutils/math/Box.hpp>
 #include "core/types.h"
 
-namespace CanvasModel::DeckPointer {
+namespace KartaModel::DeckPointer {
 struct Card {
     PHLWINDOWREF window;
     Hyprutils::Math::CBox visualBox;
@@ -12,6 +12,6 @@ struct Card {
 };
 void initialize();
 void shutdown();
-void update(const void* owner, std::vector<Card> cards, Mode mode, const CanvasCore::Box& viewport);
+void update(const void* owner, std::vector<Card> cards, Mode mode, const KartaCore::Box& viewport);
 void forget(const void* owner);
-} // namespace CanvasModel::DeckPointer
+} // namespace KartaModel::DeckPointer

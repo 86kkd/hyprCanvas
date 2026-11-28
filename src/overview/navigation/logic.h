@@ -20,13 +20,13 @@ constexpr int         MONITOR_ID_INVALID = -1;
 
 struct TargetCandidate {
     int               monitorId = MONITOR_ID_INVALID;
-    CanvasCore::Box box;
+    KartaCore::Box box;
 };
 
-struct CanvasTargetCandidate {
-    int               canvasId = -1;
+struct KartaTargetCandidate {
+    int               kartaId = -1;
     int               monitorId = MONITOR_ID_INVALID;
-    CanvasCore::Box box;
+    KartaCore::Box box;
     // Nonzero keys group windows belonging to the same stack.
     uintptr_t         stackId = 0;
     bool              stackActive = false;
@@ -45,7 +45,7 @@ struct AcceptAction {
 };
 
 std::optional<size_t> pickTargetIndex(const std::vector<TargetCandidate>& targets, size_t currentIndex, Direction direction);
-std::optional<size_t> pickTargetIndexInCanvas(const std::vector<CanvasTargetCandidate>& targets, size_t currentIndex,
+std::optional<size_t> pickTargetIndexInKarta(const std::vector<KartaTargetCandidate>& targets, size_t currentIndex,
                                               Direction direction);
 std::vector<AcceptAction> buildWorkspaceAcceptPlan(int monitorId, WorkspaceId workspaceId, bool specialWorkspace);
 std::vector<AcceptAction> buildEmptyAcceptPlan(int monitorId, WorkspaceId workspaceId);

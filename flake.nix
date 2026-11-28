@@ -1,5 +1,5 @@
 {
-  description = "hyprCanvas";
+  description = "karta";
 
   inputs.hyprland.url = "github:hyprwm/Hyprland";
 
@@ -20,9 +20,9 @@
           let
             pkgs = nixpkgs.legacyPackages.${system};
             hyprlandPkg = hyprland.packages.${system}.hyprland;
-            hyprCanvasPkg = self.packages.${system}.hyprCanvas;
+            kartaPkg = self.packages.${system}.karta;
           in
-          func { inherit pkgs hyprlandPkg hyprCanvasPkg; }
+          func { inherit pkgs hyprlandPkg kartaPkg; }
         );
 
       inherit (builtins) substring;
@@ -40,11 +40,11 @@
         {
           pkgs,
           hyprlandPkg,
-          hyprCanvasPkg,
+          kartaPkg,
         }:
         {
-          hyprCanvas = pkgs.stdenv.mkDerivation {
-            pname = "hyprCanvas";
+          karta = pkgs.stdenv.mkDerivation {
+            pname = "karta";
             inherit version;
             src = self;
 
@@ -61,17 +61,17 @@
 
             installPhase = ''
               mkdir -p $out/lib
-              cp ./hyprCanvas.so $out/lib/libhyprCanvas.so
+              cp ./karta.so $out/lib/libkarta.so
             '';
 
             meta = with lib; {
-              homepage = "https://github.com/86kkd/hyprCanvas";
+              homepage = "https://github.com/86kkd/karta";
               description = "Hyprland layout plugin providing a scrolling layout like PaperWM";
               license = licenses.mit;
               platforms = platforms.linux;
             };
           };
-          default = hyprCanvasPkg;
+          default = kartaPkg;
         }
       );
 
@@ -79,19 +79,19 @@
         {
           pkgs,
           hyprlandPkg,
-          hyprCanvasPkg,
+          kartaPkg,
         }:
         {
           default = pkgs.mkShell {
             shellHook = ''
               make dev
             '';
-            name = "hyprCanvas-shell";
+            name = "karta-shell";
             nativeBuildInputs = with pkgs; [ cmake ];
             buildInputs = [ hyprlandPkg ];
             inputsFrom = [
               hyprlandPkg
-              hyprCanvasPkg
+              kartaPkg
             ];
           };
         }
